@@ -494,6 +494,24 @@ function make(P) {
   }
 
 
+  function moveCheck(s, from, to) {
+    const c = s.grid[from]; if (!c || c.treille) return { ok: false, msg: 'Rien à déplacer ici.' };
+    if (from === to) return { ok: false, msg: 'C’est déjà sa place.' };
+    if (!isActive(s, to)) return { ok: false, msg: 'Cette parcelle n’est pas encore à toi.' };
+    const t = s.grid[to], p = P[c.pid];
+    if (t && !(t.treille && (t.furn === 'treille' || t.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
+    return { ok: true, support: t && t.treille ? t.furn : null, p };
+  }
+  function movePlant(s, from, to) {
+    const k = moveCheck(s, from, to); if (!k.ok) return k;
+    const c = s.grid[from], woody = k.p.strate === 'Arbre' || k.p.strate === 'Arbuste';
+    s.grid[from] = c.supp ? { treille: true, furn: c.supp } : null;
+    delete c.supp; if (k.support) c.supp = k.support;
+    c.stress = (c.stress || 0) + (woody ? 2 : 1); c.water = Math.max(0, (c.water || 0) - 8);
+    s.grid[to] = c; log(s, 'good', k.p.name + ' déplacé' + (woody ? ' (il reprendra mieux en repos)' : '') + '.'); bump(s);
+    return { ok: true, name: k.p.name, woody };
+  }
+
   // ----- Guildéon : objectifs, guildes, bonus -----
   const GSTR = ['Arbuste', 'Herbacée', 'Racine', 'Grimpante', 'Couvre-sol'];
   function guildAt(s, i) {
@@ -556,7 +574,7 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     buildTasks, runTask, synergy, placeFurn, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

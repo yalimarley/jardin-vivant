@@ -525,7 +525,7 @@ function renderGarden() {
     const fk = cell && cell.treille ? (cell.furn || 'treille') : null, flat = fk && fk !== 'treille';
     const soilTop = free ? '#8a6a4a' : fk ? '#8a6a4a' : (() => { const base = mix('#5c4433', '#b09a74', 1 - cell.water / 100), sc = STRC[P[cell.pid].strate]; if (!sc) return base; const t = ui.strF ? (ui.strF === P[cell.pid].strate ? .78 : 0) : .5; return mix(base, sc, t); })();
     const climbPick = picking && P[ui.mode.pid].strate === 'Grimpante' && fk && (fk === 'treille' || fk === 'pergola'), duckPick = ui.mode && ui.mode.k === 'canard' && fk === 'mare' && !cell.ducks;
-    const cls = 'cell ' + (free ? 'free ' : '') + ((picking || tre) && free || climbPick || duckPick ? 'pick ' : '') + (ui.sel === i ? 'sel' : '') + (ui.delPending === i ? ' delp' : '');
+    const relT = ui.tool === 'reloc' && ui.mvFrom >= 0 && ui.mvFrom !== i && G.moveCheck(S, ui.mvFrom, i).ok, cls = 'cell ' + (free ? 'free ' : '') + ((picking || tre) && free || climbPick || duckPick || relT ? 'pick ' : '') + (ui.sel === i ? 'sel' : '') + (ui.delPending === i ? ' delp' : '');
     let lab = free ? 'Parcelle libre' : fk ? FURN_INFO[fk].n : P[cell.pid].name;
     h += '<g class="' + cls + '" data-i="' + i + '" tabindex="0" role="button" aria-label="' + lab + ', colonne ' + (c + 1) + ' rangée ' + (r + 1) + '">';
     // faces latérales du bac
@@ -542,7 +542,7 @@ function renderGarden() {
     } else if (fk) {
       h += furnTile(fk, cx, flat ? isoY(c + .5, r + .5) : cyTop, m, i, cell);
       if (climbPick || duckPick) h += '<circle cx="' + cx + '" cy="' + (cyTop - 30) + '" r="11" fill="var(--leaf)" opacity=".92"/><path d="M' + cx + ' ' + (cyTop - 36) + 'v12M' + (cx - 6) + ' ' + (cyTop - 30) + 'h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>';
-    } else if (picking || tre) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
+    } else if (picking || tre || relT) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
     h += '<polygon class="frame" points="' + T.join(' ') + '"/><polygon points="' + [pt(c, r, lift), pt(c + 1, r, lift), pt(c + 1, r + 1, lift), pt(c, r + 1, lift)].join(' ') + '" fill="transparent"/></g>';
   }
   h += '<g id="gFront"></g>';
@@ -570,7 +570,8 @@ function renderGarden() {
   h += '<rect x="-400" y="-300" width="1560" height="1140" style="fill:var(--dim);pointer-events:none"/>';
   $('garden').innerHTML = h;
   const hint = $('hint');
-  if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
@@ -800,6 +801,14 @@ function doTask(id) {
 }
 function clickCell(i) {
   const c = S.grid[i];
+  if (ui.tool === 'reloc') {
+    if (ui.mvFrom >= 0 && ui.mvFrom !== i && !(c && !c.treille)) {
+      const r = G.movePlant(S, ui.mvFrom, i); if (!r.ok) { toast(r.msg); return; }
+      toast(r.name + ' déplacé.' + (r.woody ? ' Un arbre ou arbuste déplacé a besoin de repos : arrose-le.' : '')); ui.mvFrom = -1; ui.sel = i; render(); return;
+    }
+    if (c && !c.treille) { ui.mvFrom = ui.mvFrom === i ? -1 : i; ui.sel = i; if (ui.mvFrom >= 0) toast('Touche une parcelle libre pour déplacer ' + P[c.pid].name.toLowerCase() + '.'); render(); return; }
+    toast(ui.mvFrom >= 0 ? G.moveCheck(S, ui.mvFrom, i).msg || 'Choisis une parcelle libre.' : 'Touche d’abord la plante à déplacer.'); return;
+  }
   if (ui.tool === 'delete') {
     if (!c) { toast('Rien à supprimer ici.'); return; }
     const nm = c.treille ? FURN_INFO[c.furn || 'treille'].n : P[c.pid].name;
@@ -846,15 +855,16 @@ document.addEventListener('click', e => {
     case 'task': doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
-    case 'mode-plant': { ui.tool = 'select'; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); break; }
-    case 'mode-mat': { ui.tool = 'select'; ui.delPending = -1; const k = a.dataset.k; ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
+    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); break; }
+    case 'mode-mat': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
     case 'guil-toggle': ui.gOpen = !ui.gOpen; ui.gUntil = 0; render(); break;
     case 'guil-claim': { const r = G.claimQuest(S, a.dataset.id); if (r.ok) { toast('Bonus de Guildéon : ' + r.label + '.'); ui.gUntil = 0; render(); } break; }
-    case 'tool-select': ui.tool = 'select'; ui.delPending = -1; render(); break;
-    case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mode = null; ui.delPending = -1; render(); break;
-    case 'tool-delete': ui.tool = ui.tool === 'delete' ? 'select' : 'delete'; ui.mode = null; ui.delPending = -1; render(); break;
+    case 'tool-reloc': ui.tool = ui.tool === 'reloc' ? 'select' : 'reloc'; ui.mode = null; ui.delPending = -1; ui.mvFrom = -1; render(); break;
+    case 'tool-select': ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
+    case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
+    case 'tool-delete': ui.tool = ui.tool === 'delete' ? 'select' : 'delete'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'zoom-in': zoomBy(1.3); break;
     case 'zoom-out': zoomBy(1 / 1.3); break;
     case 'rot-l': VROT = (VROT + 3) % 4; render(); break;

@@ -101,5 +101,11 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const d = G.demo(); if (G.guilds(d).n < 1) { console.log('ÉCHEC guilde démo'); process.exit(1); }
   console.log('ok  : Guildéon (quêtes, récompense unique, guildes)'); }
 
+{ const s = G.demo(); const from = s.grid.findIndex(c => c && !c.treille), to = s.grid.findIndex((c, k) => !c && G.isActive(s, k)), pid = s.grid[from].pid;
+  const bad = G.movePlant(s, from, from); const r = G.movePlant(s, from, to);
+  if (bad.ok || !r.ok || s.grid[from] || !s.grid[to] || s.grid[to].pid !== pid) { console.log('ÉCHEC déplacement'); process.exit(1); }
+  const occ = s.grid.findIndex((c, k) => c && !c.treille && k !== to); if (G.movePlant(s, to, occ).ok) { console.log('ÉCHEC déplacement sur occupé'); process.exit(1); }
+  console.log('ok  : déplacement d’une plante'); }
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

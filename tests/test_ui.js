@@ -112,7 +112,7 @@ click(q('[data-act="strate-set"][data-s="Arbre"]')); ok(qa('#garden .spr.dim').l
 click(q('[data-act="strate-set"][data-s=""]')); ok(qa('#garden .spr.dim').length === 0, 'filtre retiré');
 click(q('[data-act="strate-menu"]'));
 // boîte à outils
-ok(qa('#tools .tb').length === 9, 'boîte à outils : 9 boutons');
+ok(qa('#tools .tb').length === 10, 'boîte à outils : 10 boutons');
 const vb0 = q('#garden').getAttribute('viewBox'); click(q('[data-act="zoom-in"]'));
 ok(q('#garden').getAttribute('viewBox') !== vb0, 'zoom change la vue');
 for (let k = 0; k < 4; k++) { click(q('[data-act="rot-r"]')); ok(qa('#garden .cell').length === 48, 'rotation ' + (k + 1) + ' : 48 cases'); }

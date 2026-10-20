@@ -95,5 +95,11 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const ci = s2.grid.findIndex(c => c && !c.treille); s2.grid[ci].sick = { k: 'limaces', day: s2.day }; ok(G.buildTasks(s2).tasks.some(t => t.id === 'heal'), 'tâche de soin présente'); ok(G.heal(s2, ci), 'plante soignée');
   ok(G.resistance(s2, ci).pct >= 0, 'résistance calculée : ' + G.resistance(s2, ci).pct + ' %'); }
 
+{ const s = G.newGame(); const g0 = G.guildeon(s); if (!g0.qs.length || g0.ready) { console.log('ÉCHEC Guildéon départ'); process.exit(1); }
+  s.boosters = 1; if (!G.quests(s).find(q => q.id === 'booster').done) { console.log('ÉCHEC quête booster'); process.exit(1); }
+  const r = G.claimQuest(s, 'booster'); if (!r.ok || G.claimQuest(s, 'booster').ok || s.mats.paillage !== 4) { console.log('ÉCHEC récompense'); process.exit(1); }
+  const d = G.demo(); if (G.guilds(d).n < 1) { console.log('ÉCHEC guilde démo'); process.exit(1); }
+  console.log('ok  : Guildéon (quêtes, récompense unique, guildes)'); }
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

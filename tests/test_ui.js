@@ -101,6 +101,10 @@ ok(q('#fiche h2').textContent === 'Chemin', 'chemin posé : fiche ' + q('#fiche 
 ok(/Chemin 2/.test(q('#res').textContent), 'stock de chemin décrémenté : ' + q('#res').textContent.match(/Chemin \d/));
 click(q('[data-act="remove"]')); click(q('[data-act="remove"]'));
 ok(/Chemin 3/.test(q('#res').textContent), 'chemin repris en main');
+// Guildéon
+ok(q('#gmasc') && q('#gsay'), 'Guildéon présent');
+click(q('#gmasc')); ok(!q('#gcard').hidden && qa('#gcard .gq').length >= 2, 'panneau Guildéon : objectifs listés');
+click(q('#gmasc')); ok(q('#gcard').hidden, 'panneau Guildéon fermé');
 // boîte à outils
 ok(qa('#tools .tb').length === 8, 'boîte à outils : 8 boutons');
 const vb0 = q('#garden').getAttribute('viewBox'); click(q('[data-act="zoom-in"]'));

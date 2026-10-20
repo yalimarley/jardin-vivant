@@ -254,6 +254,25 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .garden-wrap.panable #garden{cursor:grab;touch-action:none}.garden-wrap[data-tool="delete"] #garden{cursor:crosshair}
 .cell.delp .frame{stroke:var(--fruit);stroke-width:4}
 @media (max-width:560px){.tools{flex-direction:row;flex-wrap:wrap;left:6px;top:6px;max-width:calc(100% - 12px)}.tb{width:36px;height:36px}.tools .sep{width:1px;height:24px}}
+.guil{position:absolute;right:10px;top:10px;z-index:4;width:min(330px,calc(100% - 76px));display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
+.gmasc{pointer-events:auto;position:relative;width:78px;height:78px;border:0;background:transparent;padding:0;cursor:pointer;filter:drop-shadow(0 6px 8px rgba(0,0,0,.22));animation:gfloat 4s ease-in-out infinite}
+.gmasc img{width:100%;height:100%;object-fit:contain;display:block}
+.gmasc.joy{animation:gjoy 1.1s ease-in-out infinite}
+.gbadge{position:absolute;right:-2px;top:-2px;min-width:22px;height:22px;border-radius:11px;background:var(--fruit,#d9532b);color:#fff;font:700 12px/22px system-ui;text-align:center;border:2px solid #fff;padding:0 4px}
+.gsay{pointer-events:none;position:absolute;right:86px;top:8px;margin:0;max-width:min(260px,calc(100vw - 190px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px 14px 4px 14px;padding:9px 12px;font-size:13px;line-height:1.35;box-shadow:var(--shadow)}
+.gcard{pointer-events:auto;margin-top:6px;width:100%;max-height:min(60vh,460px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
+.gcard[hidden],.gsay[hidden],.gbadge[hidden]{display:none}
+.gh{display:flex;justify-content:space-between;align-items:center}.gx{border:0;background:transparent;font-size:22px;line-height:1;color:var(--ink);cursor:pointer}
+.gsp{margin:6px 0;font-size:13px;line-height:1.4}.gbo{margin:0 0 6px;font-size:12px;color:var(--leaf);font-weight:600}
+.gl{list-style:none;margin:0;padding:0;display:grid;gap:8px}.gq{border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--bg)}.gq.done{border-color:var(--leaf)}
+.gqt{display:flex;justify-content:space-between;gap:8px;font-size:13px}.gqt em{font-style:normal;font-size:11px;color:var(--fruit,#d9532b);white-space:nowrap}
+.gqb{height:6px;border-radius:3px;background:var(--line);margin:6px 0;overflow:hidden}.gqb i{display:block;height:100%;background:var(--leaf)}
+.gqr{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--muted,#6b7a6b)}.gqr .ok{color:var(--leaf);font-weight:600}
+.gfoot{margin:10px 0 0;font-size:11.5px;color:var(--muted,#6b7a6b)}
+@keyframes gfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes gjoy{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-10px) rotate(-5deg)}60%{transform:translateY(0) rotate(4deg)}}
+@media (prefers-reduced-motion:reduce){.gmasc,.gmasc.joy{animation:none}}
+@media (max-width:560px){.gmasc{width:60px;height:60px}.gsay{right:68px;font-size:12px}.tools{top:76px}}
 </style>
 
 <div class="app">
@@ -269,7 +288,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
     <section class="board" aria-label="Le jardin">
       <div class="res" id="res"></div>
       <div class="hint" id="hint" role="status"></div>
-      <div class="garden-wrap"><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+      <div class="garden-wrap"><div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="__GUILDEON__" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
         <button type="button" class="tb on" data-tool="select" data-act="tool-select" title="Sélectionner" aria-label="Sélectionner"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg></button>
         <button type="button" class="tb" data-tool="move" data-act="tool-move" title="Déplacer la carte" aria-label="Déplacer la carte"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <button type="button" class="tb" data-tool="delete" data-act="tool-delete" title="Supprimer" aria-label="Supprimer"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v6M14 11v6"/></svg></button>

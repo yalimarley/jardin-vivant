@@ -106,7 +106,7 @@ ok(q('#gmasc') && q('#gsay'), 'Guildéon présent');
 click(q('#gmasc')); ok(!q('#gcard').hidden && qa('#gcard .gq').length >= 2, 'panneau Guildéon : objectifs listés');
 click(q('#gmasc')); ok(q('#gcard').hidden, 'panneau Guildéon fermé');
 // strates
-ok(qa('#garden .smk').length >= 4, 'pastilles de strate sur les plantes');
+ok(new Set(qa('#garden .cell:not(.free) polygon').map(e => e.getAttribute('fill')).filter(Boolean)).size >= 3, 'cases teintées selon la strate');
 click(q('[data-act="strate-menu"]')); ok(!q('#strmenu').hidden && qa('#strmenu .sch').length === 7, 'menu strates');
 click(q('[data-act="strate-set"][data-s="Arbre"]')); ok(qa('#garden .spr.dim').length >= 1, 'filtre strate grise les autres');
 click(q('[data-act="strate-set"][data-s=""]')); ok(qa('#garden .spr.dim').length === 0, 'filtre retiré');

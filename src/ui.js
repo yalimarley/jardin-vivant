@@ -51,18 +51,9 @@ function leafColor(p, m, dry) {
   if (woody) { if (m >= 2 && m <= 4) return '#7dbb5c'; if (m >= 5 && m <= 7) return '#3d8c44'; if (m === 8) return '#6f9a3a'; if (m === 9) return '#d08a2a'; if (m === 10) return '#a8612a'; return null; }
   if (m >= 2 && m <= 4) return '#7dbb5c'; if (m >= 5 && m <= 8) return '#459646'; if (m === 9) return '#6f9a3a'; if (m === 10) return '#6c8f47'; return '#6f9a64';
 }
-const STRC = { 'Arbre': '#8a5a2b', 'Arbuste': '#7b5aa6', 'Herbacée': '#4f9a4a', 'Racine': '#b0733a', 'Grimpante': '#2f8f8a', 'Couvre-sol': '#6a8f3a' };
+const STRC = { 'Arbre': '#a0522d', 'Arbuste': '#7b5aa6', 'Herbacée': '#4f9a4a', 'Racine': '#e08a1e', 'Grimpante': '#2f8f8a', 'Couvre-sol': '#a3c23f' };
 const STRS = { 'Arbre': 1.3, 'Arbuste': .95, 'Herbacée': .92, 'Racine': .82, 'Grimpante': 1, 'Couvre-sol': 1.05 };
-function strMark(st, x, y, r) {
-  const c = STRC[st] || '#888', a = ' fill="' + c + '" stroke="#fff" stroke-width="' + (r * .3).toFixed(1) + '" stroke-linejoin="round"';
-  if (st === 'Arbre') return '<path d="M' + x + ' ' + (y - r * 1.15) + 'L' + (x + r * 1.1) + ' ' + (y + r * .8) + 'L' + (x - r * 1.1) + ' ' + (y + r * .8) + 'Z"' + a + '/>';
-  if (st === 'Herbacée') return '<path d="M' + x + ' ' + (y - r * 1.2) + 'L' + (x + r) + ' ' + y + 'L' + x + ' ' + (y + r * 1.2) + 'L' + (x - r) + ' ' + y + 'Z"' + a + '/>';
-  if (st === 'Racine') return '<rect x="' + (x - r * .9) + '" y="' + (y - r * .9) + '" width="' + (r * 1.8) + '" height="' + (r * 1.8) + '" rx="' + (r * .3) + '"' + a + '/>';
-  if (st === 'Grimpante') { const pts = [0, 1, 2, 3, 4, 5].map(k => (x + Math.cos(k * Math.PI / 3 + Math.PI / 6) * r * 1.1).toFixed(1) + ' ' + (y + Math.sin(k * Math.PI / 3 + Math.PI / 6) * r * 1.1).toFixed(1)); return '<path d="M' + pts.join('L') + 'Z"' + a + '/>'; }
-  if (st === 'Couvre-sol') return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (r * 1.45) + '" ry="' + (r * .7) + '"' + a + '/>';
-  return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"' + a + '/>';
-}
-const strIco = st => '<svg class="sti" viewBox="-8 -8 16 16" aria-hidden="true">' + strMark(st, 0, 0, 5.2) + '</svg>';
+const strIco = st => '<i class="sw" style="background:' + (STRC[st] || '#888') + '"></i>';
 // dessine dans un repère 80x80, pied de la plante en (40,66)
 function sprite(p, o) {
   const R = rnd(o.seed + p.id * 7), lc = leafColor(p, o.m, o.dry), dk = lc ? shade(lc, -26) : '#5b4630', lt = lc ? shade(lc, 22) : '#8a6b4a';
@@ -532,7 +523,7 @@ function renderGarden() {
     const Lc = cor.reduce((p, q) => q[0] < p[0] ? q : p), Rc = cor.reduce((p, q) => q[0] > p[0] ? q : p), Bc = cor.reduce((p, q) => q[1] > p[1] ? q : p), up = p => p[0].toFixed(1) + ',' + p[1].toFixed(1), dn = p => p[0].toFixed(1) + ',' + (p[1] + lift).toFixed(1);
     const cx = isoX(c + .5, r + .5), cyTop = isoY(c + .5, r + .5) - lift; centers[i] = [cx, cyTop];
     const fk = cell && cell.treille ? (cell.furn || 'treille') : null, flat = fk && fk !== 'treille';
-    const soilTop = free ? '#8a6a4a' : fk ? '#8a6a4a' : mix('#5c4433', '#b09a74', 1 - cell.water / 100);
+    const soilTop = free ? '#8a6a4a' : fk ? '#8a6a4a' : (() => { const base = mix('#5c4433', '#b09a74', 1 - cell.water / 100), sc = STRC[P[cell.pid].strate]; if (!sc) return base; const t = ui.strF ? (ui.strF === P[cell.pid].strate ? .78 : 0) : .5; return mix(base, sc, t); })();
     const climbPick = picking && P[ui.mode.pid].strate === 'Grimpante' && fk && (fk === 'treille' || fk === 'pergola'), duckPick = ui.mode && ui.mode.k === 'canard' && fk === 'mare' && !cell.ducks;
     const cls = 'cell ' + (free ? 'free ' : '') + ((picking || tre) && free || climbPick || duckPick ? 'pick ' : '') + (ui.sel === i ? 'sel' : '') + (ui.delPending === i ? ' delp' : '');
     let lab = free ? 'Parcelle libre' : fk ? FURN_INFO[fk].n : P[cell.pid].name;
@@ -547,7 +538,7 @@ function renderGarden() {
       h += '<ellipse cx="' + (cx + 6) + '" cy="' + (cyTop + 1) + '" rx="' + (ph.stage === 'graine' ? 14 : 24) + '" ry="8" fill="#000" opacity=".2"/>';
       { const sc = STRS[p.strate] || 1, dim = ui.strF && ui.strF !== p.strate;
         h += '<g class="spr' + (dim ? ' dim' : '') + '" transform="translate(' + (cx - 40 * sc).toFixed(1) + ' ' + (cyTop + 3 - 66 * sc).toFixed(1) + ') scale(' + sc + ')"' + (cell.stress > 7 ? ' opacity=".8"' : '') + '>' + sprite(p, { stage: ph.stage, prog: ph.prog, ready: cell.ready, m, dry: dry(cell), seed: i }) + '</g>';
-        if (ph.stage !== 'graine' || ui.strF === p.strate) h += '<g class="smk' + (dim ? ' dim' : '') + '" style="pointer-events:none">' + strMark(p.strate, cx, cyTop + 11, ui.strF === p.strate ? 6.4 : 4.6) + '</g>'; }
+      }
     } else if (fk) {
       h += furnTile(fk, cx, flat ? isoY(c + .5, r + .5) : cyTop, m, i, cell);
       if (climbPick || duckPick) h += '<circle cx="' + cx + '" cy="' + (cyTop - 30) + '" r="11" fill="var(--leaf)" opacity=".92"/><path d="M' + cx + ' ' + (cyTop - 36) + 'v12M' + (cx - 6) + ' ' + (cyTop - 30) + 'h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>';

@@ -129,5 +129,8 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const ex = G.P.find(p => G.isExo(p)), s2 = G.newGame(); let seen = false; for (let k = 0; k < 400; k++) { s2.boosterDay = -1; s2.mats.grandeserre = 0; s2.maxPlantings = 25; s2.boosters = 5; s2.day++; const b = G.openBooster(s2); if (b.some(c => c.t === 'plant' && G.isExo(G.P[c.pid]))) seen = true; } if (seen) fail('exotiques sans grande serre');
   console.log('ok  : nouvelles cartes (booster, soins, nichoir, cuve, bocaux, plan de guilde, exotiques)'); }
 
+{ const s = G.newGame(); ok(s.stock.reduce((a, b) => a + b.kg, 0) > 20 && s.stock.every(it => it.keep), 'garde-manger de départ : réserves de conserve');
+  const c = G.openBooster(s).filter(x => x.t === 'plant').map(x => G.P[x.pid]); ok(c.length === 6 && c.every(p => p.semis.includes(G.dateOf(s.day).m + 1) || p.strate === 'Arbuste'), 'premier booster : cultures plantables maintenant');
+  const s3 = G.newGame(); s3.boosters = 1; s3.day = 40; const b = G.openBooster(s3).filter(x => x.t === 'plant').slice(0, 2).map(x => G.P[x.pid]); ok(b.every(p => ['Radis', 'Épinard', 'Mâche', 'Laitue', 'Chervis', 'Ciboulette', 'Pois', 'Persil', 'Bourrache', 'Roquette', 'Poirée'].includes(p.name)), 'boosters d’hiver : cultures rapides'); }
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

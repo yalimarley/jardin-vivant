@@ -394,7 +394,8 @@ function make(P) {
     const s = fixSave(blank());
     [['Trèfle blanc', 1, 3, 20], ['Radis', 3, 3, 12], ['Ail', 5, 2, 16], ['Fève', 6, 4, 18]].forEach(([n, c, r, g]) => { s.grid[r * COLS + c] = cell(byName[n].id, 0, g); });
     s.plantings = 4; s.maxPlantings = 4;
-    log(s, 'good', 'Bienvenue. Trois plantes de saison sont déjà en terre. Ouvre ton booster du jour.');
+    [['Courge', 8, 'cave'], ['Pomme de terre', 10, 'cave'], ['Carotte', 4, 'cave'], ['Tomate', 3, 'bocal'], ['Haricot sec', 2, 'sec'], ['Ail', .5, 'sec'], ['Thym', .3, 'sec']].forEach(([n, kg, keep]) => { if (byName[n]) s.stock.push({ pid: byName[n].id, kg, day: 0, keep }); });
+    log(s, 'good', 'Bienvenue. Quatre plantes de saison sont déjà en terre, et le garde-manger contient les réserves de l’été : courge, pommes de terre, bocaux. Ouvre ton booster du jour.');
     return s;
   }
   function log(s, type, text) { s.log.unshift({ day: s.day, type, text }); if (s.log.length > 60) s.log.length = 60; }
@@ -605,6 +606,8 @@ function make(P) {
     for (const [k, v] of w) { x -= v; if (x <= 0) return k; }
     return 'paillage';
   }
+  const FAST_NAMES = ['Radis', 'Épinard', 'Mâche', 'Laitue', 'Chervis', 'Ciboulette', 'Pois', 'Persil', 'Bourrache', 'Roquette', 'Poirée'];
+  function fastPool(s, m, strates) { const u = unlocked(s); return FAST_NAMES.map(n => byName[n]).filter(p => p && sowable(p, m) && u.has(p.strate) && (!strates || strates.includes(p.strate))); }
   function openBooster(s) {
     if (s.boosterDay >= s.day) return null;
     const rng = mulberry(s.day * 131 + s.boosters * 17 + 7), cards = [], m = dateOf(s.day).m;
@@ -612,12 +615,14 @@ function make(P) {
       const used = new Set(), want = ['Racine', 'Herbacée', 'Couvre-sol', 'Herbacée', 'Racine', 'Arbuste'];
       for (const st of want) {
         let pool = P.filter(p => p.strate === st && sowable(p, m) && p.rarete !== 'Rare' && !used.has(p.id) && (st !== 'Arbre' && st !== 'Arbuste' || p.kg > 0)); const core = pool.filter(p => p.id < CORE); if (core.length && rng() < .8) pool = core;
+        if (st === 'Racine' || st === 'Herbacée') { const fp = fastPool({ day: s.day, maxPlantings: 99, plantings: 99 }, m, [st]).filter(p => !used.has(p.id)); if (fp.length) pool = fp; }
         if (pool.length) { const p = pool[Math.floor(rng() * pool.length)]; used.add(p.id); cards.push({ t: 'plant', pid: p.id }); }
       }
       ['paillage', 'compost', 'chemin', 'savoir'].forEach(k => cards.push({ t: 'mat', k }));
     } else {
       const mp = s.maxPlantings, wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste';
       for (let k = 0; k < 5; k++) cards.push({ t: 'plant', pid: pickPlant(s, rng).id });
+      if (s.boosters < 14 && (m >= 9 || m <= 2)) for (let k = 0; k < 2; k++) { const fp = fastPool(s, m).filter(p => !cards.slice(0, 2).some(c => c.pid === p.id)); if (fp.length) cards[k] = { t: 'plant', pid: fp[Math.floor(rng() * fp.length)].id }; }
       for (let tries = 0; tries < 8 && unlocked(s).has('Arbuste') && !cards.some(c => wood(P[c.pid])); tries++) cards[4] = { t: 'plant', pid: pickPlant(s, rng).id };
       const wp = list => { const L = list.filter(x => x[1] > 0), tot = L.reduce((a, b) => a + b[1], 0); let x = rng() * tot; for (const [k, v] of L) { x -= v; if (x <= 0) return k; } return L.length ? L[L.length - 1][0] : 'paillage'; };
       const warm = m >= 4 && m <= 9, sum = m >= 5 && m <= 9;
@@ -770,7 +775,7 @@ function make(P) {
       if (c.health <= 0) { ev.push({ t: 'bad', text: p.name + (w.tmin < gelEff ? ' n’a pas résisté au gel.' : ' est mort de soif.') }); s.grid[i] = c.supp ? { treille: true, furn: c.supp } : null; continue; }
       let f = 1;
       if (c.g < p.germ) f = (tm < 5 && p.gel >= -5) ? .3 : 1;
-      else if (c.g < maturity(p)) { f = SEASONF[m]; f = f + (1 - f) * (1 - Math.min(1, p.croiss / 120)); if (tm < 8 && p.gel >= 0 && !gsNear(s, i)) f *= .3; }
+      else if (c.g < maturity(p)) { f = SEASONF[m]; f = f + (1 - f) * (1 - Math.min(1, p.croiss / 120)); if (p.gel <= -8 && p.croiss <= 130 && ['Herbacée', 'Racine'].includes(p.strate)) f = Math.max(f, .6); if (tm < 8 && p.gel >= 0 && !gsNear(s, i)) f *= .3; }
       else f = 1;
       const sf = c.stress > 7 ? .3 : c.stress > 0 ? .5 : 1;
       c.g += f * clamp(1 + sy.growth, .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1);
@@ -780,7 +785,7 @@ function make(P) {
     }
     s.stock = s.stock.filter(it => { const p = P[it.pid]; if (s.day - it.day > (it.keep ? (it.keep === 'sec' ? 400 : 300) : Math.max(1, p.cons))) { ev.push({ t: 'warn', text: it.kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + ' perdus (trop vieux).' }); return false; } return true; });
     pests(s, w, m, ev);
-    for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * GSHARE); const tgt = ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), 0, 100); }
+    for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * GSHARE); const tgt = ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), s.day < 45 ? 35 : 0, 100); }
     { const hungry = (s.family || []).filter(f => f.joy < 25); if (hungry.length && s.day % 3 === 0) ev.push({ t: 'warn', text: hungry.map(f => f.n).join(', ') + (hungry.length > 1 ? ' ont faim' : ' a faim') + ' : cuisine avec ta récolte.' }); }
     const st = stats(s); s.soil += (st.soilTarget - s.soil) * .02;
     if (s.day % 30 === 0) { s.eaten = s.eaten.filter(e => s.day - e.day <= 60); s.prod = (s.prod || []).filter(e => s.day - e.day <= 120); }
@@ -1596,8 +1601,9 @@ function renderGarden() {
   const byH = (a, b) => S.grid[a].health - S.grid[b].health, setM = new Set(okM.sort(byH).slice(0, Math.max(3, S.mats.paillage))), setC = new Set(okC.sort(byH).slice(0, Math.max(2, S.mats.compost * 2)));
   S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 80 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : p.strate === 'Racine' ? 26 : 30;
     if (ui.strF && ui.strF !== p.strate) return;
-    const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (cell.water < 60) L.push(['water', cell.water < 25]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
-    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); }); });
+    const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
+    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); });
+    if (cell.water < 60) h += badge('water', cx + 1, cy + 7, cell.water < 25, i, 5); });
   S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } });
   h += '</g>';
   LAWNS.forEach(([x, y], k) => { if (G.lawnReady(S, k)) { const q = wpos(x, y - 36); h += worldBadge('lawn', q[0].toFixed(1), q[1].toFixed(1), k); } });

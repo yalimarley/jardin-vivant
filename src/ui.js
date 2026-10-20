@@ -686,7 +686,7 @@ function kitchenPreview() {
   sel.forEach(id => { if (id === 'honey') { const g = Math.min(40 * S.family.length, Math.round(S.honey * 1000)); kcal += g * 3; used.push({ strate: 'Miel' }); return; } const g = Math.min(180 * S.family.length, Math.round(t[id] * 1000)), p = P[id]; kcal += g * p.kcal / 100; prot += g * p.prot / 100; used.push(p); });
   const strata = new Set(used.filter(p => p.strate !== 'Miel').map(p => p.strate)).size, bal = clamp((strata - 1) * 34 + (prot > 8 ? 30 : prot > 4 ? 15 : 0) + (used.length >= 3 ? 12 : 0), 0, 100);
   const fn = G.famNeed(S);
-  $('kprev').innerHTML = sel.length ? '<div class="nm">' + Math.round(kcal) + ' kcal · ' + fmt(prot) + ' g de protéines</div><div class="note-p">La famille a besoin d’environ ' + fn + ' kcal par jour : ce repas en couvre ' + Math.round(kcal / fn * 100) + ' %.</div><div class="bar"><i style="width:' + bal + '%"></i></div><div class="note-p">Équilibre estimé : ' + bal + ' %. ' + strata + ' strate' + (strata > 1 ? 's' : '') + ' représentée' + (strata > 1 ? 's' : '') + '.</div>' : '<div class="nm">Aucun ingrédient choisi</div>';
+  $('kprev').innerHTML = sel.length ? '<div class="nm">' + Math.round(kcal) + ' kcal · ' + fmt(prot) + ' g de protéines</div><div class="note-p">La famille a besoin d’environ ' + fn + ' kcal par jour (le jardin vise un quart : fruits, légumes, aromatiques) : ce repas en couvre ' + Math.round(kcal / fn * 100) + ' %.</div><div class="bar"><i style="width:' + bal + '%"></i></div><div class="note-p">Équilibre estimé : ' + bal + ' %. ' + strata + ' strate' + (strata > 1 ? 's' : '') + ' représentée' + (strata > 1 ? 's' : '') + '.</div>' : '<div class="nm">Aucun ingrédient choisi</div>';
   $('cookBtn').disabled = !sel.length;
 }
 function openLearn() {

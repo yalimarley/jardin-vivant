@@ -105,8 +105,14 @@ ok(/Chemin 3/.test(q('#res').textContent), 'chemin repris en main');
 ok(q('#gmasc') && q('#gsay'), 'Guildéon présent');
 click(q('#gmasc')); ok(!q('#gcard').hidden && qa('#gcard .gq').length >= 2, 'panneau Guildéon : objectifs listés');
 click(q('#gmasc')); ok(q('#gcard').hidden, 'panneau Guildéon fermé');
+// strates
+ok(qa('#garden .smk').length >= 4, 'pastilles de strate sur les plantes');
+click(q('[data-act="strate-menu"]')); ok(!q('#strmenu').hidden && qa('#strmenu .sch').length === 7, 'menu strates');
+click(q('[data-act="strate-set"][data-s="Arbre"]')); ok(qa('#garden .spr.dim').length >= 1, 'filtre strate grise les autres');
+click(q('[data-act="strate-set"][data-s=""]')); ok(qa('#garden .spr.dim').length === 0, 'filtre retiré');
+click(q('[data-act="strate-menu"]'));
 // boîte à outils
-ok(qa('#tools .tb').length === 8, 'boîte à outils : 8 boutons');
+ok(qa('#tools .tb').length === 9, 'boîte à outils : 9 boutons');
 const vb0 = q('#garden').getAttribute('viewBox'); click(q('[data-act="zoom-in"]'));
 ok(q('#garden').getAttribute('viewBox') !== vb0, 'zoom change la vue');
 for (let k = 0; k < 4; k++) { click(q('[data-act="rot-r"]')); ok(qa('#garden .cell').length === 48, 'rotation ' + (k + 1) + ' : 48 cases'); }

@@ -273,6 +273,12 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 @keyframes gjoy{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-10px) rotate(-5deg)}60%{transform:translateY(0) rotate(4deg)}}
 @media (prefers-reduced-motion:reduce){.gmasc,.gmasc.joy{animation:none}}
 @media (max-width:560px){.gmasc{width:60px;height:60px}.gsay{right:68px;font-size:12px}.tools{top:76px}}
+.strmenu{position:absolute;left:68px;top:10px;z-index:3;display:grid;gap:4px;padding:8px;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);font-size:13px}
+.strmenu[hidden]{display:none}.sch{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:transparent;border-radius:9px;padding:5px 8px;color:var(--ink);cursor:pointer;text-align:left}
+.sch em{margin-left:auto;font-style:normal;font-size:11px;color:var(--muted,#6b7a6b)}.sch.on{background:var(--leaf);color:var(--on-leaf)}.sch.on em{color:inherit}
+.sti{width:16px;height:16px;flex:none;vertical-align:-3px;margin-right:3px}.sch .sti{margin:0}
+.spr.dim,.smk.dim{opacity:.16;transition:opacity .2s}
+@media (max-width:560px){.strmenu{left:6px;top:96px}}
 </style>
 
 <div class="app">
@@ -288,13 +294,14 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
     <section class="board" aria-label="Le jardin">
       <div class="res" id="res"></div>
       <div class="hint" id="hint" role="status"></div>
-      <div class="garden-wrap"><div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="__GUILDEON__" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+      <div class="garden-wrap"><div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="__GUILDEON__" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
         <button type="button" class="tb on" data-tool="select" data-act="tool-select" title="Sélectionner" aria-label="Sélectionner"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg></button>
         <button type="button" class="tb" data-tool="move" data-act="tool-move" title="Déplacer la carte" aria-label="Déplacer la carte"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <button type="button" class="tb" data-tool="delete" data-act="tool-delete" title="Supprimer" aria-label="Supprimer"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13M10 11v6M14 11v6"/></svg></button>
         <i class="sep"></i>
         <button type="button" class="tb" data-act="zoom-in" title="Zoomer" aria-label="Zoomer"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg></button>
         <button type="button" class="tb" data-act="zoom-out" title="Dézoomer" aria-label="Dézoomer"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/></svg></button>
+        <button type="button" class="tb" data-act="strate-menu" title="Voir par strate" aria-label="Voir par strate"><svg viewBox="0 0 24 24"><path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/></svg></button>
         <button type="button" class="tb" data-act="rot-l" title="Tourner à gauche" aria-label="Tourner à gauche"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.5-5.4M5 4v4h4"/></svg></button>
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>

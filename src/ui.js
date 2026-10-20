@@ -51,6 +51,18 @@ function leafColor(p, m, dry) {
   if (woody) { if (m >= 2 && m <= 4) return '#7dbb5c'; if (m >= 5 && m <= 7) return '#3d8c44'; if (m === 8) return '#6f9a3a'; if (m === 9) return '#d08a2a'; if (m === 10) return '#a8612a'; return null; }
   if (m >= 2 && m <= 4) return '#7dbb5c'; if (m >= 5 && m <= 8) return '#459646'; if (m === 9) return '#6f9a3a'; if (m === 10) return '#6c8f47'; return '#6f9a64';
 }
+const STRC = { 'Arbre': '#8a5a2b', 'Arbuste': '#7b5aa6', 'Herbacée': '#4f9a4a', 'Racine': '#b0733a', 'Grimpante': '#2f8f8a', 'Couvre-sol': '#6a8f3a' };
+const STRS = { 'Arbre': 1.3, 'Arbuste': .95, 'Herbacée': .92, 'Racine': .82, 'Grimpante': 1, 'Couvre-sol': 1.05 };
+function strMark(st, x, y, r) {
+  const c = STRC[st] || '#888', a = ' fill="' + c + '" stroke="#fff" stroke-width="' + (r * .3).toFixed(1) + '" stroke-linejoin="round"';
+  if (st === 'Arbre') return '<path d="M' + x + ' ' + (y - r * 1.15) + 'L' + (x + r * 1.1) + ' ' + (y + r * .8) + 'L' + (x - r * 1.1) + ' ' + (y + r * .8) + 'Z"' + a + '/>';
+  if (st === 'Herbacée') return '<path d="M' + x + ' ' + (y - r * 1.2) + 'L' + (x + r) + ' ' + y + 'L' + x + ' ' + (y + r * 1.2) + 'L' + (x - r) + ' ' + y + 'Z"' + a + '/>';
+  if (st === 'Racine') return '<rect x="' + (x - r * .9) + '" y="' + (y - r * .9) + '" width="' + (r * 1.8) + '" height="' + (r * 1.8) + '" rx="' + (r * .3) + '"' + a + '/>';
+  if (st === 'Grimpante') { const pts = [0, 1, 2, 3, 4, 5].map(k => (x + Math.cos(k * Math.PI / 3 + Math.PI / 6) * r * 1.1).toFixed(1) + ' ' + (y + Math.sin(k * Math.PI / 3 + Math.PI / 6) * r * 1.1).toFixed(1)); return '<path d="M' + pts.join('L') + 'Z"' + a + '/>'; }
+  if (st === 'Couvre-sol') return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (r * 1.45) + '" ry="' + (r * .7) + '"' + a + '/>';
+  return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"' + a + '/>';
+}
+const strIco = st => '<svg class="sti" viewBox="-8 -8 16 16" aria-hidden="true">' + strMark(st, 0, 0, 5.2) + '</svg>';
 // dessine dans un repère 80x80, pied de la plante en (40,66)
 function sprite(p, o) {
   const R = rnd(o.seed + p.id * 7), lc = leafColor(p, o.m, o.dry), dk = lc ? shade(lc, -26) : '#5b4630', lt = lc ? shade(lc, 22) : '#8a6b4a';
@@ -61,7 +73,7 @@ function sprite(p, o) {
   const mature = o.stage === 'mature';
   if (p.strate === 'Herbacée' || p.strate === 'Racine') {
     const sf = clamp(.35 + .65 * o.prog, .35, 1), n = 4 + Math.round(sf * 5), h = 10 + 24 * sf, tips = [];
-    if (p.strate === 'Racine' && mature && o.ready) s += '<ellipse cx="40" cy="66" rx="7" ry="5" fill="' + p.col + '" stroke="' + shade(p.col, -45) + '" stroke-width=".8"/>';
+    if (p.strate === 'Racine' && o.stage !== 'pousse') s += '<ellipse cx="40" cy="67" rx="' + (4 + 3.5 * sf).toFixed(1) + '" ry="' + (2.6 + 2.4 * sf).toFixed(1) + '" fill="' + p.col + '" stroke="' + shade(p.col, -45) + '" stroke-width=".8"/>';
     for (let k = 0; k < n; k++) {
       const a = (k / (n - 1) - .5) * 1.7, len = h * (.75 + R() * .4), x2 = 40 + Math.sin(a) * len * .9, y2 = 66 - Math.cos(a) * len;
       tips.push([x2, y2]);
@@ -73,7 +85,7 @@ function sprite(p, o) {
   }
   if (p.strate === 'Couvre-sol') {
     const sf = clamp(.4 + .6 * o.prog, .4, 1), pts = [];
-    for (let k = 0; k < 8; k++) { const cx = 40 + (R() - .5) * 38 * sf, cy = 62 + (R() - .5) * 9, r = (7 + R() * 4) * sf; pts.push([cx, cy]); s += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + (k % 2 ? lc : lt) + '"/>'; }
+    for (let k = 0; k < 8; k++) { const cx = 40 + (R() - .5) * 38 * sf, cy = 62 + (R() - .5) * 9, r = (7 + R() * 4) * sf; pts.push([cx, cy]); s += '<ellipse cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" rx="' + (r * 1.15).toFixed(1) + '" ry="' + (r * .5).toFixed(1) + '" fill="' + (k % 2 ? lc : lt) + '"/>'; }
     if (mature && (o.ready || (p.tags.includes('mellifere') && o.m >= 3 && o.m <= 8))) s += pts.slice(0, 6).map(([x, y]) => '<circle cx="' + x.toFixed(1) + '" cy="' + (y - 3).toFixed(1) + '" r="2.6" fill="' + p.col + '"/>').join('');
     return s;
   }
@@ -133,7 +145,7 @@ function cardHtml(p, o) {
   return '<' + (o.btn ? 'button type="button" data-act="mode-plant" data-pid="' + p.id + '"' : 'article') + ' class="card t-' + p.strate + ' ' + rar + (o.on ? ' on' : '') + '">' +
     '<div class="art" data-pid="' + p.id + '">' + cardArt(p) + phImg(p) + (o.btn ? (now ? '<span class="now">De saison</span>' : '<span class="now no">Hors saison</span>') : '') + (o.count > 1 ? '<span class="cnt">×' + o.count + '</span>' : '') + '</div>' +
     '<h4>' + p.name + '</h4><p class="lat">' + p.latin + '</p>' +
-    '<div class="tags"><span class="tag">' + p.strate + '</span><span class="tag">' + verb + '</span></div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
+    '<div class="tags"><span class="tag">' + strIco(p.strate) + p.strate + '</span><span class="tag">' + verb + '</span></div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
     '</' + (o.btn ? 'button' : 'article') + '>';
 }
 const MATS = {
@@ -533,7 +545,9 @@ function renderGarden() {
       if (cell.supp) h += furnTile(cell.supp, cx, cell.supp === 'treille' ? cyTop : isoY(c + .5, r + .5), m, i);
       if (cell.mulch) h += '<ellipse cx="' + cx + '" cy="' + (cyTop + 1) + '" rx="32" ry="13" fill="#b4894f" opacity=".85"/><path d="M' + (cx - 20) + ' ' + cyTop + 'l8-2M' + (cx + 6) + ' ' + (cyTop + 5) + 'l9-1M' + (cx - 4) + ' ' + (cyTop - 4) + 'l6 1" stroke="#7a5a35" stroke-width="2" stroke-linecap="round"/>';
       h += '<ellipse cx="' + (cx + 6) + '" cy="' + (cyTop + 1) + '" rx="' + (ph.stage === 'graine' ? 14 : 24) + '" ry="8" fill="#000" opacity=".2"/>';
-      h += '<g transform="translate(' + (cx - 40).toFixed(1) + ' ' + (cyTop - 63).toFixed(1) + ')"' + (cell.stress > 7 ? ' opacity=".8"' : '') + '>' + sprite(p, { stage: ph.stage, prog: ph.prog, ready: cell.ready, m, dry: dry(cell), seed: i }) + '</g>';
+      { const sc = STRS[p.strate] || 1, dim = ui.strF && ui.strF !== p.strate;
+        h += '<g class="spr' + (dim ? ' dim' : '') + '" transform="translate(' + (cx - 40 * sc).toFixed(1) + ' ' + (cyTop + 3 - 66 * sc).toFixed(1) + ') scale(' + sc + ')"' + (cell.stress > 7 ? ' opacity=".8"' : '') + '>' + sprite(p, { stage: ph.stage, prog: ph.prog, ready: cell.ready, m, dry: dry(cell), seed: i }) + '</g>';
+        if (ph.stage !== 'graine' || ui.strF === p.strate) h += '<g class="smk' + (dim ? ' dim' : '') + '" style="pointer-events:none">' + strMark(p.strate, cx, cyTop + 11, ui.strF === p.strate ? 6.4 : 4.6) + '</g>'; }
     } else if (fk) {
       h += furnTile(fk, cx, flat ? isoY(c + .5, r + .5) : cyTop, m, i, cell);
       if (climbPick || duckPick) h += '<circle cx="' + cx + '" cy="' + (cyTop - 30) + '" r="11" fill="var(--leaf)" opacity=".92"/><path d="M' + cx + ' ' + (cyTop - 36) + 'v12M' + (cx - 6) + ' ' + (cyTop - 30) + 'h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>';
@@ -551,7 +565,8 @@ function renderGarden() {
   const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
   const okM = [], okC = []; S.grid.forEach((c, i) => { if (!c || c.treille) return; const p = P[c.pid]; if (p.strate === 'Couvre-sol') return; if (!c.mulch && S.mats.paillage > 0) okM.push(i); if (S.mats.compost > 0 && S.day > (c.compostUntil || -1) && G.phase(c).stage !== 'graine') okC.push(i); });
   const byH = (a, b) => S.grid[a].health - S.grid[b].health, setM = new Set(okM.sort(byH).slice(0, Math.max(3, S.mats.paillage))), setC = new Set(okC.sort(byH).slice(0, Math.max(2, S.mats.compost * 2)));
-  S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 62 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : 30;
+  S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 80 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : p.strate === 'Racine' ? 26 : 30;
+    if (ui.strF && ui.strF !== p.strate) return;
     const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (cell.water < 60) L.push(['water', cell.water < 25]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
     L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); }); });
   S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } });
@@ -745,6 +760,13 @@ function renderGuil() {
   const ready = g.qs.filter(q => q.done && !q.claimed), open = g.qs.filter(q => !q.done && !q.daily).slice(0, 3), daily = g.qs.find(q => q.daily && !ready.includes(q)), nd = g.qs.filter(q => q.claimed && !q.daily).length;
   card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
 }
+function renderStr() {
+  const m = $('strmenu'); if (!m) return; m.hidden = !ui.strOpen;
+  document.querySelectorAll('#tools [data-act="strate-menu"]').forEach(b => b.classList.toggle('on', !!ui.strF || !!ui.strOpen));
+  if (!ui.strOpen) return;
+  const n = {}; S.grid.forEach(c => { if (c && !c.treille) { const s = P[c.pid].strate; n[s] = (n[s] || 0) + 1; } });
+  m.innerHTML = '<b>Strates</b>' + ['Arbre', 'Arbuste', 'Grimpante', 'Herbacée', 'Racine', 'Couvre-sol'].map(s => '<button type="button" class="sch' + (ui.strF === s ? ' on' : '') + '" data-act="strate-set" data-s="' + s + '">' + strIco(s) + '<span>' + s + '</span><em>' + (n[s] || 0) + '</em></button>').join('') + '<button type="button" class="sch' + (!ui.strF ? ' on' : '') + '" data-act="strate-set" data-s="">Tout afficher</button>';
+}
 function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach(b => b.classList.toggle('on', (ui.tool || 'select') === b.dataset.tool)); }
 (function initPan() {
   const wrap = document.querySelector('.garden-wrap'); if (!wrap) return; const ptrs = new Map(); let moved = 0, pinch = null;
@@ -758,7 +780,7 @@ function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach
   wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
   wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
 })();
-function render() { renderTop(); renderGarden(); applyView(); renderTools(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); save(); wantPhotos(); }
+function render() { renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -835,6 +857,8 @@ document.addEventListener('click', e => {
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); break; }
     case 'mode-mat': { ui.tool = 'select'; ui.delPending = -1; const k = a.dataset.k; ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
+    case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
+    case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
     case 'guil-toggle': ui.gOpen = !ui.gOpen; ui.gUntil = 0; render(); break;
     case 'guil-claim': { const r = G.claimQuest(S, a.dataset.id); if (r.ok) { toast('Bonus de Guildéon : ' + r.label + '.'); ui.gUntil = 0; render(); } break; }
     case 'tool-select': ui.tool = 'select'; ui.delPending = -1; render(); break;

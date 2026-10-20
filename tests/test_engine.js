@@ -107,5 +107,11 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const occ = s.grid.findIndex((c, k) => c && !c.treille && k !== to); if (G.movePlant(s, to, occ).ok) { console.log('ÉCHEC déplacement sur occupé'); process.exit(1); }
   console.log('ok  : déplacement d’une plante'); }
 
+{ const d = G.demo(), n = G.newGame(), gl = G.guilds(d); const ci = gl.ids[0], nb = G.neigh(ci).find(k => d.grid[k] && !d.grid[k].treille);
+  const hasNote = i => G.synergy(d, i).notes.some(x => /uilde/.test(x.text));
+  if (!(G.stats(d).autonomy > 20) || G.stats(n).autonomy !== 0 || !hasNote(ci) || !hasNote(nb)) { console.log('ÉCHEC autonomie/guilde', G.stats(d).autonomy, hasNote(ci), hasNote(nb)); process.exit(1); }
+  const before = G.stats(d).autonomy; d.grid[ci] = null; if (!(G.stats(d).autonomy < before)) { console.log('ÉCHEC : retirer l’arbre de guilde doit baisser l’autonomie'); process.exit(1); }
+  console.log('ok  : autonomie (production × guildes) et effet permanent des guildes'); }
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

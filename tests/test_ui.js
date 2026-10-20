@@ -31,7 +31,7 @@ ok(qa('#strip .card').length >= 3, 'cartes dans la réserve : ' + qa('#strip .ca
 ok(!qa('#today .task').some(t => /booster/i.test(t.textContent)), 'tâche booster disparue');
 
 // planter
-const card = q('#strip button.card');
+const card = qa('#strip button.card').find(x => /Herbacée|Racine|Couvre-sol/.test(x.textContent));
 click(card);
 ok(q('#hint').textContent.includes('Choisis une parcelle libre'), 'mode plantation : ' + q('#hint').textContent.slice(0, 60));
 const free = qa('#garden .cell.free')[0];

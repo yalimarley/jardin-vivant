@@ -113,5 +113,21 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const before = G.stats(d).autonomy; d.grid[ci] = null; if (!(G.stats(d).autonomy < before)) { console.log('ÉCHEC : retirer l’arbre de guilde doit baisser l’autonomie'); process.exit(1); }
   console.log('ok  : autonomie (production × guildes) et effet permanent des guildes'); }
 
+{ const fail = m => { console.log('ÉCHEC ' + m); process.exit(1); };
+  const s = G.demo(); s.day += 0; s.maxPlantings = 25; s.boosterDay = -1; s.boosters = 3; const bc = G.openBooster(s);
+  if (!bc || bc.length !== 10 || bc.filter(c => c.t === 'plant').length !== 5 || bc.filter(c => c.t === 'mat').length !== 5) fail('booster 5 plantes + 5 cartes');
+  if (!bc.some(c => c.t === 'plant' && ['Arbre', 'Arbuste'].includes(G.P[c.pid].strate))) fail('booster sans ligneux');
+  const t = s.grid.findIndex(c => c && !c.treille && G.P[c.pid].strate === 'Arbre'), h = s.grid.findIndex(c => c && !c.treille && c !== s.grid[t]);
+  delete s.grid[t].nichoir; s.mats.nichoir = 1; if (!G.placeNichoir(s, t).ok || G.placeNichoir(s, h).ok === true && G.P[s.grid[h].pid].strate !== 'Arbre') fail('nichoir');
+  s.mats.ortie = 1; if (!G.useOrtie(s, h).ok || !(s.grid[h].shieldL >= s.day)) fail('ortie');
+  s.mats.prele = 1; s.grid[h].sick = { k: 'fongique', day: s.day }; if (!G.usePrele(s, h).ok || s.grid[h].sick) fail('prêle soigne');
+  const tk = s.tankMax; s.mats.cuve = 1; if (!G.useCuve(s).ok || s.tankMax !== tk + 150) fail('cuve');
+  s.stock = [{ pid: G.byName['Carotte'].id, kg: 1, day: s.day }]; s.mats.bocaux = 6; const pr = G.preserve(s, G.byName['Carotte'].id, 'bocal');
+  if (!pr.ok || pr.jars !== 2 || s.stock.length !== 1 || s.stock[0].keep !== 'bocal') fail('mise en bocal');
+  for (let k = 0; k < 90; k++) G.nextDay(s, true); if (!s.stock.some(x => x.keep === 'bocal')) fail('le bocal doit se garder');
+  s.mats.plan = 1; const gp = G.guildPlan(s); if (!gp.ok) fail('plan de guilde');
+  const ex = G.P.find(p => G.isExo(p)), s2 = G.newGame(); let seen = false; for (let k = 0; k < 400; k++) { s2.boosterDay = -1; s2.mats.grandeserre = 0; s2.maxPlantings = 25; s2.boosters = 5; s2.day++; const b = G.openBooster(s2); if (b.some(c => c.t === 'plant' && G.isExo(G.P[c.pid]))) seen = true; } if (seen) fail('exotiques sans grande serre');
+  console.log('ok  : nouvelles cartes (booster, soins, nichoir, cuve, bocaux, plan de guilde, exotiques)'); }
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

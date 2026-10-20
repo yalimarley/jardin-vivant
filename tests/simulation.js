@@ -1,4 +1,4 @@
-const E=require('../src/engine.js'),fs=require('fs');const P=JSON.parse(fs.readFileSync('../data/plants2.json','utf8'));const G=E.make(P);
+const E=require('./engine.js'),fs=require('fs');const P=JSON.parse(fs.readFileSync('plants2.json','utf8'));const G=E.make(P);
 function mul(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function run(profile,seed,days){
   const rnd=mul(seed); const s=G.newGame(); const M=[], log={kg:0,harvests:0,removed:0,boostDays:0,quests:0,meals:0,tankMin:999,planted:0,expand:0,deadSick:0};

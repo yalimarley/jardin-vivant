@@ -583,12 +583,12 @@ function make(P) {
   }
   function shopBuy(s, k) {
     if (!SHOP[k]) return { ok: false, msg: 'Cet article n’est pas en vente.' }; const f = shopInfo(s, k);
-    if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' fèves.' };
-    s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' fèves.'); bump(s, 'shop'); return { ok: true, price: f.price };
+    if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' ginkgos.' };
+    s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' ginkgos.'); bump(s, 'shop'); return { ok: true, price: f.price };
   }
   function recycleValue(s, pid, n) { return (RECYCLE[P[pid].rarete] || 1) * n; }
   function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const g = recycleValue(s, pid, n); s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }
-  function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' fèves.'); return { ok: n > 0, gain: g, n }; }
+  function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' ginkgos.'); return { ok: n > 0, gain: g, n }; }
   function useSavoir(s) { if (!(s.mats.savoir > 0)) return { ok: false, msg: 'Plus de carte Savoir.' }; s.mats.savoir--; return { ok: true, r: learn(s) }; }
   function preserve(s, pid, kind) {
     if (!s.atelier) return { ok: false, msg: 'Construis d’abord l’atelier.' };
@@ -638,7 +638,7 @@ function make(P) {
     { id: 'atelier1', t: 'Construis ton atelier', say: 'Un atelier près de la maison : tu y feras tes conserves et ton séchage. Joue une carte Atelier !', need: 1, have: s => s.atelier ? 1 : 0, rw: { boost: 5, compost: 2 } },
     { id: 'conserve1', t: 'Fais ta première conserve', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 1, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
     { id: 'soin1', t: 'Soigne tes plantes avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 1, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
-    { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des fèves ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
+    { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des ginkgos ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
     { id: 'sp6', t: '6 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 6 espèces différentes.', need: 6, have: s => nSpecies(s), rw: { compost: 2 } },
     { id: 'tonte1', t: 'Tonds l’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 1, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
     { id: 'p12', t: 'Atteins 12 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 12 plantations.', need: 12, have: s => s.maxPlantings, rw: { boost: 5 } },
@@ -664,7 +664,7 @@ function make(P) {
     let di = s.day % DAILY.length; if (DAILY[di].k === 'mulch' && !(s.mats.paillage > 0) && !(s.gq.dc.day === s.day && s.gq.dc.mulch)) di = 0;
     const d = DAILY[di], dc = s.gq.dc.day === s.day ? (s.gq.dc[d.k] || 0) : 0, did = 'j' + s.day;
     out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
-    out.forEach(q => { q.fv = q.daily ? 2 : Math.max(3, Math.round(4 + ((q.rw && q.rw.boost) || 0) * .6)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' fèves'; });
+    out.forEach(q => { q.fv = q.daily ? 2 : Math.max(3, Math.round(4 + ((q.rw && q.rw.boost) || 0) * .6)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
     return out;
   }
   function claimQuest(s, id) {

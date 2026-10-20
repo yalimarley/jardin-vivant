@@ -76,7 +76,7 @@ svg{display:block}
 .cell:hover .frame{stroke:var(--leaf-2)}
 .cell.sel .frame{stroke:var(--leaf);stroke-width:4}
 .cell.free.pick .frame{stroke:var(--leaf);stroke-dasharray:6 5;stroke-width:3}
-.atl{cursor:pointer}.atl:hover,.atl:focus-visible{filter:brightness(1.07)}
+.gk{display:inline-block;vertical-align:-4px;margin-right:5px;flex:none}.atl{cursor:pointer}.atl:hover,.atl:focus-visible{filter:brightness(1.07)}
 .badge{cursor:pointer}
 .badge:hover circle.bg{filter:brightness(1.1)}
 .rain line{stroke:#fff;stroke-opacity:.55;stroke-width:1.4}
@@ -913,12 +913,12 @@ function make(P) {
   }
   function shopBuy(s, k) {
     if (!SHOP[k]) return { ok: false, msg: 'Cet article n’est pas en vente.' }; const f = shopInfo(s, k);
-    if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' fèves.' };
-    s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' fèves.'); bump(s, 'shop'); return { ok: true, price: f.price };
+    if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' ginkgos.' };
+    s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' ginkgos.'); bump(s, 'shop'); return { ok: true, price: f.price };
   }
   function recycleValue(s, pid, n) { return (RECYCLE[P[pid].rarete] || 1) * n; }
   function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const g = recycleValue(s, pid, n); s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }
-  function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' fèves.'); return { ok: n > 0, gain: g, n }; }
+  function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' ginkgos.'); return { ok: n > 0, gain: g, n }; }
   function useSavoir(s) { if (!(s.mats.savoir > 0)) return { ok: false, msg: 'Plus de carte Savoir.' }; s.mats.savoir--; return { ok: true, r: learn(s) }; }
   function preserve(s, pid, kind) {
     if (!s.atelier) return { ok: false, msg: 'Construis d’abord l’atelier.' };
@@ -968,7 +968,7 @@ function make(P) {
     { id: 'atelier1', t: 'Construis ton atelier', say: 'Un atelier près de la maison : tu y feras tes conserves et ton séchage. Joue une carte Atelier !', need: 1, have: s => s.atelier ? 1 : 0, rw: { boost: 5, compost: 2 } },
     { id: 'conserve1', t: 'Fais ta première conserve', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 1, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
     { id: 'soin1', t: 'Soigne tes plantes avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 1, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
-    { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des fèves ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
+    { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des ginkgos ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
     { id: 'sp6', t: '6 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 6 espèces différentes.', need: 6, have: s => nSpecies(s), rw: { compost: 2 } },
     { id: 'tonte1', t: 'Tonds l’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 1, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
     { id: 'p12', t: 'Atteins 12 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 12 plantations.', need: 12, have: s => s.maxPlantings, rw: { boost: 5 } },
@@ -994,7 +994,7 @@ function make(P) {
     let di = s.day % DAILY.length; if (DAILY[di].k === 'mulch' && !(s.mats.paillage > 0) && !(s.gq.dc.day === s.day && s.gq.dc.mulch)) di = 0;
     const d = DAILY[di], dc = s.gq.dc.day === s.day ? (s.gq.dc[d.k] || 0) : 0, did = 'j' + s.day;
     out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
-    out.forEach(q => { q.fv = q.daily ? 2 : Math.max(3, Math.round(4 + ((q.rw && q.rw.boost) || 0) * .6)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' fèves'; });
+    out.forEach(q => { q.fv = q.daily ? 2 : Math.max(3, Math.round(4 + ((q.rw && q.rw.boost) || 0) * .6)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
     return out;
   }
   function claimQuest(s, id) {
@@ -1167,6 +1167,7 @@ function cardHtml(p, o) {
     '<div class="tags"><span class="tag">' + strIco(p.strate) + p.strate + '</span><span class="tag">' + verb + '</span></div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
     '</' + (o.btn ? 'button' : 'article') + '>';
 }
+const GK = (z) => '<svg class="gk" width="' + (z || 16) + '" height="' + (z || 16) + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 23.2V19.5" stroke="#a8730d" stroke-width="1.6" stroke-linecap="round"/><path d="M12 19.5L1.7 15.7A11 11 0 0 1 11.4 8.5L12 10.7L12.6 8.5A11 11 0 0 1 22.3 15.7Z" fill="#f0b92e" stroke="#a8730d" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 19.5L3.6 12.4M12 19.5L7.0 9.7M12 19.5L17.0 9.7M12 19.5L20.4 12.4" stroke="#fff3b8" stroke-width=".9" stroke-linecap="round" opacity=".9"/></svg>';
 const MATS = {
   paillage: { n: 'Paillage', d: 'Couvre le sol : garde l’eau.', svg: '<path d="M10 62c10-8 14-8 24 0s14 8 24 0M6 48c10-8 14-8 24 0s14 8 24 0M14 34c10-8 14-8 24 0s14 8 24 0" stroke="#b08a4a" stroke-width="5" fill="none" stroke-linecap="round"/>' },
   compost: { n: 'Compost', d: 'Nourrit une plante 30 jours.', svg: '<path d="M16 28h48l-5 40H21z" fill="#6a4e39"/><path d="M12 28h56" stroke="#8a6b4a" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="44" r="4" fill="#4a3526"/><circle cx="46" cy="52" r="3.5" fill="#4a3526"/><circle cx="40" cy="38" r="3" fill="#7dbb5c"/>' },
@@ -1226,7 +1227,7 @@ function renderRes() {
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0);
   $('res').innerHTML = '<div class="items"><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') + '</div>' +
-    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + ico('leaf') + 'Boutique · ' + (S.feves || 0) + ' fèves</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
+    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + GK(16) + 'Boutique · ' + (S.feves || 0) + ' ginkgos</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -1723,10 +1724,10 @@ function openAmenager() {
   let h = '<h3 style="margin:2px 0 6px">Terrain</h3><p class="note-p">Ton terrain fait <b>' + COLS + ' × ' + ROWS + '</b> parcelles.</p>';
   if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. Les paliers de plantation continuent de t’offrir du mobilier.</p>';
   else h += '<div class="amen-card"><b>Prochain agrandissement : ' + c.to[0] + ' × ' + c.to[1] + '</b><div class="amen-req"><span>Plantations réussies : ' + c.plant[0] + ' / ' + c.plant[1] + '</span>' + bar(c.plant[0], c.plant[1]) + '</div><div class="amen-req"><span>Espèces différentes dans le jardin : ' + c.species[0] + ' / ' + c.species[1] + '</span>' + bar(c.species[0], c.species[1]) + '</div><div class="acts"><button type="button" class="btn primary" data-act="expand"' + (c.ok ? '' : ' disabled') + '>Agrandir le terrain</button></div></div>';
-  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète à la boutique avec des fèves, et chaque palier de plantations t’en offre un. Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
+  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète à la boutique avec des ginkgos, et chaque palier de plantations t’en offre un. Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
   G.FURN.concat(['trogne', 'canard']).forEach(k => {
     const q = (S.mats[k] || 0), un = mp >= G.FURN_UNLOCK[k], ms = G.MILESTONES.find(x => x[1][k]);
-    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' fèves' : 'Dans les prochains boosters') + (ms && !S.rewarded[ms[0]] ? ' ou au palier de ' + ms[0] + ' plantations' : '');
+    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + (ms && !S.rewarded[ms[0]] ? ' ou au palier de ' + ms[0] + ' plantations' : '');
     h += '<div class="amen-item' + (un ? '' : ' lock') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + FURN_INFO[k].n + '</b><p>' + FURN_INFO[k].d + '</p><small>' + st + '</small>' + (q > 0 ? '<div class="acts"><button type="button" class="btn sm primary" data-act="use-furn" data-k="' + k + '">Poser</button></div>' : '') + '</div></div>';
   });
   h += '</div><h3 style="margin:14px 0 6px">Atelier, soins et eau</h3><p class="note-p">L’<b>atelier</b> et le <b>séchoir</b> (à côté de la maison, pour garder la récolte) s’achètent à la boutique. Dans les boosters tu trouveras aussi : <b>bocaux</b>, <b>purin d’ortie</b> et <b>prêle</b> (soins), <b>nichoir à mésanges</b> (dans un arbre), <b>cuve</b> et <b>oya</b> (eau), <b>inoculum de mycorhizes</b>, <b>plan de guilde</b> et <b>carte Savoir</b>. Ils apparaissent dans ta barre du haut dès que tu en as. Touche la carte, puis la plante concernée.</p><h3 style="margin:14px 0 6px">Autour du jardin</h3><p class="note-p"><b>Tonte :</b> l’herbe autour du jardin repousse tous les 14 jours. Chaque zone tondue te donne +2 paillage.</p><p class="note-p"><b>Trognes :</b> les arbres au bord de la forêt, une fois taillés en têtard, repartent tous les 3 mois. Chaque coupe donne +4 paillage et accélère la pousse des plantes.</p>';
@@ -1744,7 +1745,7 @@ function openBooster() {
 }
 function ripBooster() {
   const cards = G.openBooster(S); if (!cards) return; save();
-  const body = '<p class="note-p" style="margin-bottom:8px">Touche une carte pour la retourner. Elles sont déjà dans ta réserve. Tu gagnes aussi 1 fève.</p><div class="deal">' + cards.map((c, k) => '<button type="button" class="flipper" data-act="flip" aria-label="Carte ' + (k + 1) + '"><div class="in"><div class="face back"><svg width="46" height="46" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 31V19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="currentColor"/></svg></div><div class="face front">' + (c.t === 'plant' ? cardHtml(P[c.pid], {}) : matCard(c.k, c.q)) + '</div></div></button>').join('') + '</div><div class="acts" style="justify-content:flex-end"><button type="button" class="btn" data-act="flipall">Tout retourner</button><button type="button" class="btn primary" data-act="close">Terminé</button></div>';
+  const body = '<p class="note-p" style="margin-bottom:8px">Touche une carte pour la retourner. Elles sont déjà dans ta réserve. Tu gagnes aussi 1 ginkgo.</p><div class="deal">' + cards.map((c, k) => '<button type="button" class="flipper" data-act="flip" aria-label="Carte ' + (k + 1) + '"><div class="in"><div class="face back"><svg width="46" height="46" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 31V19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="currentColor"/></svg></div><div class="face front">' + (c.t === 'plant' ? cardHtml(P[c.pid], {}) : matCard(c.k, c.q)) + '</div></div></button>').join('') + '</div><div class="acts" style="justify-content:flex-end"><button type="button" class="btn" data-act="flipall">Tout retourner</button><button type="button" class="btn primary" data-act="close">Terminé</button></div>';
   modal('Tes cartes du jour', body, true);
 }
 function openKitchen(res) {
@@ -1817,19 +1818,19 @@ function decorAtelier(x, y, sech, jars) {
 
 function openShop() {
   const ks = Object.keys(G.SHOP).sort((a, b) => G.SHOP[a] - G.SHOP[b]);
-  let h = '<p class="note-p">Tu as <b>' + (S.feves || 0) + ' fèves</b>. Tu en gagnes en ouvrant le booster du jour (1), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille.</p><h3 style="margin:10px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">';
+  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant le booster du jour (1), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille.</p><h3 style="margin:10px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">';
   ks.forEach(k => {
     const f = G.shopInfo(S, k), inf = FURN_INFO[k], nm = inf ? inf.n : MATS[k].n, d = inf ? inf.d : MATS[k].d + (k === 'atelier' ? ' Tu pourras y mettre en bocaux et, avec un séchoir, sécher la récolte.' : k === 'sechoir' ? ' À installer dans l’atelier : 3 kg par jour.' : '');
-    h += '<div class="amen-item' + (f.why && S.maxPlantings < f.unlock ? ' lock' : '') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + nm + '</b><p>' + d + '</p><small>' + (f.why ? f.why : 'Prix : ' + f.price + ' fèves') + (f.owned > 0 ? ' · en réserve : ' + f.owned : '') + '</small>' + (f.why ? '' : '<div class="acts"><button type="button" class="btn sm primary" data-act="shop-buy" data-k="' + k + '"' + (f.can ? '' : ' disabled') + '>Acheter · ' + f.price + ' fèves</button></div>') + '</div></div>';
+    h += '<div class="amen-item' + (f.why && S.maxPlantings < f.unlock ? ' lock' : '') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + nm + '</b><p>' + d + '</p><small>' + (f.why ? f.why : 'Prix : ' + f.price + ' ginkgos') + (f.owned > 0 ? ' · en réserve : ' + f.owned : '') + '</small>' + (f.why ? '' : '<div class="acts"><button type="button" class="btn sm primary" data-act="shop-buy" data-k="' + k + '"' + (f.can ? '' : ' disabled') + '>Acheter · ' + f.price + ' ginkgos</button></div>') + '</div></div>';
   });
   h += '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
   const dup = Object.keys(S.cards).map(Number).filter(id => S.cards[id] > 1);
-  if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune 1 fève, peu commune 2, rare 4 par carte.</p>';
+  if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune 1 ginkgo, peu commune 2, rare 4 par carte.</p>';
   else {
     const tot = dup.reduce((a, id) => a + G.recycleValue(S, id, S.cards[id] - 1), 0);
-    h += '<p class="note-p">Commune 1 fève, peu commune 2, rare 4 par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' fèves</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
+    h += '<p class="note-p">Commune 1 ginkgo, peu commune 2, rare 4 par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
   }
-  modal('Boutique · ' + (S.feves || 0) + ' fèves', h, true);
+  modal('Boutique · ' + (S.feves || 0) + ' ginkgos', h, true);
 }
 
 function openJournal() {
@@ -2021,8 +2022,8 @@ document.addEventListener('click', e => {
     case 'kitchen': openKitchen(); break;
     case 'shop': openShop(); break;
     case 'shop-buy': { const r = G.shopBuy(S, a.dataset.k); toast(r.ok ? 'Acheté ! Retrouve-le dans la barre du haut.' : r.msg); save(); render(); openShop(); break; }
-    case 'recycle1': { const r = G.recycleCards(S, +a.dataset.pid, 1); if (r.ok) toast('+' + r.gain + ' fève' + (r.gain > 1 ? 's' : '') + '.'); save(); render(); openShop(); break; }
-    case 'recycle-all': { const r = G.recycleDoubles(S); toast(r.ok ? '+' + r.gain + ' fèves : ' + r.n + ' carte' + (r.n > 1 ? 's' : '') + ' recyclée' + (r.n > 1 ? 's' : '') + '.' : 'Rien à recycler.'); save(); render(); openShop(); break; }
+    case 'recycle1': { const r = G.recycleCards(S, +a.dataset.pid, 1); if (r.ok) toast('+' + r.gain + ' ginkgo' + (r.gain > 1 ? 's' : '') + '.'); save(); render(); openShop(); break; }
+    case 'recycle-all': { const r = G.recycleDoubles(S); toast(r.ok ? '+' + r.gain + ' ginkgos : ' + r.n + ' carte' + (r.n > 1 ? 's' : '') + ' recyclée' + (r.n > 1 ? 's' : '') + '.' : 'Rien à recycler.'); save(); render(); openShop(); break; }
     case 'atelier': openAtelier(); break;
     case 'inst-sechoir': useInstant('sechoir'); openAtelier(); break;
     case 'preserve': { const r = G.preserve(S, +a.dataset.pid, a.dataset.kind); if (!r.ok) toast(r.msg); else { toast((a.dataset.kind === 'bocal' ? 'Mis en bocaux : ' : 'Séché : ') + fmt(r.kg, 2) + ' kg de ' + r.name.toLowerCase() + '.'); } save(); render(); openAtelier(); break; }

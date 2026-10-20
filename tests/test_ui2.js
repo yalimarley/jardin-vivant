@@ -4,7 +4,7 @@ let fails=0; const ok=(c,m)=>{ if(c) console.log('ok  :',m); else { console.log(
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); const errs=[];
   const p = await (await b.newContext({ viewport:{width:1280,height:900} })).newPage(); p.on('pageerror',e=>errs.push(e.message));
-  const s=G.demo(); s.w=G.weather(s.day); s.mats.ortie=2; s.mats.plan=1; s.mats.savoir=1; s.mats.oya=1; s.mats.cuve=1; s.mats.nichoir=1; s.mats.mycor=1; s.mats.prele=1;
+  const s=G.demo(); s.w=G.weather(s.day); s.mats.ortie=2; s.mats.plan=1; s.mats.savoir=1; s.mats.oya=1; s.mats.cuve=1; s.mats.nichoir=1; s.mats.mycor=1; s.mats.prele=1; s.mats.hamac=1; s.cards[0]=3; s.feves=100;
   await p.addInitScript(v=>{localStorage.setItem('jardin-vivant-proto-v2',v)},JSON.stringify(s));
   await p.goto('file://'+process.cwd()+'/jardin-vivant.html'); await p.waitForTimeout(1200);
   const txt=async sel=>(await p.$eval(sel,e=>e.textContent));
@@ -33,6 +33,17 @@ let fails=0; const ok=(c,m)=>{ if(c) console.log('ok  :',m); else { console.log(
   ok(/Savoir du jour/.test(await txt('#layer .modal')),'carte savoir'); await p.click('[data-act="close"]');
   await p.click('[data-act="amenager"]'); await p.waitForTimeout(300);
   ok(/Grande serre/.test(await txt('#layer .modal')),'Aménager liste la grande serre'); await p.click('[data-act="close"]');
+  await p.click('[data-act="shop"]'); await p.waitForTimeout(300);
+  ok(/Boutique/.test(await txt('#layer .modal')) && /Recycler/.test(await txt('#layer .modal')),'boutique ouverte');
+  await p.screenshot({path:'n_shop.png'});
+  const fev0=await p.$eval('[data-act="shop"]',e=>e.textContent);
+  await p.click('[data-act="recycle-all"]'); await p.waitForTimeout(300);
+  ok(/Aucune carte en double/.test(await txt('#layer .modal')),'recyclage des doubles');
+  const bt2=await p.$('[data-act="shop-buy"]:not([disabled])'); await bt2.click(); await p.waitForTimeout(300);
+  ok(/Acheté/.test(await txt('#toast')),'achat à la boutique'); await p.click('[data-act="close"]');
+  await p.click('[data-act="mode-mat"][data-k="hamac"]'); await p.click('#garden .cell.free'); await p.waitForTimeout(300);
+  ok(await p.$('#garden .cell .frame') && !/Hamac 1/.test(await p.$eval('#res',e=>e.textContent)),'hamac posé');
+  await p.screenshot({path:'n_ham.png'});
   ok(!errs.length,'aucune erreur JS '+errs.join(';'));
   console.log(fails?fails+' ÉCHEC(S)':'Tous les tests UI 2 passent'); await b.close();
 })();

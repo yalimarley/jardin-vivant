@@ -132,5 +132,12 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
 { const s = G.newGame(); ok(s.stock.reduce((a, b) => a + b.kg, 0) > 20 && s.stock.every(it => it.keep), 'garde-manger de départ : réserves de conserve');
   const c = G.openBooster(s).filter(x => x.t === 'plant').map(x => G.P[x.pid]); ok(c.length === 6 && c.every(p => p.semis.includes(G.dateOf(s.day).m + 1) || p.strate === 'Arbuste'), 'premier booster : cultures plantables maintenant');
   const s3 = G.newGame(); s3.boosters = 1; s3.day = 40; const b = G.openBooster(s3).filter(x => x.t === 'plant').slice(0, 2).map(x => G.P[x.pid]); ok(b.every(p => ['Radis', 'Épinard', 'Mâche', 'Laitue', 'Chervis', 'Ciboulette', 'Pois', 'Persil', 'Bourrache', 'Roquette', 'Poirée'].includes(p.name)), 'boosters d’hiver : cultures rapides'); }
+{ const s = G.newGame(); ok(s.feves === 15, 'fèves de départ : ' + s.feves);
+  s.maxPlantings = 25; s.feves = 100; const r = G.shopBuy(s, 'grandeserre'); ok(r.ok && s.mats.grandeserre === 1 && s.feves === 40, 'achat grande serre : 60 fèves');
+  ok(!G.shopBuy(s, 'sechoir').ok, 'séchoir refusé sans atelier'); ok(G.shopBuy(s, 'atelier').ok && !G.shopBuy(s, 'atelier').ok, 'atelier : un seul'); s.feves = 0; ok(!G.shopBuy(s, 'hamac').ok, 'pas assez de fèves');
+  const s2 = G.newGame(); s2.cards = { 0: 3, 1: 1 }; const f0 = s2.feves, rd = G.recycleDoubles(s2); ok(rd.ok && s2.cards[0] === 1 && s2.feves === f0 + rd.gain && rd.gain >= 2, 'recyclage des doubles garde 1 exemplaire');
+  const s3 = G.newGame(); s3.boosterDay = -1; const f3 = s3.feves; G.openBooster(s3); ok(s3.feves === f3 + 1, 'booster : +1 fève');
+  const s4 = G.newGame(); s4.maxPlantings = 25; let seenF = false; for (let k = 0; k < 120; k++) { s4.boosterDay = -1; s4.day++; s4.boosters = 3 + k; G.openBooster(s4).forEach(c => { if (c.t === 'mat' && ['atelier', 'sechoir', 'grandeserre', 'pergola', 'hamac', 'serre', 'mare', 'ruche', 'trogne', 'canard', 'treille'].includes(c.k)) seenF = true; }); } ok(!seenF, 'plus de mobilier dans les boosters');
+  const s5 = G.newGame(); s5.mats.hamac = 1; s5.grid.fill(null); s5.grid[8 * 0 + 9] = { treille: true, furn: 'hamac' }; ok(!G.hamacOk(s5), 'hamac sans plantes : pas de bonus'); }
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

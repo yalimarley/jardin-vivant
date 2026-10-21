@@ -1,0 +1,24 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+const E=require('./engine.js'); const P=JSON.parse(fs.readFileSync('plants2.json','utf8')); const G=E.make(P);
+let fails=0; const ok=(c,m)=>{ if(c) console.log('ok  :',m); else { console.log('ECHEC:',m); fails++; } };
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+const s=G.newGame(); s.maxPlantings=5; const m=G.dateOf(s.day).m, un=G.unlocked(s);
+const sow=Object.values(P).filter(p=>G.sowable(p,m)&&un.has(p.strate)&&p.strate==='Herbacée').slice(0,3);
+const free=[...Array(G.NCELL).keys()].filter(i=>!s.grid[i]&&G.isActive(s,i));
+sow.forEach((p,k)=>{ s.pq.push({i:free[k],pid:p.id}); });
+const p=await (await b.newContext({viewport:{width:1280,height:900}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.addInitScript(v=>{ if(!localStorage.getItem('jardin-vivant-proto-v2')) localStorage.setItem('jardin-vivant-proto-v2',v)},JSON.stringify(s));
+await p.goto('file://'+process.cwd()+'/jardin-vivant.html'); await p.waitForTimeout(600);
+// fixSave vide la file au chargement ? non : elle doit rester en attente
+const n0=await p.$$eval('#garden .pqg',a=>a.length); console.log('fantômes au départ',n0);
+ok(n0>=1,'plantes fantômes visibles');
+await p.screenshot({path:'pq1.png',clip:{x:24,y:340,width:846,height:520}});
+await p.waitForTimeout(9000);
+const n1=await p.$$eval('#garden .pqg',a=>a.length);
+ok(n1<n0,'le jardinier a planté la première plante en temps réel ('+n0+' → '+n1+')');
+await p.waitForTimeout(17000);
+const n2=await p.$$eval('#garden .pqg',a=>a.length);
+ok(n2===0,'toute la file est plantée après environ 21 s ('+n2+' restantes)');
+const pl=await p.evaluate(()=>JSON.parse(localStorage.getItem('jardin-vivant-proto-v2')).plantings);
+ok(pl>=3,'plantations comptées ('+pl+')'); ok(!errs.length,'aucune erreur JS '+errs.join('|'));
+await b.close(); process.exit(fails?1:0); })();

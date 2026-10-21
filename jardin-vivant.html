@@ -1711,7 +1711,7 @@ function pickRoam(a) {
   if (a.who === 'd') { const g = agents.g; if ((a.c - g.c) ** 2 + (a.r - g.r) ** 2 > 7 || Math.random() < .35) return g.node; return keys[Math.floor(Math.random() * keys.length)]; }
   if (a.who === 'f') { const L = keys.filter(k => k[0] === 'y'); return L[Math.floor(Math.random() * L.length)]; }
   // le jardinier va vers une plante qui a besoin de soin, sinon flâne
-  const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 45)) need.push(i); });
+  const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 35)) need.push(i); });
   if (need.length && Math.random() < .7) { const i = need[Math.floor(Math.random() * need.length)]; a.act = S.grid[i].ready ? 'harvest' : 'water'; a.actT = 2.2; setPop(a, a.act); return nearestNode(i % STR + .5, ((i / STR) | 0) + .5); }
   return walk.ring[Math.floor(Math.random() * walk.ring.length)];
 }
@@ -1840,7 +1840,7 @@ function renderGarden() {
     if (ui.strF && ui.strF !== p.strate) return;
     const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
     L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); });
-    if (cell.water < 60) h += badge('water', cx + 1, cy + 7, cell.water < 25, i, 5); });
+    if (cell.water < 35) h += badge('water', cx + 1, cy + 7, cell.water < 20, i, 5); });
   S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } });
   h += '</g>';
   LAWNS.forEach(([x, y], k) => { if (G.lawnReady(S, k)) { const q = wpos(x, y - 36); h += worldBadge('lawn', q[0].toFixed(1), q[1].toFixed(1), k); } });

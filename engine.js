@@ -107,8 +107,7 @@ function make(P) {
     const s = fixSave(blank());
     s.plantings = 0; s.maxPlantings = 0; s.mats.paillage = 8; s.mats.compost = 3;
     checkSkills(s, true);
-    [['Courge', 8, 'cave'], ['Pomme de terre', 10, 'cave'], ['Carotte', 4, 'cave'], ['Tomate', 3, 'bocal'], ['Haricot sec', 2, 'sec'], ['Ail', .5, 'sec'], ['Thym', .3, 'sec']].forEach(([n, kg, keep]) => { if (byName[n]) s.stock.push({ pid: byName[n].id, kg, day: 0, keep }); });
-    log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger contient les réserves de l’été : courge, pommes de terre, bocaux. Ouvre ton booster du jour.');
+    log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger est vide : il se remplira avec ta première récolte. Ouvre ton booster du jour.');
     return s;
   }
   function log(s, type, text) { s.log.unshift({ day: s.day, type, text }); if (s.log.length > 60) s.log.length = 60; }
@@ -778,36 +777,36 @@ function make(P) {
   function guildOf(s, i) { let best = null; const g0 = guildAt(s, i); if (g0) best = { c: i, auto: g0.auto }; for (const j of neigh(i)) { const g = guildAt(s, j); if (g && (!best || (g.auto && !best.auto))) best = { c: j, auto: g.auto }; } return best; }
   function nSpecies(s) { return new Set(s.grid.filter(c => c && !c.treille).map(c => c.pid)).size; }
   const GQ = [
-    { id: 'booster', t: 'Ouvre ton booster du jour', say: 'Salut, moi c’est Guildéon ! Ouvre ton booster du jour : six cartes de plantes t’attendent.', need: 1, have: s => s.boosters, rw: { paillage: 2 } },
-    { id: 'p3', t: 'Plante 3 cartes du booster', say: 'Pose 3 cartes de ton booster dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 3, have: s => s.maxPlantings, rw: { compost: 1 } },
-    { id: 'eau3', t: 'Arrose 3 plantes', say: 'Elles ont soif ! Arrose 3 plantes, la goutte bleue te montre lesquelles.', need: 3, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
+    { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters du jour : six cartes de plantes t’attendent chaque matin. Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
+    { id: 'p3', t: 'Plante 6 cartes', say: 'Pose 6 plantes dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 6, have: s => s.maxPlantings, rw: { compost: 1 } },
+    { id: 'eau3', t: 'Arrose 10 plantes', say: 'Elles ont soif ! Arrose 10 plantes au total, la goutte bleue te montre lesquelles.', need: 10, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
     { id: 'guilde1', t: 'Plante ta première guilde', say: 'Plante une guilde : un arbre entouré d’au moins 5 plantes d’espèces différentes couvrant 4 strates (arbuste, herbacée, racine, grimpante, couvre-sol). Je te donne un bonus de croissance !', need: 1, have: s => guilds(s).n, rw: { boost: 7, paillage: 3 } },
-    { id: 'rec3', t: 'Récolte 3 fois', say: 'Un panier orange sur une plante : c’est prêt ! Récolte 3 fois.', need: 3, have: s => (s.gq.cnt.harvest || 0), rw: { compost: 1 } },
-    { id: 'repas1', t: 'Cuisine ton premier repas', say: 'Direction le garde-manger : cuisine un repas de ta forêt pour ta famille.', need: 1, have: s => s.meals, rw: { paillage: 2 } },
-    { id: 'paille3', t: 'Paille 3 plantes', say: 'La paille garde l’eau et nourrit le sol. Paille 3 plantes.', need: 3, have: s => (s.gq.cnt.mulch || 0), rw: { boost: 3 } },
+    { id: 'rec3', t: 'Récolte 8 fois', say: 'Un panier orange sur une plante : c’est prêt ! Récolte 8 fois.', need: 8, have: s => (s.gq.cnt.harvest || 0), rw: { compost: 1 } },
+    { id: 'repas1', t: 'Cuisine 3 repas', say: 'Direction le garde-manger : cuisine trois repas de ta forêt pour ta famille.', need: 3, have: s => s.meals, rw: { paillage: 2 } },
+    { id: 'paille3', t: 'Paille 8 plantes', say: 'La paille garde l’eau et nourrit le sol. Paille 8 plantes.', need: 8, have: s => (s.gq.cnt.mulch || 0), rw: { boost: 3 } },
     { id: 'atelier1', t: 'Construis ton atelier', say: 'Un atelier près de la maison : tu y feras tes conserves et ton séchage. Joue une carte Atelier !', need: 1, have: s => s.atelier ? 1 : 0, rw: { boost: 5, compost: 2 } },
-    { id: 'conserve1', t: 'Fais ta première conserve', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 1, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
-    { id: 'soin1', t: 'Soigne tes plantes avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 1, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
-    { id: 'bouture1', t: 'Prélève une bouture', say: 'Une bouture, c’est une plante gratuite ! Ouvre les Compétences, choisis Bouture et touche une vivace mature.', need: 1, have: s => (s.gq.cnt.bouture || 0), rw: { boost: 3, compost: 1 } },
+    { id: 'conserve1', t: 'Fais 3 conserves', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 3, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
+    { id: 'soin1', t: 'Soigne tes plantes 3 fois avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 3, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
+    { id: 'bouture1', t: 'Prélève 2 boutures', say: 'Une bouture, c’est une plante gratuite ! Ouvre les Compétences, choisis Bouture et touche une vivace mature.', need: 2, have: s => (s.gq.cnt.bouture || 0), rw: { boost: 3, compost: 1 } },
     { id: 'fab1', t: 'Fabrique ton premier soin', say: 'Avec du paillage et du compost, tu peux fabriquer ton propre purin d’ortie : ouvre les Compétences, onglet Fabrication.', need: 1, have: s => (s.gq.cnt.fab || 0), rw: { boost: 3, paillage: 2 } },
     { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des ginkgos ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
-    { id: 'sp6', t: '6 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 6 espèces différentes.', need: 6, have: s => nSpecies(s), rw: { compost: 2 } },
-    { id: 'tonte1', t: 'Tonds l’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 1, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
-    { id: 'p12', t: 'Atteins 12 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 12 plantations.', need: 12, have: s => s.maxPlantings, rw: { boost: 5 } },
+    { id: 'sp6', t: '9 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 9 espèces différentes.', need: 9, have: s => nSpecies(s), rw: { compost: 2 } },
+    { id: 'tonte1', t: 'Tonds 5 zones d’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 5, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
+    { id: 'p12', t: 'Atteins 20 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 20 plantations.', need: 20, have: s => s.maxPlantings, rw: { boost: 5 } },
     { id: 'guilde2', t: 'Deux guildes', say: 'Une deuxième guilde ! Elles se protègent entre elles.', need: 2, have: s => guilds(s).n, rw: { boost: 10, compost: 2 } },
-    { id: 'auto25', t: 'Autonomie à 25 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 25 %.', need: 25, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 } },
+    { id: 'auto25', t: 'Autonomie à 30 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 30 %.', need: 30, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 } },
     { id: 'trogne1', t: 'Taille une trogne', say: 'Ouvre les Compétences, choisis Trognes, puis touche un arbre au bord du jardin pour le tailler en têtard, et coupe-le ensuite : paillage et pousse accélérée.', need: 1, have: s => (s.gq.cnt.trogne || 0), rw: { paillage: 4 } },
-    { id: 'repas5', t: 'Cuisine 5 repas', say: 'Ta famille compte sur toi : 5 repas au total.', need: 5, have: s => s.meals, rw: { boost: 5 } },
+    { id: 'repas5', t: 'Cuisine 15 repas', say: 'Ta famille compte sur toi : 15 repas au total.', need: 15, have: s => s.meals, rw: { boost: 5 } },
     { id: 'miel1', t: 'Récolte du miel', say: 'Les abeilles ont travaillé ! Récolte le miel de la ruche (de mai à septembre).', need: 1, have: s => (s.gq.cnt.honey || 0), rw: { boost: 5, paillage: 2 } },
-    { id: 'sp12', t: '12 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 12 espèces.', need: 12, have: s => nSpecies(s), rw: { compost: 3 } },
-    { id: 'auto50', t: 'Autonomie à 50 %', say: 'Moitié de tes besoins couverts par ton jardin : c’est énorme. Vise 50 %.', need: 50, have: s => Math.floor(stats(s).autonomy), rw: { boost: 14, paillage: 5 } },
+    { id: 'sp12', t: '18 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 18 espèces.', need: 18, have: s => nSpecies(s), rw: { compost: 3 } },
+    { id: 'auto50', t: 'Autonomie à 60 %', say: 'Plus de la moitié de tes besoins couverts par ton jardin : c’est énorme. Vise 60 %.', need: 60, have: s => Math.floor(stats(s).autonomy), rw: { boost: 14, paillage: 5 } },
     { id: 'guilde4', t: 'Quatre guildes', say: 'Quatre guildes, bravo ! Tu penses comme une forêt.', need: 4, have: s => guilds(s).n, rw: { boost: 14, paillage: 4 } },
-    { id: 'p30', t: 'Atteins 30 plantations', say: 'Ta forêt devient un vrai jardin-forêt. Cap sur 30 plantations.', need: 30, have: s => s.maxPlantings, rw: { boost: 10, compost: 3 } }
+    { id: 'p30', t: 'Atteins 50 plantations', say: 'Ta forêt devient un vrai jardin-forêt. Cap sur 50 plantations.', need: 50, have: s => s.maxPlantings, rw: { boost: 10, compost: 3 } }
   ];
   const DAILY = [
-    { k: 'water', t: 'Arrose 4 plantes aujourd’hui', say: 'Défi du jour : arrose 4 plantes.', need: 4, rw: { paillage: 1 } },
-    { k: 'harvest', t: 'Récolte 2 fois aujourd’hui', say: 'Défi du jour : récolte 2 fois.', need: 2, rw: { compost: 1 } },
-    { k: 'mulch', t: 'Paille 2 plantes aujourd’hui', say: 'Défi du jour : paille 2 plantes.', need: 2, rw: { boost: 2 } }
+    { k: 'water', t: 'Arrose 8 plantes aujourd’hui', say: 'Défi du jour : arrose 8 plantes.', need: 8, rw: { paillage: 1 } },
+    { k: 'harvest', t: 'Récolte 4 fois aujourd’hui', say: 'Défi du jour : récolte 4 fois.', need: 4, rw: { compost: 1 } },
+    { k: 'mulch', t: 'Paille 4 plantes aujourd’hui', say: 'Défi du jour : paille 4 plantes.', need: 4, rw: { boost: 2 } }
   ];
   function rwLabel(rw) { const o = []; if (rw.paillage) o.push(rw.paillage + ' paillage'); if (rw.compost) o.push(rw.compost + ' compost'); if (rw.boost) o.push('croissance accélérée ' + rw.boost + ' j'); if (rw.eau) o.push(rw.eau + ' L d’eau'); return o.join(' + '); }
   function quests(s) {
@@ -815,8 +814,8 @@ function make(P) {
     for (const q of GQ) { const have = Math.min(q.need, q.have(s)), done = have >= q.need, claimed = !!s.gq.claimed[q.id]; out.push({ id: q.id, t: q.t, say: q.say, have, need: q.need, done, claimed, rw: q.rw, label: rwLabel(q.rw), daily: false }); }
     let di = s.day % DAILY.length; if (DAILY[di].k === 'mulch' && !(s.mats.paillage > 0) && !(s.gq.dc.day === s.day && s.gq.dc.mulch)) di = 0;
     const d = DAILY[di], dc = s.gq.dc.day === s.day ? (s.gq.dc[d.k] || 0) : 0, did = 'j' + s.day;
-    out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
-    out.forEach(q => { q.fv = q.daily ? 2 : Math.max(3, Math.round(4 + ((q.rw && q.rw.boost) || 0) * .6)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
+    if (s.day % 3 === 0 || dc > 0 || s.gq.claimed[did]) out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
+    out.forEach(q => { q.fv = q.daily ? 1 : Math.max(2, Math.round(2 + ((q.rw && q.rw.boost) || 0) * .3)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
     return out;
   }
   function claimQuest(s, id) {

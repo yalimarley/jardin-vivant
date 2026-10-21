@@ -96,7 +96,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   ok(G.resistance(s2, ci).pct >= 0, 'résistance calculée : ' + G.resistance(s2, ci).pct + ' %'); }
 
 { const s = G.newGame(); const g0 = G.guildeon(s); if (!g0.qs.length || g0.ready) { console.log('ÉCHEC Guildéon départ'); process.exit(1); }
-  s.boosters = 1; if (!G.quests(s).find(q => q.id === 'booster').done) { console.log('ÉCHEC quête booster'); process.exit(1); }
+  s.boosters = 3; if (!G.quests(s).find(q => q.id === 'booster').done) { console.log('ÉCHEC quête booster'); process.exit(1); }
   const p0 = s.mats.paillage; const r = G.claimQuest(s, 'booster'); if (!r.ok || G.claimQuest(s, 'booster').ok || s.mats.paillage <= p0) { console.log('ÉCHEC récompense'); process.exit(1); }
   const d = G.demo(); if (G.guilds(d).n < 1) { console.log('ÉCHEC guilde démo'); process.exit(1); }
   console.log('ok  : Guildéon (quêtes, récompense unique, guildes)'); }
@@ -129,7 +129,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const ex = G.P.find(p => G.isExo(p)), s2 = G.newGame(); let seen = false; for (let k = 0; k < 400; k++) { s2.boosterDay = -1; s2.mats.grandeserre = 0; s2.maxPlantings = 25; s2.boosters = 5; s2.day++; const b = G.openBooster(s2); if (b.some(c => c.t === 'plant' && G.isExo(G.P[c.pid]))) seen = true; } if (seen) fail('exotiques sans grande serre');
   console.log('ok  : nouvelles cartes (booster, soins, nichoir, cuve, bocaux, plan de guilde, exotiques)'); }
 
-{ const s = G.newGame(); ok(s.stock.reduce((a, b) => a + b.kg, 0) > 20 && s.stock.every(it => it.keep), 'garde-manger de départ : réserves de conserve');
+{ const s = G.newGame(); ok(s.stock.length === 0, 'garde-manger vide au départ');
   const c = G.openBooster(s).filter(x => x.t === 'plant').map(x => G.P[x.pid]); ok(c.length === 6 && c.every(p => p.semis.includes(G.dateOf(s.day).m + 1) || p.strate === 'Arbuste'), 'premier booster : cultures plantables maintenant');
   const s3 = G.newGame(); s3.boosters = 1; s3.day = 40; const b = G.openBooster(s3).filter(x => x.t === 'plant').slice(0, 2).map(x => G.P[x.pid]); ok(b.every(p => ['Radis', 'Épinard', 'Mâche', 'Laitue', 'Chervis', 'Ciboulette', 'Pois', 'Persil', 'Bourrache', 'Roquette', 'Poirée'].includes(p.name)), 'boosters d’hiver : cultures rapides'); }
 { const s = G.newGame(); ok(s.feves === 15, 'ginkgos de départ : ' + s.feves);

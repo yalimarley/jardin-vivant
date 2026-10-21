@@ -943,7 +943,8 @@ function applyView() {
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
   const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now();
-  if (g.text !== ui.gText || g.ready > (ui.gReady || 0)) { ui.gText = g.text; ui.gUntil = now + 15000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 15200); }
+  if (g.ready > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
+  ui.gText = g.text;
   ui.gReady = g.ready;
   m.classList.toggle('joy', g.ready > 0); bd.hidden = !g.ready; bd.textContent = g.ready;
   say.textContent = g.text; say.hidden = !(ui.gUntil > now) || !!ui.gOpen;

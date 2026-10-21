@@ -247,6 +247,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .lawn,.tree{cursor:pointer}.tree.pick circle{animation:pulse 1.2s ease-in-out infinite alternate}@keyframes pulse{from{opacity:.55}to{opacity:1}}
 @media (prefers-reduced-motion:no-preference){.duck{animation:duckw 2.4s ease-in-out infinite alternate}.duck.d1{animation-delay:-1.1s}@keyframes duckw{from{transform:translateX(-3px)}to{transform:translateX(4px)}}}
 .garden-wrap{position:relative}
+@media (prefers-reduced-motion:no-preference){.pqg.work{animation:pqp 1s ease-in-out infinite}@keyframes pqp{0%,100%{opacity:.55}50%{opacity:.95}}}
 .wxalert{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:8px 12px;border-radius:10px;font-size:14px;background:#fdf1d6;color:#5b4210;border:1px solid #e8cf8f}
 .wxalert[hidden]{display:none}
 .wxalert.k-gel{background:#e6f1fa;color:#1f4766;border-color:#b6d3ea}
@@ -361,6 +362,7 @@ const SHOP = { paillage: 3, compost: 4, chemin: 5, ortie: 6, prele: 6, bocaux: 8
 const SKILLS = {
   tonte: { n: 'Tonte', req: 0, th: [15, 45], d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone, et l’herbe repousse 3 jours plus vite.'], how: 'Tonds les zones d’herbe autour du jardin (+1 point par zone).' },
   trogne: { n: 'Trognes', req: 4, th: [12, 30], d: ['Tailler un arbre en trogne : +4 paillage et croissance accélérée 20 jours.', '+6 paillage par coupe.', '+8 paillage par coupe, croissance accélérée 30 jours, et une coupe tous les 75 jours.'], how: 'Forme une trogne (+2 points) et coupe-la (+3 points).' },
+  plantation: { n: 'Plantation', req: 0, th: [25, 90], d: ['Le jardinier plante une plante après l’autre : environ 7 secondes chacune (un peu plus pour un arbre).', 'Il plante deux plantes à la fois, en environ 4 secondes.', 'Plantation experte : quatre plantes à la fois, en environ 2 secondes.'], how: 'Plante une carte (+1 point).' },
   bouture: { n: 'Bouture', req: 6, th: [12, 36], d: ['Prélever une bouture sur une plante vivace mature : une nouvelle carte de la même espèce (une par plante tous les 45 jours).', 'Une bouture par plante tous les 30 jours.', 'Tous les 20 jours, et 2 cartes par bouture.'], how: 'Prélève une bouture (+3 points).' },
   fabrication: { n: 'Fabrication', req: 8, th: [14, 40], d: ['Fabriquer soi-même du purin d’ortie et de la prêle avec du paillage et du compost.', 'Fabriquer aussi des nichoirs et des oyas.', 'Fabriquer aussi des cuves de récupération.'], how: 'Fabrique un soin ou un équipement (+2 points).' },
   sechage: { n: 'Séchage', req: 10, th: [10, 30], d: ['Sécher herbes et fruits au séchoir : 3 kg par jour.', '5 kg par jour.', '8 kg par jour.'], how: 'Sèche une récolte au séchoir (+2 points).' },
@@ -553,6 +555,24 @@ function make(P) {
   function bump(s, k, n) { if (s.doneToday.day !== s.day) s.doneToday = { day: s.day, n: 0 }; s.doneToday.n++; if (k) { const g = gqInit(s), a = n == null ? 1 : n; g.cnt[k] = (g.cnt[k] || 0) + a; if (g.dc.day !== s.day) g.dc = { day: s.day }; g.dc[k] = (g.dc[k] || 0) + a; } }
 
   // ----- actions -----
+  function plantCheck(s, i, pid) {
+    const p = P[pid];
+    if (!p) return { ok: false, msg: 'Carte inconnue.' };
+    if (!(s.cards[pid] > 0)) return { ok: false, msg: 'Tu n’as plus cette carte.' };
+    if (!isActive(s, i)) return { ok: false, msg: 'Cette parcelle n’est pas encore à toi : agrandis le terrain.' };
+    if ((s.pq || []).some(q => q.i === i)) return { ok: false, msg: 'Une plantation est déjà prévue ici.' };
+    const occ = s.grid[i];
+    if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
+    if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
+    const m = dateOf(s.day).m;
+    if (!sowable(p, m)) return { ok: false, msg: 'Pas la bonne saison pour ' + p.name.toLowerCase() + ' (' + (['Arbre', 'Arbuste', 'Grimpante'].includes(p.strate) ? 'plantation' : 'semis') + ' : ' + monthRange(p.semis) + '). Garde la carte.' };
+    return { ok: true };
+  }
+  function queuePlant(s, i, pid) { const c = plantCheck(s, i, pid); if (!c.ok) return c; s.cards[pid]--; if (!s.cards[pid]) delete s.cards[pid]; (s.pq = s.pq || []).push({ i, pid }); return { ok: true }; }
+  function cancelPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; return { ok: true, name: P[q.pid].name }; }
+  function finishPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false, none: true }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; const r = plant(s, i, q.pid); if (r.ok) gainSkill(s, 'plantation', 1); return r; }
+  function flushPlantQueue(s) { (s.pq || []).slice().forEach(q => finishPlant(s, q.i)); s.pq = []; }
+  function plantSpeed(s, pid) { const lv = Math.max(1, skillLevel(s, 'plantation')); const woody = ['Arbre', 'Arbuste'].includes((P[pid] || {}).strate); return { sec: [0, 7, 4, 2][lv] * (woody ? 1.5 : 1), batch: [1, 1, 1, 2, 4][lv + 1] || 1, lv }; }
   function plant(s, i, pid) {
     const p = P[pid];
     if (!p) return { ok: false, msg: 'Carte inconnue.' };
@@ -579,7 +599,7 @@ function make(P) {
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
   function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
-  function fixSave(s) { gqInit(s); if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } if (!s.skills) { s.skills = { pts: {}, seen: {} }; Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); } if (!s.skillNotes) s.skillNotes = []; if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
+  function fixSave(s) { gqInit(s); if (!s.pq) s.pq = []; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } if (!s.skills) { s.skills = { pts: {}, seen: {} }; Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); } if (!s.skillNotes) s.skillNotes = []; if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
   function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 3 ? 3 : 0); }
   function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH + Math.max(0, skillLevel(s, 'tonte') - 1); gainSkill(s, 'tonte', 1); bump(s, 'mow'); return true; }
   function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 15 : 0)); }
@@ -792,7 +812,7 @@ function make(P) {
   // ----- jour suivant -----
   function autoWater(s) { for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (c && !c.treille && c.water < 30) { const cost = waterCost(c); if (s.tank >= cost) { s.tank -= cost; c.water = 90; } } } }
   function nextDay(s, assist) {
-    const ev = [];
+    const ev = []; if (s.pq && s.pq.length) flushPlantQueue(s);
     if (assist) autoWater(s);
     s.day++; const w = weather(s.day), m = dateOf(s.day).m, tm = (w.tmin + w.tmax) / 2; s.w = w;
     s.tank = Math.min(s.tankMax, s.tank + w.rain * 10);
@@ -1119,7 +1139,7 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     buildTasks, runTask, synergy, placeFurn, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -1693,7 +1713,7 @@ function renderGarden() {
   const picking = ui.mode && ui.mode.type === 'plant', tre = ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k);
   const dry = c => c.water < 25;
   const order = []; for (let s = 0; s < DW + DH - 1; s++) for (let rr = 0; rr < DH; rr++) { const cc = s - rr; if (cc >= 0 && cc < DW) { const q = irot(cc + .5, rr + .5); order.push([Math.floor(q[0]), Math.floor(q[1])]); } }
-  const centers = {};
+  const centers = {}, pqSet = {}; (S.pq || []).forEach(q => { pqSet[q.i] = q; });
   for (const [c, r] of order) {
     const i = r * STR + c, cell = S.grid[i], free = !cell, lift = BH;
     const a = c + INS, b2 = c + 1 - INS, rr0 = r + INS, rr1 = r + 1 - INS;
@@ -1708,7 +1728,9 @@ function renderGarden() {
     h += '<g class="' + cls + '" data-i="' + i + '" tabindex="0" role="button" aria-label="' + lab + ', colonne ' + (c + 1) + ' rangée ' + (r + 1) + '">';
     // faces latérales du bac
     if (!flat) { h += poly([up(Lc), up(Bc), dn(Bc), dn(Lc)], '#7a5a3c') + poly([up(Bc), up(Rc), dn(Rc), dn(Bc)], '#5f4630'); h += poly(T, soilTop); }
-    if (free) h += '<path d="M' + (cx - 20) + ' ' + (cyTop + 1) + 'l9-3M' + (cx + 4) + ' ' + (cyTop - 4) + 'l10 3M' + (cx - 6) + ' ' + (cyTop + 7) + 'l10-3" stroke="#6e5238" stroke-width="2" stroke-linecap="round" opacity=".6"/>';
+    const qd = pqSet[i];
+    if (qd) { const pq = P[qd.pid], sc2 = STRS[pq.strate] || 1; h += '<g class="pqg' + (PQ.job && PQ.job.items.includes(i) ? ' work' : '') + '" opacity=".6"><ellipse cx="' + cx + '" cy="' + (cyTop + 1) + '" rx="26" ry="10" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 4"/><g transform="translate(' + (cx - 40 * sc2).toFixed(1) + ' ' + (cyTop + 3 - 66 * sc2).toFixed(1) + ') scale(' + sc2 + ')">' + sprite(pq, { stage: 'jeune', prog: .2, ready: false, m, dry: false, seed: i }) + '</g></g>'; }
+    if (free && !qd) h += '<path d="M' + (cx - 20) + ' ' + (cyTop + 1) + 'l9-3M' + (cx + 4) + ' ' + (cyTop - 4) + 'l10 3M' + (cx - 6) + ' ' + (cyTop + 7) + 'l10-3" stroke="#6e5238" stroke-width="2" stroke-linecap="round" opacity=".6"/>';
     if (cell && !cell.treille) {
       const p = P[cell.pid], ph = G.phase(cell);
       if (cell.supp) h += furnTile(cell.supp, cx, cell.supp === 'treille' ? cyTop : isoY(c + .5, r + .5), m, i);
@@ -1722,7 +1744,7 @@ function renderGarden() {
     } else if (fk) {
       h += furnTile(fk, cx, flat ? isoY(c + .5, r + .5) : cyTop, m, i, cell);
       if (climbPick || duckPick) h += '<circle cx="' + cx + '" cy="' + (cyTop - 30) + '" r="11" fill="var(--leaf)" opacity=".92"/><path d="M' + cx + ' ' + (cyTop - 36) + 'v12M' + (cx - 6) + ' ' + (cyTop - 30) + 'h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>';
-    } else if (picking || tre || relT || (ui.planHl && ui.planHl.includes(i))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
+    } else if (!qd && (picking || tre || relT || (ui.planHl && ui.planHl.includes(i)))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
     h += '<polygon class="frame" points="' + T.join(' ') + '"/><polygon points="' + [pt(c, r, lift), pt(c + 1, r, lift), pt(c + 1, r + 1, lift), pt(c, r + 1, lift)].join(' ') + '" fill="transparent"/></g>';
   }
   h += '<g id="gFront"></g>';
@@ -1757,7 +1779,7 @@ function renderGarden() {
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = '<span>Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
+  else hint.innerHTML = '<span>' + (S.pq && S.pq.length ? '<b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler. ' : '') + 'Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
 }
 
 /* ---------- réserve ---------- */
@@ -1970,6 +1992,7 @@ function openCompost() {
 }
 
 const SKILL_SVG = {
+  plantation: '<path d="M14 62h52" stroke="#6a4e39" stroke-width="5" stroke-linecap="round"/><path d="M40 60V34" stroke="#4f9a4a" stroke-width="3.6" stroke-linecap="round"/><path d="M40 40c-10-1-15-8-15-14 9 0 15 5 15 14zM40 34c10-1 15-8 15-14-9 0-15 5-15 14z" fill="#7dbb5c"/><path d="M58 30l10 12-14 6z" fill="#b08a52" stroke="#7a5636" stroke-width="1.4"/><path d="M63 36l8 22" stroke="#7a5636" stroke-width="3" stroke-linecap="round"/>',
   tonte: '<path d="M16 68h48" stroke="#6a4e39" stroke-width="4" stroke-linecap="round"/><g stroke="#4f9a4a" stroke-width="3.2" stroke-linecap="round" fill="none"><path d="M20 68q-2-12-6-20M32 68q0-16-2-26M44 68q2-18 6-30M56 68q-1-12 4-22"/></g><path d="M16 24q30-12 48 20" stroke="#9aa6ae" stroke-width="4.4" fill="none" stroke-linecap="round"/><path d="M16 24L8 14" stroke="#8a6240" stroke-width="4.4" stroke-linecap="round"/>',
   bouture: '<path d="M40 12v36" stroke="#4f9a4a" stroke-width="4" stroke-linecap="round"/><path d="M40 26c-12-2-18-10-18-16 10 0 18 6 18 16zM40 38c12-2 18-10 18-16-10 0-18 6-18 16z" fill="#7dbb5c"/><path d="M40 52q-6 8-12 10M40 52v14M40 52q6 8 12 10" stroke="#b08a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 50l36-6" stroke="#aab3ba" stroke-width="3.2" stroke-linecap="round"/>',
   greffe: '<path d="M30 72V42l-8-16M30 42l20-20" stroke="#7a5636" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M25 46l16-9" stroke="#e8d5a8" stroke-width="5"/><circle cx="54" cy="18" r="6" fill="#e0603a"/><circle cx="19" cy="21" r="5" fill="#f0b23a"/>',
@@ -2111,6 +2134,7 @@ function doTask(id) {
 }
 function clickCell(i) {
   const c = S.grid[i];
+  if (!ui.mode && (!ui.tool || ui.tool === 'select') && S.pq && S.pq.some(q => q.i === i)) { const r = G.cancelPlant(S, i); if (r.ok) { if (PQ.job && PQ.job.items.includes(i)) PQ.job.items = PQ.job.items.filter(x => x !== i); toast('Plantation annulée : la carte de ' + r.name.toLowerCase() + ' est rendue.'); save(); render(); } return; }
   if (ui.tool === 'reloc') {
     if (ui.mvFrom >= 0 && ui.mvFrom !== i && !(c && !c.treille)) {
       const r = G.movePlant(S, ui.mvFrom, i); if (!r.ok) { toast(r.msg); return; }
@@ -2127,8 +2151,8 @@ function clickCell(i) {
   } setTimeout(() => { if (window.innerWidth <= 1040 && ui.sel === i && !ui.mode) $('fiche').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
   if (ui.mode && ui.mode.type === 'plant') {
     if (c && !(c.treille && (c.furn === 'treille' || c.furn === 'pergola') && P[ui.mode.pid].strate === 'Grimpante')) { ui.sel = i; ui.confirmDel = false; render(); return; }
-    const r = G.plant(S, i, ui.mode.pid); if (!r.ok) { toast(r.msg); return; } if (r.reward) setTimeout(() => toast(r.reward), 900); setTimeout(() => sendGardener(i, 'plant'), 0);
-    if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = i; toast('Planté.'); render(); return;
+    const r = G.queuePlant(S, i, ui.mode.pid); if (!r.ok) { toast(r.msg); return; }
+    if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = -1; toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); return;
   }
   ui.planHl = null;
   if (ui.mode && ui.mode.type === 'skill') { const kk = ui.mode.k, r = kk === 'bouture' ? G.bouturer(S, i) : G.greffer(S, i); if (!r.ok) { toast(r.msg); return; } toast(kk === 'bouture' ? 'Bouture prélevée : une nouvelle carte de ' + r.name.toLowerCase() + ' dans ta réserve.' : r.name + ' greffé : plus de fruits et plus vite.'); ui.sel = i; save(); render(); return; }
@@ -2235,6 +2259,18 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cell')) { e.preventDefault(); clickCell(+e.target.dataset.i); }
 });
+const PQ = { job: null };
+function pqTick(dt) {
+  if (!S.pq || !S.pq.length) { PQ.job = null; return; }
+  if (PQ.job) PQ.job.items = PQ.job.items.filter(i => S.pq.some(q => q.i === i));
+  if (!PQ.job || !PQ.job.items.length) { const sp = G.plantSpeed(S, S.pq[0].pid), items = S.pq.slice(0, sp.batch).map(q => q.i); PQ.job = { items, left: sp.sec }; sendGardener(items[0], 'plant'); render(); return; }
+  PQ.job.left -= dt; if (PQ.job.left > 0) return;
+  const items = PQ.job.items; PQ.job = null; const msgs = [];
+  items.forEach(i => { const r = G.finishPlant(S, i); if (r.ok && r.reward) msgs.push(r.reward); else if (!r.ok && !r.none) toast(r.msg); });
+  save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
+}
+setInterval(() => pqTick(.25), 250);
+window.__jv = { flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();
 

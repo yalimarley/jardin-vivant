@@ -172,5 +172,19 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const mk=(voile)=>{ const s=G.newGame(); s.day=gd-1; s.mats.voile=1; const cell=s.grid.findIndex((c,i)=>!c&&G.isActive(s,i)); s.grid[cell]={pid:tender.id,g:30,water:80,health:100,stress:0,stage:'jeune'}; if(voile) G.useVoile(s,cell); G.nextDay(s,false); return !!s.grid[cell]; };
   const w=G.weather(gd); T(!mk(false)&&w.tmin<tender.gel? (mk(true)||w.tmin<tender.gel-6?'ok  : le gel détruit une plante fragile'+(mk(true)?', le voile la sauve':''):'ECHEC: voile inutile'):'ECHEC: gel sans effet '+w.tmin+' '+tender.gel);
 }
+// ---- file de plantation
+{ const T=m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)};
+  const s=G.newGame(); s.maxPlantings=30; const m=G.dateOf(s.day).m; const un=G.unlocked(s);
+  const sow=Object.values(P).filter(p=>G.sowable(p,m)&&un.has(p.strate)&&p.strate==='Herbacée').slice(0,3); sow.forEach(p=>s.cards[p.id]=2);
+  const free=[...Array(G.NCELL).keys()].filter(i=>!s.grid[i]&&G.isActive(s,i)); const n0=sow.length?s.cards[sow[0].id]:0;
+  T(sow.length>=2?'ok  : cartes de test prêtes':'ECHEC: pas de carte semable');
+  const r1=G.queuePlant(s,free[0],sow[0].id), r2=G.queuePlant(s,free[0],sow[1].id); T(r1.ok&&!r2.ok&&/déjà prévue/.test(r2.msg)?'ok  : une seule plantation prévue par parcelle':'ECHEC: doublon file');
+  T(s.cards[sow[0].id]===n0-1&&!s.grid[free[0]]?'ok  : la carte est réservée, la parcelle reste vide':'ECHEC: réservation');
+  const c=G.cancelPlant(s,free[0]); T(c.ok&&s.cards[sow[0].id]===n0&&!s.pq.length?'ok  : annulation rend la carte':'ECHEC: annulation');
+  G.queuePlant(s,free[0],sow[0].id); G.queuePlant(s,free[1],sow[1].id); const pts0=(s.skills.pts.plantation||0); const f=G.finishPlant(s,free[0]); T(f.ok&&s.grid[free[0]]&&(s.skills.pts.plantation||0)===pts0+1?'ok  : la plantation donne un point de compétence':'ECHEC: finishPlant '+JSON.stringify(f));
+  G.nextDay(s,false); T(s.grid[free[1]]&&!s.pq.length?'ok  : la file se vide à la fin de la journée':'ECHEC: file non vidée');
+  const sp1=G.plantSpeed(s,sow[0].id); s.skills.pts.plantation=30; const sp2=G.plantSpeed(s,sow[0].id); s.skills.pts.plantation=100; const sp3=G.plantSpeed(s,sow[0].id);
+  T(sp1.sec>sp2.sec&&sp2.sec>sp3.sec&&sp3.batch>sp2.batch&&sp2.batch>sp1.batch?'ok  : la compétence accélère la plantation ('+sp1.sec+' s → '+sp2.sec+' s → '+sp3.sec+' s, lots de '+sp1.batch+'/'+sp2.batch+'/'+sp3.batch+')':'ECHEC: vitesses '+JSON.stringify([sp1,sp2,sp3]));
+}
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

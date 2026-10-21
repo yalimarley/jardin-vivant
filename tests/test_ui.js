@@ -37,7 +37,10 @@ ok(q('#hint').textContent.includes('Choisis une parcelle libre'), 'mode plantati
 const free = qa('#garden .cell.free')[0];
 const before = qa('#garden .cell.free').length;
 click(free);
-ok(qa('#garden .cell.free').length === before - 1, 'plante posée sur une parcelle libre');
+ok(qa('#garden .pqg').length === 1, 'plantation en attente : plante fantôme affichée');
+ok(/en attente/.test(q('#hint').textContent) || /en attente/.test(q('#toast').textContent), 'le jardinier annonce la file');
+w.__jv.flush();
+ok(qa('#garden .pqg').length === 0 && qa('#garden .cell.free').length === before - 1, 'plante posée sur une parcelle libre une fois le jardinier passé');
 ok(q('#fiche h2').textContent.length > 0, 'fiche affichée : ' + q('#fiche h2').textContent);
 // hors saison
 // sélection d'une plante existante

@@ -563,7 +563,7 @@ function renderGarden() {
   const picking = ui.mode && ui.mode.type === 'plant', tre = ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k);
   const dry = c => c.water < 25;
   const order = []; for (let s = 0; s < DW + DH - 1; s++) for (let rr = 0; rr < DH; rr++) { const cc = s - rr; if (cc >= 0 && cc < DW) { const q = irot(cc + .5, rr + .5); order.push([Math.floor(q[0]), Math.floor(q[1])]); } }
-  const centers = {};
+  const centers = {}, pqSet = {}; (S.pq || []).forEach(q => { pqSet[q.i] = q; });
   for (const [c, r] of order) {
     const i = r * STR + c, cell = S.grid[i], free = !cell, lift = BH;
     const a = c + INS, b2 = c + 1 - INS, rr0 = r + INS, rr1 = r + 1 - INS;
@@ -578,7 +578,9 @@ function renderGarden() {
     h += '<g class="' + cls + '" data-i="' + i + '" tabindex="0" role="button" aria-label="' + lab + ', colonne ' + (c + 1) + ' rangée ' + (r + 1) + '">';
     // faces latérales du bac
     if (!flat) { h += poly([up(Lc), up(Bc), dn(Bc), dn(Lc)], '#7a5a3c') + poly([up(Bc), up(Rc), dn(Rc), dn(Bc)], '#5f4630'); h += poly(T, soilTop); }
-    if (free) h += '<path d="M' + (cx - 20) + ' ' + (cyTop + 1) + 'l9-3M' + (cx + 4) + ' ' + (cyTop - 4) + 'l10 3M' + (cx - 6) + ' ' + (cyTop + 7) + 'l10-3" stroke="#6e5238" stroke-width="2" stroke-linecap="round" opacity=".6"/>';
+    const qd = pqSet[i];
+    if (qd) { const pq = P[qd.pid], sc2 = STRS[pq.strate] || 1; h += '<g class="pqg' + (PQ.job && PQ.job.items.includes(i) ? ' work' : '') + '" opacity=".6"><ellipse cx="' + cx + '" cy="' + (cyTop + 1) + '" rx="26" ry="10" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="5 4"/><g transform="translate(' + (cx - 40 * sc2).toFixed(1) + ' ' + (cyTop + 3 - 66 * sc2).toFixed(1) + ') scale(' + sc2 + ')">' + sprite(pq, { stage: 'jeune', prog: .2, ready: false, m, dry: false, seed: i }) + '</g></g>'; }
+    if (free && !qd) h += '<path d="M' + (cx - 20) + ' ' + (cyTop + 1) + 'l9-3M' + (cx + 4) + ' ' + (cyTop - 4) + 'l10 3M' + (cx - 6) + ' ' + (cyTop + 7) + 'l10-3" stroke="#6e5238" stroke-width="2" stroke-linecap="round" opacity=".6"/>';
     if (cell && !cell.treille) {
       const p = P[cell.pid], ph = G.phase(cell);
       if (cell.supp) h += furnTile(cell.supp, cx, cell.supp === 'treille' ? cyTop : isoY(c + .5, r + .5), m, i);
@@ -592,7 +594,7 @@ function renderGarden() {
     } else if (fk) {
       h += furnTile(fk, cx, flat ? isoY(c + .5, r + .5) : cyTop, m, i, cell);
       if (climbPick || duckPick) h += '<circle cx="' + cx + '" cy="' + (cyTop - 30) + '" r="11" fill="var(--leaf)" opacity=".92"/><path d="M' + cx + ' ' + (cyTop - 36) + 'v12M' + (cx - 6) + ' ' + (cyTop - 30) + 'h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>';
-    } else if (picking || tre || relT || (ui.planHl && ui.planHl.includes(i))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
+    } else if (!qd && (picking || tre || relT || (ui.planHl && ui.planHl.includes(i)))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
     h += '<polygon class="frame" points="' + T.join(' ') + '"/><polygon points="' + [pt(c, r, lift), pt(c + 1, r, lift), pt(c + 1, r + 1, lift), pt(c, r + 1, lift)].join(' ') + '" fill="transparent"/></g>';
   }
   h += '<g id="gFront"></g>';
@@ -627,7 +629,7 @@ function renderGarden() {
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = '<span>Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
+  else hint.innerHTML = '<span>' + (S.pq && S.pq.length ? '<b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler. ' : '') + 'Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
 }
 
 /* ---------- réserve ---------- */
@@ -840,6 +842,7 @@ function openCompost() {
 }
 
 const SKILL_SVG = {
+  plantation: '<path d="M14 62h52" stroke="#6a4e39" stroke-width="5" stroke-linecap="round"/><path d="M40 60V34" stroke="#4f9a4a" stroke-width="3.6" stroke-linecap="round"/><path d="M40 40c-10-1-15-8-15-14 9 0 15 5 15 14zM40 34c10-1 15-8 15-14-9 0-15 5-15 14z" fill="#7dbb5c"/><path d="M58 30l10 12-14 6z" fill="#b08a52" stroke="#7a5636" stroke-width="1.4"/><path d="M63 36l8 22" stroke="#7a5636" stroke-width="3" stroke-linecap="round"/>',
   tonte: '<path d="M16 68h48" stroke="#6a4e39" stroke-width="4" stroke-linecap="round"/><g stroke="#4f9a4a" stroke-width="3.2" stroke-linecap="round" fill="none"><path d="M20 68q-2-12-6-20M32 68q0-16-2-26M44 68q2-18 6-30M56 68q-1-12 4-22"/></g><path d="M16 24q30-12 48 20" stroke="#9aa6ae" stroke-width="4.4" fill="none" stroke-linecap="round"/><path d="M16 24L8 14" stroke="#8a6240" stroke-width="4.4" stroke-linecap="round"/>',
   bouture: '<path d="M40 12v36" stroke="#4f9a4a" stroke-width="4" stroke-linecap="round"/><path d="M40 26c-12-2-18-10-18-16 10 0 18 6 18 16zM40 38c12-2 18-10 18-16-10 0-18 6-18 16z" fill="#7dbb5c"/><path d="M40 52q-6 8-12 10M40 52v14M40 52q6 8 12 10" stroke="#b08a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 50l36-6" stroke="#aab3ba" stroke-width="3.2" stroke-linecap="round"/>',
   greffe: '<path d="M30 72V42l-8-16M30 42l20-20" stroke="#7a5636" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M25 46l16-9" stroke="#e8d5a8" stroke-width="5"/><circle cx="54" cy="18" r="6" fill="#e0603a"/><circle cx="19" cy="21" r="5" fill="#f0b23a"/>',
@@ -981,6 +984,7 @@ function doTask(id) {
 }
 function clickCell(i) {
   const c = S.grid[i];
+  if (!ui.mode && (!ui.tool || ui.tool === 'select') && S.pq && S.pq.some(q => q.i === i)) { const r = G.cancelPlant(S, i); if (r.ok) { if (PQ.job && PQ.job.items.includes(i)) PQ.job.items = PQ.job.items.filter(x => x !== i); toast('Plantation annulée : la carte de ' + r.name.toLowerCase() + ' est rendue.'); save(); render(); } return; }
   if (ui.tool === 'reloc') {
     if (ui.mvFrom >= 0 && ui.mvFrom !== i && !(c && !c.treille)) {
       const r = G.movePlant(S, ui.mvFrom, i); if (!r.ok) { toast(r.msg); return; }
@@ -997,8 +1001,8 @@ function clickCell(i) {
   } setTimeout(() => { if (window.innerWidth <= 1040 && ui.sel === i && !ui.mode) $('fiche').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
   if (ui.mode && ui.mode.type === 'plant') {
     if (c && !(c.treille && (c.furn === 'treille' || c.furn === 'pergola') && P[ui.mode.pid].strate === 'Grimpante')) { ui.sel = i; ui.confirmDel = false; render(); return; }
-    const r = G.plant(S, i, ui.mode.pid); if (!r.ok) { toast(r.msg); return; } if (r.reward) setTimeout(() => toast(r.reward), 900); setTimeout(() => sendGardener(i, 'plant'), 0);
-    if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = i; toast('Planté.'); render(); return;
+    const r = G.queuePlant(S, i, ui.mode.pid); if (!r.ok) { toast(r.msg); return; }
+    if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = -1; toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); return;
   }
   ui.planHl = null;
   if (ui.mode && ui.mode.type === 'skill') { const kk = ui.mode.k, r = kk === 'bouture' ? G.bouturer(S, i) : G.greffer(S, i); if (!r.ok) { toast(r.msg); return; } toast(kk === 'bouture' ? 'Bouture prélevée : une nouvelle carte de ' + r.name.toLowerCase() + ' dans ta réserve.' : r.name + ' greffé : plus de fruits et plus vite.'); ui.sel = i; save(); render(); return; }
@@ -1105,5 +1109,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cell')) { e.preventDefault(); clickCell(+e.target.dataset.i); }
 });
+const PQ = { job: null };
+function pqTick(dt) {
+  if (!S.pq || !S.pq.length) { PQ.job = null; return; }
+  if (PQ.job) PQ.job.items = PQ.job.items.filter(i => S.pq.some(q => q.i === i));
+  if (!PQ.job || !PQ.job.items.length) { const sp = G.plantSpeed(S, S.pq[0].pid), items = S.pq.slice(0, sp.batch).map(q => q.i); PQ.job = { items, left: sp.sec }; sendGardener(items[0], 'plant'); render(); return; }
+  PQ.job.left -= dt; if (PQ.job.left > 0) return;
+  const items = PQ.job.items; PQ.job = null; const msgs = [];
+  items.forEach(i => { const r = G.finishPlant(S, i); if (r.ok && r.reward) msgs.push(r.reward); else if (!r.ok && !r.none) toast(r.msg); });
+  save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
+}
+setInterval(() => pqTick(.25), 250);
+window.__jv = { flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();

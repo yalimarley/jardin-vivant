@@ -547,7 +547,7 @@ function renderGarden() {
   LAWNS.forEach(([x, y], k) => { h += mv(x, y, lawnPatch(k, x, y, G.lawnReady(S, k), gc)); });
   TREES.forEach(([x, y, sc, sd], k) => { const t = S.trees[k], pick = ui.mode && ui.mode.k === 'trogne' && !t.formed; h += '<g class="tree' + (pick ? ' pick' : '') + '" data-tree="' + k + '" role="button" tabindex="0" aria-label="' + (t.formed ? 'Trogne' : 'Arbre') + '"' + (VROT ? ' transform="translate(' + (wpos(x, y)[0] - x).toFixed(1) + ' ' + (wpos(x, y)[1] - y).toFixed(1) + ')"' : '') + '>' + (t.formed ? trogneArt(x, y, sc, m, k, t) : decorTree(x, y, sc, m, sd, sd % 2 ? '#d9383a' : '#e8a43a')) + (pick ? '<circle cx="' + x + '" cy="' + (y - 60 * sc) + '" r="13" fill="var(--leaf)" opacity=".92"/><path d="M' + x + ' ' + (y - 60 * sc - 7) + 'v14M' + (x - 7) + ' ' + (y - 60 * sc) + 'h14" stroke="#fff" stroke-width="3" stroke-linecap="round"/>' : '') + '</g>'; });
   [[250, 118], [292, 128], [210, 132], [610, 108], [650, 130]].forEach(([x, y], k) => { h += mv(x, y, decorBush(x, y, .56, m, k)); });
-  h += decorExtras(m) + mv(104, 176, decorHouse(104, 176, m)) + mv(170, 192, decorBarrel(170, 192, S.tank / S.tankMax)) + [[198, 202], [152, 206], [218, 214]].slice(0, Math.max(0, S.cuves || 0)).map(([bx, by]) => mv(bx, by, decorBarrel(bx, by, S.tank / S.tankMax))).join('') + (S.atelier ? mv(ATX, ATY, decorAtelier(ATX, ATY, S.sechoir, (S.mats.bocaux || 0) > 0 || S.stock.some(it => it.keep === 'bocal'))) : '');
+  h += decorExtras(m) + mv(104, 176, decorHouse(104, 176, m)) + mv(170, 192, decorBarrel(170, 192, S.tank / S.tankMax)) + [[198, 202], [152, 206], [218, 214]].slice(0, Math.max(0, S.cuves || 0)).map(([bx, by]) => mv(bx, by, decorBarrel(bx, by, S.tank / S.tankMax))).join('') + mv(236, 178, decorCompost(236, 178, Math.min(1, (S.waste || 0) / 6))) + (S.atelier ? mv(ATX, ATY, decorAtelier(ATX, ATY, S.sechoir, (S.mats.bocaux || 0) > 0 || S.stock.some(it => it.keep === 'bocal'))) : '');
   // plateforme graviers
   const cs = [[-.4, -.4], [COLS + .4, -.4], [COLS + .4, ROWS + .4], [-.4, ROWS + .4]];
   h += '<g id="gGrid" transform="translate(380 311) scale(' + KS.toFixed(4) + ') translate(' + (-CGx).toFixed(1) + ' ' + (-CGy).toFixed(1) + ')">';
@@ -714,7 +714,7 @@ function modal(title, body, wide) {
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
   if (S.boosterDay >= S.day) { toast('Le booster du jour est déjà ouvert.'); return; }
-  modal('Booster du jour', '<div class="pack"><svg width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 20h110l-6 150H26z" fill="var(--leaf)"/><path d="M20 20c18 12 36 12 55 0 19 12 37 12 55 0" fill="color-mix(in srgb,var(--leaf) 70%,#000)"/><circle cx="75" cy="92" r="34" fill="var(--surface)"/><path d="M75 115V88" stroke="var(--leaf)" stroke-width="4" stroke-linecap="round"/><path d="M75 94c-14 0-20-6-20-16 14 0 20 6 20 16zM75 88c0-12 8-18 20-18 0 12-8 18-20 18z" fill="var(--leaf-2)"/><text x="75" y="150" text-anchor="middle" font-family="var(--font-d)" font-weight="800" font-size="15" fill="var(--on-leaf)">GRAINES DE VIE</text></svg><p>Dix cartes de saison : graines, noyaux, plants et matériel. Les plantes de la saison en cours sont plus fréquentes.</p><button type="button" class="btn primary" data-act="rip">Ouvrir le sachet</button></div>');
+  modal('Booster du jour', '<div class="pack"><svg width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 20h110l-6 150H26z" fill="var(--leaf)"/><path d="M20 20c18 12 36 12 55 0 19 12 37 12 55 0" fill="color-mix(in srgb,var(--leaf) 70%,#000)"/><circle cx="75" cy="92" r="34" fill="var(--surface)"/><path d="M75 115V88" stroke="var(--leaf)" stroke-width="4" stroke-linecap="round"/><path d="M75 94c-14 0-20-6-20-16 14 0 20 6 20 16zM75 88c0-12 8-18 20-18 0 12-8 18-20 18z" fill="var(--leaf-2)"/><text x="75" y="150" text-anchor="middle" font-family="var(--font-d)" font-weight="800" font-size="15" fill="var(--on-leaf)">GRAINES DE VIE</text></svg><p>Six cartes de saison : graines, noyaux et plants. Les plantes de la saison en cours sont plus fréquentes.</p><button type="button" class="btn primary" data-act="rip">Ouvrir le sachet</button></div>');
 }
 function ripBooster() {
   const cards = G.openBooster(S); if (!cards) return; save();
@@ -790,14 +790,15 @@ function decorAtelier(x, y, sech, jars) {
   return s + '<ellipse cx="' + x + '" cy="' + (y - 4) + '" rx="' + (a + 20) + '" ry="' + (b + 24) + '" fill="transparent"/></g>';
 }
 
+const BASE = ['paillage', 'compost', 'chemin'];
 const SOINS = ['ortie', 'prele', 'nichoir', 'oya', 'cuve', 'bocaux', 'mycor', 'plan', 'savoir'];
 function shopCard(k) {
   const f = G.shopInfo(S, k), inf = FURN_INFO[k], nm = inf ? inf.n : MATS[k].n, extra = { atelier: ' Tu pourras y mettre en bocaux et, avec un séchoir, sécher la récolte.', sechoir: ' À installer dans l’atelier : 3 kg par jour (plus avec la compétence Séchage).', bocaux: ' Six bocaux par achat, à remplir à l’atelier.', cuve: ' 4 cuves au maximum.' }[k] || '', d = inf ? inf.d : MATS[k].d + extra;
-  return '<div class="amen-item' + (f.why && S.maxPlantings < f.unlock ? ' lock' : '') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + nm + '</b><p>' + d + '</p><small>' + (f.why ? f.why : 'Prix : ' + f.price + ' ginkgos') + (f.owned > 0 ? ' · en réserve : ' + f.owned : '') + '</small>' + (f.why ? '' : '<div class="acts"><button type="button" class="btn sm primary" data-act="shop-buy" data-k="' + k + '"' + (f.can ? '' : ' disabled') + '>Acheter · ' + f.price + ' ginkgos</button></div>') + '</div></div>';
+  return '<div class="amen-item' + (f.why && S.maxPlantings < f.unlock ? ' lock' : '') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + nm + '</b><p>' + d + '</p><small>' + (f.why ? f.why : 'Prix : ' + f.price + ' ginkgos' + (f.qty > 1 ? ' pour ' + f.qty : '')) + (f.owned > 0 ? ' · en réserve : ' + f.owned : '') + '</small>' + (f.why ? '' : '<div class="acts"><button type="button" class="btn sm primary" data-act="shop-buy" data-k="' + k + '"' + (f.can ? '' : ' disabled') + '>Acheter · ' + f.price + ' ginkgos' + (f.qty > 1 ? ' (×' + f.qty + ')' : '') + '</button></div>') + '</div></div>';
 }
 function openShop() {
-  const byP = a => a.filter(k => G.SHOP[k]).sort((a, b) => G.SHOP[a] - G.SHOP[b]), ks = byP(Object.keys(G.SHOP).filter(k => !SOINS.includes(k))), ss = byP(SOINS);
-  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant le booster du jour (1), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes, du paillage, du compost et des chemins.</p><h3 style="margin:10px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
+  const byP = a => a.filter(k => G.SHOP[k]).sort((a, b) => G.SHOP[a] - G.SHOP[b]), ks = byP(Object.keys(G.SHOP).filter(k => !SOINS.includes(k) && !BASE.includes(k))), ss = byP(SOINS), bs = BASE.filter(k => G.SHOP[k]);
+  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant le booster du jour (1), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes.</p><h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
   const dup = Object.keys(S.cards).map(Number).filter(id => S.cards[id] > 1);
   if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune 1 ginkgo, peu commune 2, rare 4 par carte.</p>';
   else {
@@ -805,6 +806,20 @@ function openShop() {
     h += '<p class="note-p">Commune 1 ginkgo, peu commune 2, rare 4 par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
   }
   modal('Boutique · ' + (S.feves || 0) + ' ginkgos', h, true);
+}
+
+function decorCompost(x, y, level) {
+  const w = 22, h = 16, f = Math.min(1, level);
+  let s = '<g class="cmp" data-compost="1" role="button" tabindex="0" aria-label="Composteur"><ellipse cx="' + x + '" cy="' + (y + 4) + '" rx="' + (w + 8) + '" ry="9" fill="#000" opacity=".16"/>';
+  s += '<path d="M' + (x - w) + ' ' + y + 'v-' + h + 'l' + w + ' -8 ' + w + ' 8v' + h + 'l-' + w + ' 8z" fill="#8a6a46"/><path d="M' + x + ' ' + (y + 8) + 'v-' + (h + 8) + '" stroke="#5f4630" stroke-width="2"/>';
+  s += '<path d="M' + (x - w + 2) + ' ' + (y - h - 2) + 'l' + (w - 2) + ' -7 ' + (w - 2) + ' 7-' + (w - 2) + ' 7z" fill="#5a4030"/>';
+  s += '<ellipse cx="' + (x - 6) + '" cy="' + (y - h - 4 - f * 3) + '" rx="' + (9 + f * 4) + '" ry="' + (4 + f * 2) + '" fill="#6a8a3a"/><ellipse cx="' + (x + 7) + '" cy="' + (y - h - 6 - f * 2) + '" rx="' + (7 + f * 3) + '" ry="3.6" fill="#8a6a2a"/>';
+  s += '<path d="M' + (x - w) + ' ' + (y - 6) + 'l' + w + ' 8 ' + w + ' -8M' + (x - w) + ' ' + (y - 12) + 'l' + w + ' 8 ' + w + ' -8" stroke="#6b4c30" stroke-width="1.6" fill="none"/>';
+  return s + '<ellipse cx="' + x + '" cy="' + (y - 8) + '" rx="' + (w + 12) + '" ry="' + (h + 16) + '" fill="transparent"/></g>';
+}
+function openCompost() {
+  const c = G.compostInfo(S), pc = Math.min(100, Math.round(c.pts / c.kg * 100));
+  modal('Composteur', '<p class="note-p">Les tiges, les épluchures et les restes de tes récoltes et de tes repas finissent ici, et la fiente des canards de la mare aussi. Le composteur transforme jusqu’à ' + fmt(c.rate, 1) + ' kg de déchets par jour : ' + fmt(c.kg, 1) + ' kg de déchets font 1 compost. Plus tu récoltes, plus tu en fabriques.</p><div class="sum"><div class="nm">Déchets en attente : ' + fmt(c.waste, 1) + ' kg</div><div class="bar"><i style="width:' + pc + '%"></i></div><div class="note-p">Prochain compost : ' + pc + ' % · fabriqués depuis le début : ' + c.made + ' · canards à la mare : ' + (c.ducks ? c.ducks + ' (+0,25 kg par jour chacun)' : 'aucun') + '</div></div><p class="note-p">Tu peux aussi acheter du compost à la boutique, ou fabriquer du paillage en tondant et en taillant des trognes.</p>');
 }
 
 const SKILL_SVG = {
@@ -988,6 +1003,7 @@ function clickCell(i) {
 document.addEventListener('click', e => {
   if (ui.tool === 'move' && e.target.closest('#garden')) return;
   if (ui.tool && ui.tool !== 'select' && e.target.closest('[data-badge],[data-tree],.lawn')) return;
+  const cpo = e.target.closest('[data-compost]'); if (cpo && (!ui.tool || ui.tool === 'select') && !ui.mode) { openCompost(); return; }
   const atl = e.target.closest('[data-atelier]'); if (atl && (!ui.tool || ui.tool === 'select') && !ui.mode) { openAtelier(); return; }
   const b = e.target.closest('[data-badge]');
   if (b && (b.dataset.badge === 'lawn' || b.dataset.badge === 'trogne')) { if (b.dataset.badge === 'lawn') lawnClick(+b.dataset.k, b); else treeClick(+b.dataset.k, b); return; }

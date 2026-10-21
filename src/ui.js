@@ -209,7 +209,8 @@ function renderRes() {
 /* ---------- jardin isométrique ---------- */
 const GROUND = { 'Printemps': ['#a9d37e', '#8fc069'], 'Été': ['#b9cc68', '#a2b956'], 'Automne': ['#b9bc6a', '#a5a85a'], 'Hiver': ['#c3d0bc', '#aebfa4'] };
 const TW = 46, TH = 23, OX = 334, OY = 150, BH = 8, PT = 14, INS = .06;
-let VROT = 0, view = { z: 1, cx: 380, cy: 286 };
+const PHONE = () => window.innerWidth <= 560, defView = () => ({ z: PHONE() ? 1.3 : 1, cx: 380, cy: PHONE() ? 240 : 286 });
+let VROT = 0, view = defView();
 function rot(c, r) { switch (VROT) { case 0: return [c, r]; case 1: return [ROWS - r, c]; case 2: return [COLS - c, ROWS - r]; default: return [r, COLS - c]; } }
 function irot(a, b) { switch (VROT) { case 0: return [a, b]; case 1: return [b, ROWS - a]; case 2: return [COLS - a, ROWS - b]; default: return [COLS - b, a]; } }
 const dispDims = () => VROT % 2 ? [ROWS, COLS] : [COLS, ROWS];
@@ -693,7 +694,7 @@ function renderFiche() {
 }
 function renderFoot() {
   const n = P.filter(p => p.id < 22).length, c = P.filter(p => p.id >= 51).length;
-  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + HERB.length + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
+  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + HERB.length + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="tuto-restart">Revoir le tutoriel</button> <button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
 }
 
 /* ---------- fenêtres ---------- */
@@ -715,7 +716,7 @@ function openAmenager() {
 function modal(title, body, wide) {
   setTimeout(wantPhotos, 0);
   $('layer').innerHTML = '<div class="veil" data-act="veil"><div class="modal" role="dialog" aria-modal="true" aria-label="' + title + '"' + (wide ? ' style="width:min(880px,100%)"' : '') + '><header><h2>' + title + '</h2><button type="button" class="x" data-act="close" aria-label="Fermer">×</button></header>' + body + '</div></div>';
-  const f = $('layer').querySelector('.x'); if (f) f.focus();
+  const f = $('layer').querySelector('.x'); if (f) f.focus(); if (typeof renderTuto === 'function') renderTuto();
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
@@ -917,7 +918,7 @@ document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.i
 /* ---------- actions ---------- */
 let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3400); }
 function applyView() {
-  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, .8, 3.2); const w = 760 / view.z, h = 460 / view.z;
+  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, PHONE() ? 1 : .8, 3.2); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
   const x = clamp(view.cx - w / 2, -150, 910 - w), y = clamp(view.cy - h / 2, -60, 600 - h); view.cx = x + w / 2; view.cy = y + h / 2;
   svg.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1));
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
@@ -955,7 +956,27 @@ function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach
   wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
   wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
 })();
-function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); save(); wantPhotos(); }
+const TUTO = [
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 4 },
+  { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 7 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
+  { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
+  { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
+  { t: 'Guildéon, ton guide', x: 'Guildéon te propose des objectifs et t’apprend les guildes : un arbre entouré de plantes complémentaires. Ouvre-le quand tu veux un conseil. Bon jardin !', target: '#gmasc', next: true, last: true }
+];
+function renderTuto() {
+  const el = $('tuto'); if (!el) return; document.querySelectorAll('.tuto-ring').forEach(e => e.classList.remove('tuto-ring'));
+  const t = S.tuto; if (!t || t.done || t.step == null || t.step >= TUTO.length) { el.hidden = true; return; }
+  let st = TUTO[t.step], guard = 0;
+  while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
+  if (!st) { t.done = true; el.hidden = true; save(); return; }
+  if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
+  const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
+}
+function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -1050,7 +1071,7 @@ document.addEventListener('click', e => {
     case 'task': doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
-    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); break; }
+    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
     case 'mode-mat': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
@@ -1064,7 +1085,7 @@ document.addEventListener('click', e => {
     case 'zoom-out': zoomBy(1 / 1.3); break;
     case 'rot-l': VROT = (VROT + 3) % 4; render(); break;
     case 'rot-r': VROT = (VROT + 1) % 4; render(); break;
-    case 'view-reset': view = { z: 1, cx: 380, cy: 286 }; VROT = 0; render(); break;
+    case 'view-reset': view = defView(); VROT = 0; render(); break;
     case 'cancel': ui.mode = null; render(); break;
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
@@ -1102,6 +1123,9 @@ document.addEventListener('click', e => {
     case 'mow1': G.mow(S, i); toast('Consoude fauchée : +2 paillage.'); render(); break;
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
+    case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
+    case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
+    case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
     case 'newgame': S = G.newGame(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); break;
   }
 });

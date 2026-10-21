@@ -1,5 +1,6 @@
 <title>Jardin Vivant</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Figtree:wght@400;500;600&display=swap">
 <style>
 /* Concept : carnet de jardinier. Le plan du jardin au centre, les tâches du jour à droite, les cartes comme des sachets de graines.
@@ -247,6 +248,16 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .lawn,.tree{cursor:pointer}.tree.pick circle{animation:pulse 1.2s ease-in-out infinite alternate}@keyframes pulse{from{opacity:.55}to{opacity:1}}
 @media (prefers-reduced-motion:no-preference){.duck{animation:duckw 2.4s ease-in-out infinite alternate}.duck.d1{animation-delay:-1.1s}@keyframes duckw{from{transform:translateX(-3px)}to{transform:translateX(4px)}}}
 .garden-wrap{position:relative}
+.tuto{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:70;width:min(380px,calc(100vw - 32px));background:var(--surface);color:var(--ink);border:1.5px solid var(--leaf);border-radius:16px;padding:12px 14px;box-shadow:0 10px 34px rgba(0,0,0,.3)}
+.tuto[hidden]{display:none}
+.tuto .tk{display:flex;justify-content:space-between;align-items:center;font:600 11px/1 var(--mono,monospace);letter-spacing:.08em;text-transform:uppercase;color:var(--leaf)}
+.tuto h4{margin:6px 0 4px;font-size:16px}.tuto p{margin:0;font-size:13.5px;line-height:1.4;color:var(--ink-2)}
+.tuto .tbar{height:4px;border-radius:2px;background:var(--line);margin:8px 0}.tuto .tbar i{display:block;height:100%;background:var(--leaf);border-radius:2px}
+.tuto .tact{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.tuto-ring{outline:3px solid #f2b705!important;outline-offset:3px;border-radius:12px;animation:tring 1.4s ease-in-out infinite}
+@keyframes tring{0%,100%{outline-color:#f2b705}50%{outline-color:rgba(242,183,5,.25)}}
+@media (prefers-reduced-motion:reduce){.tuto-ring{animation:none}}
+@media (max-width:560px){.tuto{left:8px;right:8px;width:auto;bottom:max(8px,env(safe-area-inset-bottom,0px))}}
 @media (prefers-reduced-motion:no-preference){.pqg.work{animation:pqp 1s ease-in-out infinite}@keyframes pqp{0%,100%{opacity:.55}50%{opacity:.95}}}
 .wxalert{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:8px 12px;border-radius:10px;font-size:14px;background:#fdf1d6;color:#5b4210;border:1px solid #e8cf8f}
 .wxalert[hidden]{display:none}
@@ -285,7 +296,13 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 @keyframes gfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @keyframes gjoy{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-10px) rotate(-5deg)}60%{transform:translateY(0) rotate(4deg)}}
 @media (prefers-reduced-motion:reduce){.gmasc,.gmasc.joy{animation:none}}
-@media (max-width:560px){.gmasc{width:60px;height:60px}.gsay{right:68px;font-size:12px}.tools{top:76px}}
+@media (max-width:560px){.gmasc{width:60px;height:60px}.gsay{right:68px;font-size:12px;max-width:calc(100vw - 150px)}
+  .garden-wrap{display:flex;flex-direction:column}#garden{order:1;max-height:none}
+  .tools{position:static;order:2;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px;max-width:none;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;background:var(--surface);padding:6px 4px}
+  .tb{width:40px;height:40px}.tools .sep{width:1px;height:26px}
+  .wxalert{order:0}.hint{order:1}.garden-wrap{order:2}#fiche{order:3}.tray{order:4}.res{order:5}#today{order:6}#family{order:7}.foot{order:8}
+  .res>.items:first-child{flex-wrap:nowrap;overflow-x:auto;width:100%;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}.res>.items:first-child .pill{flex:none}
+  .hint{font-size:13px;line-height:1.35}}
 .strmenu{position:absolute;left:68px;top:10px;z-index:3;display:grid;gap:4px;padding:8px;min-width:180px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);font-size:13px}
 .strmenu[hidden]{display:none}.sch{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:transparent;border-radius:9px;padding:5px 8px;color:var(--ink);cursor:pointer;text-align:left}
 .sch em{margin-left:auto;font-style:normal;font-size:11px;color:var(--muted,#6b7a6b)}.sch.on{background:var(--leaf);color:var(--on-leaf)}.sch.on em{color:inherit}
@@ -334,6 +351,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
   </main>
 </div>
 <div id="layer"></div>
+<aside id="tuto" class="tuto" hidden aria-label="Premiers pas"></aside>
 <div id="toast" class="toast" hidden role="status"></div>
 
 <script>
@@ -599,7 +617,7 @@ function make(P) {
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
   function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
-  function fixSave(s) { gqInit(s); if (!s.pq) s.pq = []; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } if (!s.skills) { s.skills = { pts: {}, seen: {} }; Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); } if (!s.skillNotes) s.skillNotes = []; if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
+  function fixSave(s) { gqInit(s); if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } if (!s.skills) { s.skills = { pts: {}, seen: {} }; Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); } if (!s.skillNotes) s.skillNotes = []; if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
   function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 3 ? 3 : 0); }
   function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH + Math.max(0, skillLevel(s, 'tonte') - 1); gainSkill(s, 'tonte', 1); bump(s, 'mow'); return true; }
   function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 15 : 0)); }
@@ -898,7 +916,7 @@ function make(P) {
 
   // ----- jardin mature (démo) -----
   function demo() {
-    const s = fixSave(blank()); s.demo = true; s.feves = 80; s.day = dayOfDate(2027, 6, 12); s.w = weather(s.day);
+    const s = fixSave(blank()); s.demo = true; s.tuto = { done: true }; s.feves = 80; s.day = dayOfDate(2027, 6, 12); s.w = weather(s.day);
     const L = [
       [0,0,'Thym'],[1,0,'Cerisier'],[2,0,'Sauge'],[3,0,'Bourrache'],[4,0,'Pommier'],[5,0,'Ciboulette'],[6,0,'Souci'],[7,0,'Prunier'],
       [0,1,'Trèfle blanc'],[1,1,'Groseillier'],[2,1,'Trèfle blanc'],[3,1,'Persil'],[4,1,'Fraisier des bois'],[5,1,'Framboisier'],[6,1,'Trèfle blanc'],[7,1,'Mûrier noir'],
@@ -1359,7 +1377,8 @@ function renderRes() {
 /* ---------- jardin isométrique ---------- */
 const GROUND = { 'Printemps': ['#a9d37e', '#8fc069'], 'Été': ['#b9cc68', '#a2b956'], 'Automne': ['#b9bc6a', '#a5a85a'], 'Hiver': ['#c3d0bc', '#aebfa4'] };
 const TW = 46, TH = 23, OX = 334, OY = 150, BH = 8, PT = 14, INS = .06;
-let VROT = 0, view = { z: 1, cx: 380, cy: 286 };
+const PHONE = () => window.innerWidth <= 560, defView = () => ({ z: PHONE() ? 1.3 : 1, cx: 380, cy: PHONE() ? 240 : 286 });
+let VROT = 0, view = defView();
 function rot(c, r) { switch (VROT) { case 0: return [c, r]; case 1: return [ROWS - r, c]; case 2: return [COLS - c, ROWS - r]; default: return [r, COLS - c]; } }
 function irot(a, b) { switch (VROT) { case 0: return [a, b]; case 1: return [b, ROWS - a]; case 2: return [COLS - a, ROWS - b]; default: return [COLS - b, a]; } }
 const dispDims = () => VROT % 2 ? [ROWS, COLS] : [COLS, ROWS];
@@ -1843,7 +1862,7 @@ function renderFiche() {
 }
 function renderFoot() {
   const n = P.filter(p => p.id < 22).length, c = P.filter(p => p.id >= 51).length;
-  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + HERB.length + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
+  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + HERB.length + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="tuto-restart">Revoir le tutoriel</button> <button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
 }
 
 /* ---------- fenêtres ---------- */
@@ -1865,7 +1884,7 @@ function openAmenager() {
 function modal(title, body, wide) {
   setTimeout(wantPhotos, 0);
   $('layer').innerHTML = '<div class="veil" data-act="veil"><div class="modal" role="dialog" aria-modal="true" aria-label="' + title + '"' + (wide ? ' style="width:min(880px,100%)"' : '') + '><header><h2>' + title + '</h2><button type="button" class="x" data-act="close" aria-label="Fermer">×</button></header>' + body + '</div></div>';
-  const f = $('layer').querySelector('.x'); if (f) f.focus();
+  const f = $('layer').querySelector('.x'); if (f) f.focus(); if (typeof renderTuto === 'function') renderTuto();
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
@@ -2067,7 +2086,7 @@ document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.i
 /* ---------- actions ---------- */
 let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3400); }
 function applyView() {
-  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, .8, 3.2); const w = 760 / view.z, h = 460 / view.z;
+  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, PHONE() ? 1 : .8, 3.2); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
   const x = clamp(view.cx - w / 2, -150, 910 - w), y = clamp(view.cy - h / 2, -60, 600 - h); view.cx = x + w / 2; view.cy = y + h / 2;
   svg.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1));
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
@@ -2105,7 +2124,27 @@ function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach
   wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
   wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
 })();
-function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); save(); wantPhotos(); }
+const TUTO = [
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 4 },
+  { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 7 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
+  { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
+  { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
+  { t: 'Guildéon, ton guide', x: 'Guildéon te propose des objectifs et t’apprend les guildes : un arbre entouré de plantes complémentaires. Ouvre-le quand tu veux un conseil. Bon jardin !', target: '#gmasc', next: true, last: true }
+];
+function renderTuto() {
+  const el = $('tuto'); if (!el) return; document.querySelectorAll('.tuto-ring').forEach(e => e.classList.remove('tuto-ring'));
+  const t = S.tuto; if (!t || t.done || t.step == null || t.step >= TUTO.length) { el.hidden = true; return; }
+  let st = TUTO[t.step], guard = 0;
+  while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
+  if (!st) { t.done = true; el.hidden = true; save(); return; }
+  if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
+  const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
+}
+function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -2200,7 +2239,7 @@ document.addEventListener('click', e => {
     case 'task': doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
-    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); break; }
+    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
     case 'mode-mat': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
@@ -2214,7 +2253,7 @@ document.addEventListener('click', e => {
     case 'zoom-out': zoomBy(1 / 1.3); break;
     case 'rot-l': VROT = (VROT + 3) % 4; render(); break;
     case 'rot-r': VROT = (VROT + 1) % 4; render(); break;
-    case 'view-reset': view = { z: 1, cx: 380, cy: 286 }; VROT = 0; render(); break;
+    case 'view-reset': view = defView(); VROT = 0; render(); break;
     case 'cancel': ui.mode = null; render(); break;
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
@@ -2252,6 +2291,9 @@ document.addEventListener('click', e => {
     case 'mow1': G.mow(S, i); toast('Consoude fauchée : +2 paillage.'); render(); break;
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
+    case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
+    case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
+    case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
     case 'newgame': S = G.newGame(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); break;
   }
 });

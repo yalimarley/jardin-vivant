@@ -362,13 +362,8 @@ body{padding:0}
 .app .gsay{right:0;top:auto;bottom:86px;border-radius:14px 14px 14px 4px}.app .guil{height:78px;justify-content:flex-end}.app .guil .gcard{position:absolute;right:0;bottom:86px;width:min(330px,calc(100vw - 24px));margin:0}
 .endday{position:fixed;right:12px;bottom:12px;z-index:14;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:12px 18px;background:var(--leaf);color:var(--on-leaf);font-weight:700;font-size:14px;box-shadow:var(--shadow)}
 .endday svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.endday:hover{filter:brightness(1.07)}
-.app .tray{position:fixed;left:262px;right:260px;bottom:12px;z-index:12;padding:7px 10px 4px;border-radius:16px;background:color-mix(in srgb,var(--surface) 95%,transparent)}
-.app .tray h3{font-size:14px;margin-bottom:2px;flex-wrap:nowrap}.app .tray h3>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app .tray h3 small{font-size:12px}
-.trayx{border:0;background:var(--surface-2);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none}.trayx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.tray.shut .trayx svg{transform:rotate(180deg)}
-.tray.shut .strip{display:none}.tray.shut h3{margin-bottom:0}
-.app .tray .strip{padding:2px 2px 6px}.app .tray .card{width:112px;padding-bottom:6px}.app .tray .card .art{height:66px}.app .tray .card .lat,.app .tray .card .tags,.app .tray .card .cal-wrap{display:none}.app .tray .card h4{font-size:14px;margin:6px 8px 0}
-.app #today{position:fixed;right:90px;top:78px;width:320px;max-height:calc(100dvh - 78px - 190px);overflow:auto;z-index:15;background:color-mix(in srgb,var(--surface) 96%,transparent)}
-.app #today.fold{display:none}
+.trayx{border:0;background:var(--surface-2);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none}.trayx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.app #today .strip{padding:2px 2px 6px;align-items:stretch}.app #today .card{width:112px;padding-bottom:6px}.app #today .card .art{height:66px}.app #today .card .lat,.app #today .card .tags,.app #today .card .cal-wrap{display:none}.app #today .card h4{font-size:14px;margin:6px 8px 0}
 .app #fiche{position:fixed;left:12px;top:176px;width:340px;max-height:calc(100dvh - 176px - 190px);overflow:auto;z-index:15;background:color-mix(in srgb,var(--surface) 97%,transparent)}
 .app #fiche[hidden]{display:none}
 .fclose{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;border:0;background:var(--surface-2);font-size:18px;line-height:1;display:grid;place-items:center}
@@ -376,22 +371,31 @@ body{padding:0}
 .foot{display:none}
 .toast{bottom:200px}
 .tuto{left:50%;right:auto;transform:translateX(-50%);bottom:200px;width:min(420px,calc(100vw - 32px))}
-@media (max-width:1180px){.hud-tr .gauge span{font-size:11px}.hud-tc{top:auto;bottom:200px;width:min(480px,calc(100vw - 32px))}.tuto,.toast{bottom:260px}.app #today{width:290px}}
+@media (max-width:1180px){.hud-tr .gauge span{font-size:11px}.hud-tc{top:auto;bottom:200px;width:min(480px,calc(100vw - 32px))}.tuto,.toast{bottom:260px}}
 @media (max-width:560px){
   .hud-tl{max-width:calc(100vw - 76px);left:8px;top:8px}.hud-tl .brand h1{font-size:15px}.hud-tl .brand svg{width:24px;height:24px}.hud-tl .when{font-size:11.5px}
   .hud-tr{display:none}
   .rail{right:6px;top:8px;gap:6px}.rb{width:52px}.rb .rc{width:42px;height:42px;border-width:2px}.rb small{display:none}.rb .ico,.rb svg{width:21px;height:21px}
   .app .tools{left:8px;bottom:8px;width:222px;gap:5px;padding:5px}.app .tb{width:36px;height:36px}
-  .app .tray{left:8px;right:84px;bottom:106px}
-  .app .tray .card{width:104px}
   .endday{right:8px;bottom:8px;padding:11px 14px}.endday span{display:none}.endday{width:52px;height:52px;justify-content:center;padding:0}
   .app .guil{right:8px;bottom:68px}.app .gmasc{width:52px;height:52px}
-  .app #today{left:8px;right:8px;top:auto;bottom:106px;width:auto;max-height:52dvh}
   .app #fiche{left:8px;right:8px;top:auto;bottom:106px;width:auto;max-height:50dvh}
-  body.sel .tray{display:none}
   .hud-tc{top:auto;bottom:160px;left:8px;right:8px;transform:none;width:auto;min-width:0}
   .tuto{left:8px;right:66px;transform:none;width:auto;top:74px;bottom:auto}.app .gsay{bottom:62px;max-width:calc(100vw - 100px)}.app .guil{height:52px}.app .guil .gcard{bottom:62px}
   .toast{bottom:170px}
+}
+
+/* ===== bandeau du bas : Aujourd'hui (tâches + plantes à planter) ===== */
+.app #today{position:fixed;left:262px;right:260px;bottom:12px;z-index:12;padding:7px 10px 4px;border-radius:16px;background:color-mix(in srgb,var(--surface) 95%,transparent);max-height:none;overflow:visible}
+.app #today .dh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}.app #today .dh h2{font-size:14px;margin:0;display:flex;gap:8px;align-items:baseline;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app #today .dh small{font-family:var(--font-b);font-weight:500;font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
+.app #today.shut .strip{display:none}#today.shut .trayx svg{transform:rotate(180deg)}
+.app #today .strip{display:flex;gap:8px}
+.app #today .task{flex:none;width:210px;margin:0;padding:8px 10px;gap:9px;align-self:stretch}.app #today .task b{font-size:13.5px}.app #today .task span.sub{font-size:11.5px}
+.app #today .sepv{flex:none;width:1px;background:var(--line);margin:4px 2px}
+.app #today .empty{align-self:center;white-space:nowrap}
+@media (max-width:560px){
+  .app #today{left:8px;right:84px;bottom:106px}.app #today .card{width:104px}.app #today .task{width:180px}
+  body.sel #today{display:none}
 }
 </style>
 
@@ -426,10 +430,6 @@ body{padding:0}
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
       </div><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
-      <section class="tray" id="tray" aria-label="Cartes en réserve">
-        <h3><span>Ma réserve <small id="trayInfo"></small></span><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier la réserve"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></h3>
-        <div class="strip" id="strip"></div>
-      </section>
       <div class="foot" id="foot"></div>
     </section>
     <aside class="side">
@@ -1502,9 +1502,9 @@ function renderRes() {
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
   $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
-  const nT = G.buildTasks(S).tasks.length, rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
+  const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
-  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('today-toggle', SV('M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2'), 'Aujourd’hui', nT || '', ui.todayOpen ? ' pri' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
+  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -1935,22 +1935,19 @@ function renderGarden() {
 
 /* ---------- réserve ---------- */
 function renderTray() {
-  const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).sort((a, b) => (G.sowable(P[b], m) - G.sowable(P[a], m)) || P[a].name.localeCompare(P[b].name, 'fr'));
+  const m = G.dateOf(S.day).m, all = Object.keys(S.cards).map(Number).sort((a, b) => P[a].name.localeCompare(P[b].name, 'fr')), ids = all.filter(id => G.sowable(P[id], m)), off = all.filter(id => !G.sowable(P[id], m));
   const un = G.unlocked(S), nextU = Object.keys(G.UNLOCK).filter(k => !un.has(k)).sort((a, b) => G.UNLOCK[a] - G.UNLOCK[b])[0];
-  $('trayInfo').textContent = ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' cartes' + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '') : (nextU ? nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
-  $('strip').innerHTML = ids.length ? ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') : '<p class="empty">Aucune carte en réserve. Ouvre le booster du jour pour en recevoir.</p>';
+  const tot = all.reduce((a, id) => a + S.cards[id], 0), ti = $('trayInfo');
+  if (ti) ti.textContent = (ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' à planter' : '') + (off.length ? (ids.length ? ' · ' : '') + off.reduce((a, id) => a + S.cards[id], 0) + ' hors saison' : '') + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
+  const st = $('strip'); if (!st) return;
+  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ouvre le booster du jour.</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
 }
 
 /* ---------- tâches ---------- */
 function renderToday() {
   const T = G.buildTasks(S), done = S.doneToday.day === S.day ? S.doneToday.n : 0;
-  let h = '<h2>Aujourd’hui<small>' + done + ' action' + (done > 1 ? 's' : '') + ' faite' + (done > 1 ? 's' : '') + '</small></h2>';
-  if (T.caughtUp) h += '<div class="done-box"><h3>Ton jardin est à jour.</h3><p>Tout ce qui presse est fait. Le prochain booster t’attend demain.</p><button type="button" class="btn primary" data-act="next">Passer au lendemain</button></div>';
-  const names = ['Urgent', 'À faire', 'Si tu as le temps'];
-  [0, 1, 2].forEach(pr => { const L = T.tasks.filter(t => t.prio === pr); if (!L.length) return; h += '<div class="grp">' + names[pr] + '</div>' + L.map(t => '<button type="button" class="task p' + pr + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join(''); });
-  if (T.hidden) h += '<p class="note-p">' + T.hidden + ' tâche' + (T.hidden > 1 ? 's' : '') + ' optionnelle' + (T.hidden > 1 ? 's' : '') + ' mise' + (T.hidden > 1 ? 's' : '') + ' de côté.</p>';
-  if (!T.caughtUp) h += '<div style="margin-top:8px"><button type="button" class="btn sm" data-act="next">Terminer la journée</button></div>';
-  $('today').innerHTML = h;
+  const tk = T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '');
+  $('today').innerHTML = '<div class="dh"><h2>Aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip">' + tk + '<i class="sepv"></i></div>';
 }
 
 /* ---------- fiche ---------- */
@@ -2201,8 +2198,8 @@ function openMenu() {
   modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
-  if (ui.trayOpen == null) ui.trayOpen = !PHONE(); if (ui.todayOpen == null) ui.todayOpen = window.innerWidth >= 1100;
-  const tr = $('tray'), td = $('today'); if (tr) tr.classList.toggle('shut', !ui.trayOpen); if (td) td.classList.toggle('fold', !ui.todayOpen);
+  if (ui.trayOpen == null) ui.trayOpen = !PHONE();
+  const td = $('today'); if (td) td.classList.toggle('shut', !ui.trayOpen);
   document.body.classList.toggle('sel', ui.sel >= 0);
 }
 function openJournal() {
@@ -2360,12 +2357,12 @@ function renderTuto() {
   while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
   if (!st) { t.done = true; el.hidden = true; save(); return; }
   if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
-  if (st.target && st.target.indexOf('#today') === 0 && !ui.todayOpen) { ui.todayOpen = true; applyHud(); }
+  if (st.target && (st.target.indexOf('#today') === 0 || st.target === '#strip') && !ui.trayOpen) { ui.trayOpen = true; applyHud(); }
   el.hidden = false;
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -2481,7 +2478,7 @@ document.addEventListener('click', e => {
     case 'menu': openMenu(); break;
     case 'stock': openStock(); break;
     case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
-    case 'today-toggle': ui.todayOpen = !ui.todayOpen; applyHud(); renderRes(); break;
+    case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
     case 'fiche-close': ui.sel = -1; ui.mvFrom = -1; render(); break;
     case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;

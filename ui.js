@@ -204,9 +204,9 @@ function renderRes() {
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
   $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
-  const nT = G.buildTasks(S).tasks.length, rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
+  const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
-  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('today-toggle', SV('M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2'), 'Aujourd’hui', nT || '', ui.todayOpen ? ' pri' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
+  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -637,22 +637,19 @@ function renderGarden() {
 
 /* ---------- réserve ---------- */
 function renderTray() {
-  const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).sort((a, b) => (G.sowable(P[b], m) - G.sowable(P[a], m)) || P[a].name.localeCompare(P[b].name, 'fr'));
+  const m = G.dateOf(S.day).m, all = Object.keys(S.cards).map(Number).sort((a, b) => P[a].name.localeCompare(P[b].name, 'fr')), ids = all.filter(id => G.sowable(P[id], m)), off = all.filter(id => !G.sowable(P[id], m));
   const un = G.unlocked(S), nextU = Object.keys(G.UNLOCK).filter(k => !un.has(k)).sort((a, b) => G.UNLOCK[a] - G.UNLOCK[b])[0];
-  $('trayInfo').textContent = ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' cartes' + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '') : (nextU ? nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
-  $('strip').innerHTML = ids.length ? ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') : '<p class="empty">Aucune carte en réserve. Ouvre le booster du jour pour en recevoir.</p>';
+  const tot = all.reduce((a, id) => a + S.cards[id], 0), ti = $('trayInfo');
+  if (ti) ti.textContent = (ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' à planter' : '') + (off.length ? (ids.length ? ' · ' : '') + off.reduce((a, id) => a + S.cards[id], 0) + ' hors saison' : '') + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
+  const st = $('strip'); if (!st) return;
+  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ouvre le booster du jour.</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
 }
 
 /* ---------- tâches ---------- */
 function renderToday() {
   const T = G.buildTasks(S), done = S.doneToday.day === S.day ? S.doneToday.n : 0;
-  let h = '<h2>Aujourd’hui<small>' + done + ' action' + (done > 1 ? 's' : '') + ' faite' + (done > 1 ? 's' : '') + '</small></h2>';
-  if (T.caughtUp) h += '<div class="done-box"><h3>Ton jardin est à jour.</h3><p>Tout ce qui presse est fait. Le prochain booster t’attend demain.</p><button type="button" class="btn primary" data-act="next">Passer au lendemain</button></div>';
-  const names = ['Urgent', 'À faire', 'Si tu as le temps'];
-  [0, 1, 2].forEach(pr => { const L = T.tasks.filter(t => t.prio === pr); if (!L.length) return; h += '<div class="grp">' + names[pr] + '</div>' + L.map(t => '<button type="button" class="task p' + pr + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join(''); });
-  if (T.hidden) h += '<p class="note-p">' + T.hidden + ' tâche' + (T.hidden > 1 ? 's' : '') + ' optionnelle' + (T.hidden > 1 ? 's' : '') + ' mise' + (T.hidden > 1 ? 's' : '') + ' de côté.</p>';
-  if (!T.caughtUp) h += '<div style="margin-top:8px"><button type="button" class="btn sm" data-act="next">Terminer la journée</button></div>';
-  $('today').innerHTML = h;
+  const tk = T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '');
+  $('today').innerHTML = '<div class="dh"><h2>Aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip">' + tk + '<i class="sepv"></i></div>';
 }
 
 /* ---------- fiche ---------- */
@@ -903,8 +900,8 @@ function openMenu() {
   modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
-  if (ui.trayOpen == null) ui.trayOpen = !PHONE(); if (ui.todayOpen == null) ui.todayOpen = window.innerWidth >= 1100;
-  const tr = $('tray'), td = $('today'); if (tr) tr.classList.toggle('shut', !ui.trayOpen); if (td) td.classList.toggle('fold', !ui.todayOpen);
+  if (ui.trayOpen == null) ui.trayOpen = !PHONE();
+  const td = $('today'); if (td) td.classList.toggle('shut', !ui.trayOpen);
   document.body.classList.toggle('sel', ui.sel >= 0);
 }
 function openJournal() {
@@ -1062,12 +1059,12 @@ function renderTuto() {
   while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
   if (!st) { t.done = true; el.hidden = true; save(); return; }
   if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
-  if (st.target && st.target.indexOf('#today') === 0 && !ui.todayOpen) { ui.todayOpen = true; applyHud(); }
+  if (st.target && (st.target.indexOf('#today') === 0 || st.target === '#strip') && !ui.trayOpen) { ui.trayOpen = true; applyHud(); }
   el.hidden = false;
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -1183,7 +1180,7 @@ document.addEventListener('click', e => {
     case 'menu': openMenu(); break;
     case 'stock': openStock(); break;
     case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
-    case 'today-toggle': ui.todayOpen = !ui.todayOpen; applyHud(); renderRes(); break;
+    case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
     case 'fiche-close': ui.sel = -1; ui.mvFrom = -1; render(); break;
     case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;

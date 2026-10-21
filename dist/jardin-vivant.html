@@ -258,7 +258,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .sk-card{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--surface)}.sk-card.lock{opacity:.78}
 .sk-top{display:flex;justify-content:space-between;align-items:center}.sk-top svg{width:36px;height:36px;background:var(--bg);border-radius:10px}.sk-lv{font-size:13px;color:var(--ink-2);font-weight:600}
 .sk-card h4{margin:2px 0 0;font-size:17px}.sk-card p{margin:0;font-size:13px;line-height:1.35;color:var(--ink-2)}.sk-card .sk-next{font-size:12.5px;opacity:.85}
-.sk-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:2px}.sk-seg i{display:block;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.sk-seg b{display:block;height:100%;background:var(--leaf)}
+.sk-card.adv{border-color:#d9a521;background:#fffaf0}.sk-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:2px}.sk-seg i{display:block;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.sk-seg b{display:block;height:100%;background:var(--leaf)}
 .sk-card small{color:var(--muted,#6b6b60);font-size:12px;line-height:1.3}
 .sk-acts{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:4px}
 .sk-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 12px;font-size:14px;font-weight:600;cursor:pointer}.sk-btn.sm{font-size:12.5px;padding:7px 10px}
@@ -292,7 +292,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tb:hover{background:var(--bg)}.tb.on{background:var(--leaf);color:var(--on-leaf)}
 .tools .sep{height:1px;background:var(--line);margin:2px 4px}
-.garden-wrap.panable #garden{cursor:grab;touch-action:none}.garden-wrap[data-tool="delete"] #garden{cursor:crosshair}
+#garden{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.garden-wrap.panable #garden{cursor:grab}.garden-wrap[data-tool="delete"] #garden{cursor:crosshair}
 .cell.delp .frame{stroke:var(--fruit);stroke-width:4}
 @media (max-width:560px){.tools{flex-direction:row;flex-wrap:wrap;left:6px;top:6px;max-width:calc(100% - 12px)}.tb{width:36px;height:36px}.tools .sep{width:1px;height:24px}}
 .guil{position:absolute;right:10px;top:10px;z-index:4;width:min(330px,calc(100% - 76px));display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
@@ -326,23 +326,106 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .sw{display:inline-block;width:14px;height:14px;border-radius:4px;flex:none;vertical-align:-2px;margin-right:4px;border:1.5px solid rgba(255,255,255,.7);box-shadow:0 0 0 1px rgba(0,0,0,.2)}.sch .sw{margin:0}
 .spr.dim{opacity:.16;transition:opacity .2s}
 @media (max-width:560px){.strmenu{left:6px;top:96px}}
+
+/* ===== écran unique : la carte plein écran, le reste flotte par-dessus ===== */
+html,body{height:100%;overflow:hidden}
+body{padding:0}
+.app{max-width:none;margin:0;padding:0;display:block;height:100dvh;position:relative}
+.stage,.board,.side{display:contents}
+.app .garden-wrap{position:fixed;inset:0;z-index:1;display:block;border:0;border-radius:0;box-shadow:none;background:#a9c46c}
+.app #garden{position:absolute;inset:0;width:100%;height:100%;max-height:none}
+.hud-tl{position:fixed;left:12px;top:12px;z-index:20;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(480px,calc(100vw - 100px));pointer-events:none}
+.hud-tl>*{pointer-events:auto}
+.hud-tl .top{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:color-mix(in srgb,var(--surface) 93%,transparent);border:1px solid var(--line);border-radius:14px;padding:7px 12px 7px 9px;box-shadow:var(--shadow);max-width:100%}
+.hud-tl .brand{gap:8px}.hud-tl .brand svg{width:28px;height:28px}.hud-tl .brand h1{font-size:18px}.hud-tl .brand small{display:none}
+.hud-tl .when{font-size:12.5px;gap:3px 10px}.hud-tl .when b{font-size:14px}
+.hud-tl .res{display:flex;flex-direction:column;align-items:flex-start;gap:6px;justify-content:flex-start;pointer-events:none}
+.hud-tl .res .items{display:flex;gap:5px;flex-wrap:wrap;pointer-events:none}.hud-tl .res .pill{pointer-events:auto}
+.hud-tl .pill{background:color-mix(in srgb,var(--surface) 93%,transparent);box-shadow:var(--shadow);padding:3px 9px;font-size:12.5px}
+.pill.lvl{gap:8px;cursor:pointer}.pill .mini{display:inline-block;width:46px;height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden}.pill .mini i{display:block;height:100%;background:var(--leaf-2)}
+.hud-tr{position:fixed;right:12px;top:12px;z-index:20}
+.hud-tr .gauges{flex-wrap:nowrap;gap:8px}.hud-tr .gauge{min-width:98px;padding:5px 10px;background:color-mix(in srgb,var(--surface) 93%,transparent)}.hud-tr .gauge strong{font-size:14px}.hud-tr .gauge .bar{margin-top:3px}
+.rail{position:fixed;right:12px;top:78px;z-index:20;display:flex;flex-direction:column;gap:8px}
+.rb{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;width:70px;border:0;background:none;padding:0}
+.rb .rc{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:2.5px solid var(--leaf);box-shadow:var(--shadow);transition:transform .12s}
+.rb:hover .rc{transform:scale(1.07)}.rb.pri .rc{background:var(--leaf);color:var(--on-leaf)}
+.rb .ico,.rb svg{width:24px;height:24px}.rb .rc>svg:not(.ico){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rb small{font-size:10.5px;font-weight:700;line-height:1.1;background:color-mix(in srgb,var(--surface) 90%,transparent);padding:1px 7px;border-radius:8px;white-space:nowrap}
+.rb .bdg{position:absolute;top:-5px;right:-6px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--fruit);color:#fff;font-style:normal;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid var(--surface)}
+.hud-tc{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:25;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(460px,calc(100vw - 1020px));min-width:300px;pointer-events:none}
+.hud-tc>*{pointer-events:auto;width:100%}.hint{box-shadow:var(--shadow)}.hint:empty{display:none}.wxalert[hidden]{display:none}
+.app .tools{position:absolute;left:12px;bottom:12px;top:auto;z-index:4;display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;width:236px;max-width:none;padding:6px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface) 93%,transparent)}
+.app .tools .sep{display:none}.app .tb{width:40px;height:40px}
+.app .strmenu{left:12px;top:auto;bottom:112px}
+.app .guil{position:fixed;z-index:30;right:12px;top:auto;bottom:66px;flex-direction:column-reverse;align-items:flex-end;width:min(330px,calc(100vw - 24px))}
+.app .guil .gcard{margin-bottom:8px;margin-top:0}
+.app .gsay{right:0;top:auto;bottom:86px;border-radius:14px 14px 14px 4px}.app .guil{height:78px;justify-content:flex-end}.app .guil .gcard{position:absolute;right:0;bottom:86px;width:min(330px,calc(100vw - 24px));margin:0}
+.endday{position:fixed;right:12px;bottom:12px;z-index:14;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:12px 18px;background:var(--leaf);color:var(--on-leaf);font-weight:700;font-size:14px;box-shadow:var(--shadow)}
+.endday svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.endday:hover{filter:brightness(1.07)}
+.trayx{border:0;background:var(--surface-2);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none}.trayx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.app #today .strip{padding:2px 2px 6px;align-items:stretch}.app #today .card{width:112px;padding-bottom:6px}.app #today .card .art{height:66px}.app #today .card .lat,.app #today .card .tags,.app #today .card .cal-wrap{display:none}.app #today .card h4{font-size:14px;margin:6px 8px 0}
+.app #fiche{position:fixed;left:12px;top:176px;width:340px;max-height:calc(100dvh - 176px - 190px);overflow:auto;z-index:15;background:color-mix(in srgb,var(--surface) 97%,transparent)}
+.app #fiche[hidden]{display:none}
+.fmini h2{font-size:17px;padding-right:34px}.fmini .lat{margin:0;font-style:italic;color:var(--ink-2);font-size:13px}.fmini .note-p{margin:6px 0 8px}.app #fiche:has(.fmini){width:300px}
+.fclose{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;border:0;background:var(--surface-2);font-size:18px;line-height:1;display:grid;place-items:center}
+.app #fiche{padding-right:14px}
+.foot{display:none}
+.toast{bottom:200px}
+.tuto{left:50%;right:auto;transform:translateX(-50%);bottom:200px;width:min(420px,calc(100vw - 32px))}
+@media (max-width:1180px){.hud-tr .gauge span{font-size:11px}.hud-tc{top:auto;bottom:200px;width:min(480px,calc(100vw - 32px))}.tuto,.toast{bottom:260px}}
+@media (max-width:560px){
+  .hud-tl{max-width:calc(100vw - 76px);left:8px;top:8px}.hud-tl .brand h1{font-size:15px}.hud-tl .brand svg{width:24px;height:24px}.hud-tl .when{font-size:11.5px}
+  .hud-tr{display:none}
+  .rail{right:6px;top:8px;gap:6px}.rb{width:52px}.rb .rc{width:42px;height:42px;border-width:2px}.rb small{display:none}.rb .ico,.rb svg{width:21px;height:21px}
+  .app .tools{left:8px;bottom:8px;width:222px;gap:5px;padding:5px}.app .tb{width:36px;height:36px}
+  .endday{right:8px;bottom:8px;padding:11px 14px}.endday span{display:none}.endday{width:52px;height:52px;justify-content:center;padding:0}
+  .app .guil{right:8px;bottom:68px}.app .gmasc{width:52px;height:52px}
+  .app #fiche{left:8px;right:8px;top:auto;bottom:106px;width:auto;max-height:50dvh}
+  .hud-tc{top:auto;bottom:160px;left:8px;right:8px;transform:none;width:auto;min-width:0}
+  .tuto{left:8px;right:66px;transform:none;width:auto;top:74px;bottom:auto}.app .gsay{bottom:62px;max-width:calc(100vw - 100px)}.app .guil{height:52px}.app .guil .gcard{bottom:62px}
+  .toast{bottom:170px}
+}
+
+/* ===== bandeau du bas : Aujourd'hui (tâches + plantes à planter) ===== */
+.app #today{position:fixed;left:262px;right:260px;bottom:12px;z-index:12;padding:7px 10px 4px;border-radius:16px;background:color-mix(in srgb,var(--surface) 95%,transparent);max-height:none;overflow:visible}
+.app #today .dh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}.app #today .dh h2{font-size:14px;margin:0;display:flex;gap:8px;align-items:baseline;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app #today .dh small{font-family:var(--font-b);font-weight:500;font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
+.app #today.shut .strip{display:none}#today.shut .trayx svg{transform:rotate(180deg)}
+.app #today .strip{display:flex;gap:8px}
+.app #today .task{flex:none;width:210px;margin:0;padding:8px 10px;gap:9px;align-self:stretch}.app #today .task b{font-size:13.5px}.app #today .task span.sub{font-size:11.5px}
+.app #today .sepv{flex:none;width:1px;background:var(--line);margin:4px 2px}
+.app #today .empty{align-self:center;white-space:nowrap}
+@media (max-width:560px){
+  .app #today{left:8px;right:84px;bottom:106px}.app #today .card{width:104px}.app #today .task{width:180px}
+  body.sel #today{display:none}
+}
+
+.app .tools.shut{width:auto;padding:5px}.app .tools.shut .tb:not(.tbm){display:none}.app .tools .tbm{background:var(--surface-2)}.app .tools.act .tbm{outline:2px solid var(--leaf)}
+.gh2{margin:10px 0 6px;font-family:var(--font-m);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}.gtasks .task{margin-bottom:5px}
+
+.app #today{left:74px}body.tools-open .app #today{left:262px}
+@media (max-width:560px){.app #today,body.tools-open .app #today{left:8px;bottom:70px}body.tools-open .app #today{bottom:144px}.app .endday{bottom:8px}}
 </style>
 
 <div class="app">
-  <header class="top">
-    <div class="brand">
-      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--leaf)"/><path d="M20 31V19" stroke="var(--on-leaf)" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="var(--on-leaf)"/></svg>
-      <div><h1>Jardin Vivant</h1><small>Prototype v2 · jardin isométrique</small></div>
-    </div>
-    <div class="when" id="when"></div>
-    <div class="gauges" id="gauges"></div>
-  </header>
+  <div class="hud-tl" id="hudtl">
+    <header class="top">
+      <div class="brand">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--leaf)"/><path d="M20 31V19" stroke="var(--on-leaf)" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="var(--on-leaf)"/></svg>
+        <div><h1>Jardin Vivant</h1><small>Prototype v2 · jardin isométrique</small></div>
+      </div>
+      <div class="when" id="when"></div>
+    </header>
+    <div class="res" id="res"></div>
+  </div>
+  <div class="hud-tr"><div class="gauges" id="gauges"></div></div>
+  <nav class="rail" id="rail" aria-label="Fonctions du jeu"></nav>
+  <div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="data:image/webp;base64,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" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div>
+  <div class="hud-tc"><div class="wxalert" id="wxalert" role="status" hidden></div><div class="hint" id="hint" role="status"></div></div>
+  <button type="button" class="endday" data-act="next" aria-label="Terminer la journée"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><span>Terminer la journée</span></button>
   <main class="stage">
     <section class="board" aria-label="Le jardin">
-      <div class="res" id="res"></div>
-      <div class="wxalert" id="wxalert" role="status" hidden></div>
-      <div class="hint" id="hint" role="status"></div>
-      <div class="garden-wrap"><div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="data:image/webp;base64,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" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+      <div class="garden-wrap"><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+        <button type="button" class="tb tbm" data-act="tools-toggle" title="Outils" aria-label="Ouvrir ou fermer les outils"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
         <button type="button" class="tb on" data-tool="select" data-act="tool-select" title="Sélectionner" aria-label="Sélectionner"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg></button>
         <button type="button" class="tb" data-tool="move" data-act="tool-move" title="Déplacer la carte" aria-label="Déplacer la carte"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <button type="button" class="tb" data-tool="reloc" data-act="tool-reloc" title="Déplacer une plante" aria-label="Déplacer une plante"><svg viewBox="0 0 24 24"><path d="M12 20V10M12 10c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-2-1.5-3.5-4-3.5 0 2 1.5 3.5 4 3.5zM4 20h6M17 17l3 3-3 3" transform="translate(0 -3)"/></svg></button>
@@ -355,10 +438,6 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
       </div><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
-      <section class="tray" aria-label="Cartes en réserve">
-        <h3>Ma réserve <small id="trayInfo"></small></h3>
-        <div class="strip" id="strip"></div>
-      </section>
       <div class="foot" id="foot"></div>
     </section>
     <aside class="side">
@@ -384,7 +463,7 @@ const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','aoû
 const COLS = 12, ROWS = 10, NCELL = COLS * ROWS;
 const SIZES = [[8, 6], [10, 8], [12, 10]];
 const SIZE_REQ = [null, { plant: 10, species: 6 }, { plant: 25, species: 14 }];
-const MILESTONES = [[4, { paillage: 4 }, '4 paillage pour tes premières trognes'], [3, { treille: 1 }, 'une treille'], [5, { pergola: 1 }, 'une pergola'], [6, { mare: 1, canard: 1 }, 'une mare et un couple de canards coureurs indiens'], [8, { serre: 1 }, 'une serre froide'], [12, { ruche: 1 }, 'une ruche']];
+const MILESTONES = [[4, { paillage: 4 }, '4 paillage pour tes premières trognes']];
 const CLIM = [[1,9],[2,11],[4,14],[6,17],[10,21],[13,25],[15,28],[15,28],[12,24],[9,19],[5,13],[2,9]];
 const RAINP = [.3,.27,.28,.32,.3,.24,.17,.2,.24,.3,.32,.32];
 const EVAP = [2,2.5,4,6,8,11,14,13,9,6,3,2];
@@ -395,16 +474,25 @@ const FURN = ['chemin', 'treille', 'pergola', 'serre', 'mare', 'ruche', 'grandes
 const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8 };
 const SHOP = { paillage: 3, compost: 4, chemin: 5, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 25, serre: 25, canard: 20, sechoir: 25, mare: 30, ruche: 35, atelier: 40, poulailler: 30, voile: 6, grandeserre: 60 };
 const SKILLS = {
-  tonte: { n: 'Tonte', req: 0, th: [15, 45], d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone, et l’herbe repousse 3 jours plus vite.'], how: 'Tonds les zones d’herbe autour du jardin (+1 point par zone).' },
-  trogne: { n: 'Trognes', req: 8, th: [12, 30], d: ['Tailler un arbre en trogne : +4 paillage et croissance accélérée 20 jours.', '+6 paillage par coupe.', '+8 paillage par coupe, croissance accélérée 30 jours, et une coupe tous les 75 jours.'], how: 'Forme une trogne (+2 points) et coupe-la (+3 points).' },
-  plantation: { n: 'Plantation', req: 0, th: [25, 90], d: ['Le jardinier plante une plante après l’autre : environ 7 secondes chacune (un peu plus pour un arbre).', 'Il plante deux plantes à la fois, en environ 4 secondes.', 'Plantation experte : quatre plantes à la fois, en environ 2 secondes.'], how: 'Plante une carte (+1 point).' },
-  bouture: { n: 'Bouture', req: 6, th: [12, 36], d: ['Prélever une bouture sur une plante vivace mature : une nouvelle carte de la même espèce (une par plante tous les 45 jours).', 'Une bouture par plante tous les 30 jours.', 'Tous les 20 jours, et 2 cartes par bouture.'], how: 'Prélève une bouture (+3 points).' },
-  fabrication: { n: 'Fabrication', req: 8, th: [14, 40], d: ['Fabriquer soi-même du purin d’ortie et de la prêle avec du paillage et du compost.', 'Fabriquer aussi des nichoirs et des oyas.', 'Fabriquer aussi des cuves de récupération.'], how: 'Fabrique un soin ou un équipement (+2 points).' },
-  sechage: { n: 'Séchage', req: 10, th: [10, 30], d: ['Sécher herbes et fruits au séchoir : 3 kg par jour.', '5 kg par jour.', '8 kg par jour.'], how: 'Sèche une récolte au séchoir (+2 points).' },
-  transformation: { n: 'Transformation', req: 8, th: [10, 30], d: ['Mettre fruits et légumes en bocaux : 0,5 kg par bocal.', 'Confitures, compotes, jus : 0,7 kg par bocal.', 'Lacto-fermentation et conserves généreuses : 1 kg par bocal.'], how: 'Mets une récolte en bocaux (+2 points).' },
-  cuisine: { n: 'Cuisine', req: 0, th: [12, 36], d: ['Cuisiner les repas de la famille.', 'Les repas rendent la famille 10 % plus heureuse.', '20 % plus heureuse.'], how: 'Cuisine un repas (+2 points).' },
-  greffe: { n: 'Greffe', req: 14, th: [12, 32], d: ['Greffer un arbre ou un arbuste fruitier (1 compost) : +10 % de récolte et croissance avancée de 15 %.', '+20 % de récolte, croissance avancée de 25 %.', '+30 % de récolte, croissance avancée de 35 %.'], how: 'Greffe un arbre ou un arbuste (+4 points).' }
+  plantation: { n: 'Plantation', cat: 'culture', max: 5, req: 0, use: [10, 30, 60, 120], unit: 'plantes plantées', xpk: 5, d: ['Le jardinier plante une plante à la fois, environ 7 secondes (un peu plus pour un arbre).', 'Plantation plus rapide : 6 secondes par plante.', 'Il plante deux plantes à la fois, en 4,5 secondes.', 'Deux plantes à la fois, en 3 secondes.', 'Plantation experte : quatre plantes à la fois, en 2 secondes.'], how: 'Plante une carte.' },
+  tonte: { n: 'Tonte', cat: 'entretien', max: 5, req: 0, use: [8, 25, 50, 90], unit: 'zones tondues', xpk: 8, d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone.', '+5 paillage par zone, et l’herbe repousse 3 jours plus vite.', '+6 paillage par zone.'], how: 'Tonds les zones d’herbe autour du jardin.' },
+  trogne: { n: 'Trognes', cat: 'entretien', max: 3, req: 8, use: [4, 10], unit: 'trognes formées ou coupées', xpk: 6, d: ['Tailler un arbre en trogne : +4 paillage et croissance accélérée 20 jours.', '+6 paillage par coupe.', '+8 paillage par coupe, croissance accélérée 30 jours, et une coupe tous les 75 jours.'], how: 'Forme une trogne puis coupe-la.' },
+  bouture: { n: 'Bouture', cat: 'culture', max: 3, req: 6, use: [3, 8], unit: 'boutures prélevées', xpk: 4, d: ['Prélever une bouture sur une plante vivace mature : une nouvelle carte de la même espèce (une par plante tous les 45 jours).', 'Une bouture par plante tous les 30 jours.', 'Tous les 20 jours, et 2 cartes par bouture.'], how: 'Prélève une bouture.' },
+  greffe: { n: 'Greffe', cat: 'culture', max: 3, req: 14, use: [2, 6], unit: 'greffes réussies', xpk: 6, d: ['Greffer un arbre ou un arbuste fruitier (1 compost) : +10 % de récolte et croissance avancée de 15 %.', '+20 % de récolte, croissance avancée de 25 %.', '+30 % de récolte, croissance avancée de 35 %.'], how: 'Greffe un arbre ou un arbuste.' },
+  fabrication: { n: 'Fabrication', cat: 'entretien', max: 3, req: 8, use: [3, 8], unit: 'fabrications', xpk: 5, d: ['Fabriquer soi-même du purin d’ortie et de la prêle avec du paillage et du compost.', 'Fabriquer aussi des nichoirs et des oyas.', 'Fabriquer aussi des cuves de récupération.'], how: 'Fabrique un soin ou un équipement.' },
+  sechage: { n: 'Séchage', cat: 'expertise', max: 3, req: 10, use: [3, 8], unit: 'séchages', xpk: 5, d: ['Sécher herbes et fruits au séchoir : 3 kg par jour.', '5 kg par jour.', '8 kg par jour.'], how: 'Sèche une récolte au séchoir.' },
+  transformation: { n: 'Transformation', cat: 'expertise', max: 3, req: 8, use: [3, 8], unit: 'mises en bocaux', xpk: 5, d: ['Mettre fruits et légumes en bocaux : 0,5 kg par bocal.', 'Confitures, compotes, jus : 0,7 kg par bocal.', 'Lacto-fermentation et conserves généreuses : 1 kg par bocal.'], how: 'Mets une récolte en bocaux.' },
+  cuisine: { n: 'Cuisine', cat: 'expertise', max: 5, req: 0, use: [3, 8, 16, 30], unit: 'repas cuisinés', xpk: 7, d: ['Cuisiner les repas de la famille.', 'Les repas rendent la famille 5 % plus heureuse.', '10 % plus heureuse.', '15 % plus heureuse.', '20 % plus heureuse.'], how: 'Cuisine un repas.' }
 };
+const ADV = {
+  botaniste: { n: 'Botaniste', cat: 'expertise', cost: 2, reqs: { plantation: 3, bouture: 2 }, prac: { k: 'species', n: 12, t: 'espèces différentes cultivées' }, d: 'Toutes tes plantes poussent 10 % plus vite.' },
+  resilient: { n: 'Jardinier résilient', cat: 'expertise', cost: 2, reqs: { fabrication: 2, trogne: 2 }, prac: { k: 'soin', n: 6, t: 'soins apportés aux plantes' }, d: 'Tes plantes résistent mieux aux intempéries et aux maladies (+10 % de résistance).' },
+  autonome: { n: 'Garde-manger autonome', cat: 'expertise', cost: 2, reqs: { transformation: 2, cuisine: 3 }, prac: { k: 'meals', n: 20, t: 'repas cuisinés' }, d: 'La récolte fraîche se garde 50 % plus longtemps.' }
+};
+const XPB = { harvest: 4, water: 2, mulch: 3, soin: 5, honey: 8, prune: 6, compost: 6 };
+const xpNeed = L => 100 + 25 * (L * (L + 1) / 2 - 1);
+function levelOf(xp) { let L = 1, r = xp || 0; while (r >= xpNeed(L)) { r -= xpNeed(L); L++; } return { lvl: L, into: r, need: xpNeed(L) }; }
+
 const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, paillage: 2, compost: 1 }, nichoir: { lvl: 2, paillage: 3 }, oya: { lvl: 2, paillage: 4, compost: 1 }, cuve: { lvl: 3, paillage: 6, compost: 3 } };
 const RECYCLE = { 'Commune': 1, 'Peu commune': 2, 'Rare': 4 };
 const MAT_UNLOCK = { savoir: 3, voile: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
@@ -465,7 +553,7 @@ function make(P) {
   const totalDays = p => maturity(p) + p.juv * 365;
 
   function blank() {
-    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), cards: {}, mats: { voile: 2, paillage: 2, compost: 1, treille: 1, chemin: 3, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
+    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), cards: {}, mats: { voile: 0, paillage: 2, compost: 1, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
       tank: 300, tankMax: 500, stock: [], eaten: [], boosterDay: -1, boosters: 0, plantings: 0, maxPlantings: 0,
       cookedDay: -1, learnedDay: -1, knowledge: [], log: [], doneToday: { day: 0, n: 0 }, demo: false, w: weather(0), soil: 45, meals: 0 };
   }
@@ -474,10 +562,9 @@ function make(P) {
   function isActive(s, i) { const d = dims(s); return (i % COLS) < d[0] && ((i / COLS) | 0) < d[1]; }
   function newGame() {
     const s = fixSave(blank());
-    s.plantings = 0; s.maxPlantings = 0; s.mats.paillage = 8; s.mats.compost = 3; s.mats.chemin = 3;
+    s.plantings = 0; s.maxPlantings = 0; s.mats.paillage = 8; s.mats.compost = 3;
     checkSkills(s, true);
-    [['Courge', 8, 'cave'], ['Pomme de terre', 10, 'cave'], ['Carotte', 4, 'cave'], ['Tomate', 3, 'bocal'], ['Haricot sec', 2, 'sec'], ['Ail', .5, 'sec'], ['Thym', .3, 'sec']].forEach(([n, kg, keep]) => { if (byName[n]) s.stock.push({ pid: byName[n].id, kg, day: 0, keep }); });
-    log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger contient les réserves de l’été : courge, pommes de terre, bocaux. Ouvre ton booster du jour.');
+    log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger est vide : il se remplira avec ta première récolte. Ouvre ton booster du jour.');
     return s;
   }
   function log(s, type, text) { s.log.unshift({ day: s.day, type, text }); if (s.log.length > 60) s.log.length = 60; }
@@ -586,7 +673,7 @@ function make(P) {
   function mowReady(s, c) { return c && !c.treille && P[c.pid].tags.includes('mulch') && phase(c).stage !== 'graine' && phase(c).stage !== 'pousse' && s.day - c.lastPick >= 21; }
   function mow(s, i) { const c = s.grid[i]; if (!mowReady(s, c)) return false; c.lastPick = s.day; s.mats.paillage += 2; log(s, 'good', 'Consoude fauchée : +2 paillage.'); bump(s); return true; }
   function gqInit(s) { if (!s.gq) s.gq = { claimed: {}, cnt: {}, dc: { day: -1 } }; if (!s.gq.claimed) s.gq.claimed = {}; if (!s.gq.cnt) s.gq.cnt = {}; if (!s.gq.dc) s.gq.dc = { day: -1 }; return s.gq; }
-  function bump(s, k, n) { if (s.doneToday.day !== s.day) s.doneToday = { day: s.day, n: 0 }; s.doneToday.n++; if (k) { const g = gqInit(s), a = n == null ? 1 : n; g.cnt[k] = (g.cnt[k] || 0) + a; if (g.dc.day !== s.day) g.dc = { day: s.day }; g.dc[k] = (g.dc[k] || 0) + a; } }
+  function bump(s, k, n) { if (s.doneToday.day !== s.day) s.doneToday = { day: s.day, n: 0 }; s.doneToday.n++; if (k) { const g = gqInit(s), a = n == null ? 1 : n; g.cnt[k] = (g.cnt[k] || 0) + a; if (g.dc.day !== s.day) g.dc = { day: s.day }; g.dc[k] = (g.dc[k] || 0) + a; }  if (k && XPB[k]) gainXp(s, XPB[k] * (n == null ? 1 : n)); }
 
   // ----- actions -----
   function plantCheck(s, i, pid) {
@@ -604,9 +691,9 @@ function make(P) {
   }
   function queuePlant(s, i, pid) { const c = plantCheck(s, i, pid); if (!c.ok) return c; s.cards[pid]--; if (!s.cards[pid]) delete s.cards[pid]; (s.pq = s.pq || []).push({ i, pid }); return { ok: true }; }
   function cancelPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; return { ok: true, name: P[q.pid].name }; }
-  function finishPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false, none: true }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; const r = plant(s, i, q.pid); if (r.ok) gainSkill(s, 'plantation', 1); return r; }
+  function finishPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false, none: true }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; const r = plant(s, i, q.pid); return r; }
   function flushPlantQueue(s) { (s.pq || []).slice().forEach(q => finishPlant(s, q.i)); s.pq = []; }
-  function plantSpeed(s, pid) { const lv = Math.max(1, skillLevel(s, 'plantation')); const woody = ['Arbre', 'Arbuste'].includes((P[pid] || {}).strate); return { sec: [0, 7, 4, 2][lv] * (woody ? 1.5 : 1), batch: [1, 1, 1, 2, 4][lv + 1] || 1, lv }; }
+  function plantSpeed(s, pid) { const lv = Math.max(1, skillLevel(s, 'plantation')); const woody = ['Arbre', 'Arbuste'].includes((P[pid] || {}).strate); return { sec: [7, 6, 4.5, 3, 2][lv - 1] * (woody ? 1.5 : 1), batch: [1, 1, 2, 2, 4][lv - 1], lv }; }
   function plant(s, i, pid) {
     const p = P[pid];
     if (!p) return { ok: false, msg: 'Carte inconnue.' };
@@ -623,7 +710,7 @@ function make(P) {
     let reward = null; const gl = []; s.rewarded = s.rewarded || {};
     for (const [n, gift, label] of MILESTONES) if (s.maxPlantings >= n && !s.rewarded[n]) { s.rewarded[n] = true; for (const k in gift) s.mats[k] = (s.mats[k] || 0) + gift[k]; gl.push(label); }
     if (gl.length) { reward = 'Palier de plantations : tu reçois ' + gl.join(', ') + '.'; log(s, 'good', reward); }
-    checkSkills(s); bump(s); return { ok: true, reward };
+    s.skills.species[pid] = 1; gainSkill(s, 'plantation', 1); gainXp(s, p.strate === 'Arbre' ? 35 : p.strate === 'Arbuste' || p.strate === 'Grimpante' ? 10 : 0); checkSkills(s); bump(s); return { ok: true, reward };
   }
   function canExpand(s) {
     const n = (s.size || 0) + 1; if (n >= SIZES.length) return { ok: false, done: true };
@@ -633,8 +720,15 @@ function make(P) {
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
   function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
-  function fixSave(s) { gqInit(s); if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } if (!s.skills) { s.skills = { pts: {}, seen: {} }; Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); } if (!s.skillNotes) s.skillNotes = []; if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
-  function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 3 ? 3 : 0); }
+  function fixSave(s) { gqInit(s); if (!s.skillNotes) s.skillNotes = [];
+    if (!s.skills || !s.skills.lv) { const o = s.skills || { pts: {}, seen: {} }, op = o.pts || {}, lv = {}, use = {}; let tot = 0;
+      const OLD = { tonte: [0, 15, 45], trogne: [4, 12, 30], bouture: [6, 12, 36], fabrication: [8, 14, 40], sechage: [10, 10, 30], transformation: [8, 10, 30], cuisine: [0, 12, 36], greffe: [14, 12, 32] };
+      Object.keys(OLD).forEach(k => { const [rq, t1, t2] = OLD[k], p = op[k] || 0; tot += p; use[k] = Math.min(p, 40); if ((s.maxPlantings || 0) >= rq) lv[k] = 1 + (p >= t1 ? 1 : 0) + (p >= t2 ? 1 : 0); });
+      lv.plantation = Math.max(1, lv.plantation || 0); lv.tonte = Math.max(1, lv.tonte || 0); lv.cuisine = Math.max(1, lv.cuisine || 0);
+      const sp = {}; (s.grid || []).forEach(c => { if (c && !c.treille) sp[c.pid] = 1; });
+      s.skills = { lv, use, adv: {}, species: sp, seen: o.seen || {} }; s.xp = s.xp || tot * 6; s.ptsSpent = s.ptsSpent || 0; s.pts = s.pts != null ? s.pts : levelOf(s.xp).lvl - 1 + 1; }
+    if (!s.skills.adv) s.skills.adv = {}; if (!s.skills.use) s.skills.use = {}; if (!s.skills.species) s.skills.species = {}; if (s.xp == null) s.xp = 0; if (s.pts == null) s.pts = 0; if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
+  function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 4 ? 3 : 0); }
   function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH + Math.max(0, skillLevel(s, 'tonte') - 1); gainSkill(s, 'tonte', 1); bump(s, 'mow'); return true; }
   function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 15 : 0)); }
   function trogneReward(s) { const lv = skillLevel(s, 'trogne'), mu = TREE_MULCH + 2 * Math.max(0, lv - 1); s.mats.paillage += mu; s.boostUntil = Math.min(s.day + 60, Math.max(s.boostUntil, s.day) + (lv >= 3 ? 30 : 20)); log(s, 'good', 'Trogne coupée : +' + mu + ' paillage, les plantes poussent plus vite pendant ' + Math.min(60, s.boostUntil - s.day) + ' jours.'); }
@@ -645,7 +739,7 @@ function make(P) {
   function harvestHoney(s, i) { if (!honeyReady(s, i)) return { ok: false }; const kg = honeyKg(s); s.grid[i].honeyDay = s.day; s.honey = r2((s.honey || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 3000) }); log(s, 'good', 'Miel récolté : ' + kg + ' kg.'); bump(s, 'honey'); return { ok: true, kg }; }
   function placeDuck(s, i) { const c = s.grid[i]; if (!c || c.furn !== 'mare' || c.ducks || !(s.mats.canard > 0)) return false; s.mats.canard--; c.ducks = true; log(s, 'good', 'Deux canards coureurs indiens s’installent à la mare.'); bump(s); return true; }
   function duckNear(s, i) { const r = (i / COLS) | 0, cc = i % COLS; return s.grid.some((c, j) => c && c.ducks && Math.max(Math.abs(((j / COLS) | 0) - r), Math.abs(j % COLS - cc)) <= 3); }
-  function resistance(s, i) { const sy = synergy(s, i), links = new Set(sy.notes.filter(n => n.t === 'good').flatMap(n => n.froms).filter(j => j >= 0)).size; return { links, pct: Math.round(Math.min(.85, links * .1) * 100) }; }
+  function resistance(s, i) { const sy = synergy(s, i), links = new Set(sy.notes.filter(n => n.t === 'good').flatMap(n => n.froms).filter(j => j >= 0)).size; return { links, pct: Math.round(Math.min(.85, links * .1 + (hasAdv(s, 'resilient') ? .1 : 0)) * 100) }; }
   function heal(s, i) { const c = s.grid[i]; if (!c || c.treille || !c.sick) return false; c.sick = null; c.health = Math.min(100, c.health + 4); bump(s); return true; }
   function pests(s, w, m, ev) {
     const rn = mulberry(s.day * 977 + 13), kinds = [];
@@ -709,7 +803,7 @@ function make(P) {
   const FAST_NAMES = ['Radis', 'Épinard', 'Mâche', 'Laitue', 'Chervis', 'Ciboulette', 'Pois', 'Persil', 'Bourrache', 'Roquette', 'Poirée'];
   function fastPool(s, m, strates) { const u = unlocked(s); return FAST_NAMES.map(n => byName[n]).filter(p => p && sowable(p, m) && u.has(p.strate) && (!strates || strates.includes(p.strate))); }
   function openBooster(s) {
-    if (s.boosterDay >= s.day) return null;
+    if (s.boosterDay >= s.day) return null; gainXp(s, 10);
     const rng = mulberry(s.day * 131 + s.boosters * 17 + 7), cards = [], m = dateOf(s.day).m;
     if (s.boosters === 0) {
       const used = new Set(), want = ['Racine', 'Herbacée', 'Couvre-sol', 'Herbacée', 'Racine', 'Arbuste'];
@@ -749,8 +843,8 @@ function make(P) {
     const balance = clamp((strata - 1) * 34 + (prot > 8 ? 30 : prot > 4 ? 15 : 0) + (kinds >= 3 ? 12 : 0), 0, 100);
     s.eaten.push({ day: s.day, kcal: Math.round(kcal), prot: r1(prot) }); s.cookedDay = s.day; s.meals++;
     const fam = s.family || [], tn = famNeed(s), shares = [];
-    for (const f of fam) { const sh = kcal * f.need / tn; f.hist.push({ day: s.day, kcal: Math.round(sh), bal: Math.round(balance) }); f.hist = f.hist.filter(x => s.day - x.day <= 6); shares.push({ n: f.n, ratio: Math.min(1.5, sh / (f.need * GSHARE)) }); f.joy = clamp(f.joy + Math.min(14, sh / (f.need * GSHARE) * 22) * (.6 + balance / 250) * (1 + .1 * Math.max(0, skillLevel(s, 'cuisine') - 1)), 0, 100); }
-    s.waste = r2((s.waste || 0) + grams / 1000 * .3); gainSkill(s, 'cuisine', 2); bump(s);
+    for (const f of fam) { const sh = kcal * f.need / tn; f.hist.push({ day: s.day, kcal: Math.round(sh), bal: Math.round(balance) }); f.hist = f.hist.filter(x => s.day - x.day <= 6); shares.push({ n: f.n, ratio: Math.min(1.5, sh / (f.need * GSHARE)) }); f.joy = clamp(f.joy + Math.min(14, sh / (f.need * GSHARE) * 22) * (.6 + balance / 250) * (1 + .05 * Math.max(0, skillLevel(s, 'cuisine') - 1)), 0, 100); }
+    s.waste = r2((s.waste || 0) + grams / 1000 * .3); gainSkill(s, 'cuisine', 2); gainXp(s, Math.round(balance / 10)); bump(s);
     const name = mealName(used);
     log(s, 'good', 'Repas : ' + name + ' (' + Math.round(kcal) + ' kcal).');
     return { ok: true, name, kcal: Math.round(kcal), prot: r1(prot), grams, balance, shares, need: tn };
@@ -882,13 +976,13 @@ function make(P) {
       else if (c.g < maturity(p)) { f = SEASONF[m]; f = f + (1 - f) * (1 - Math.min(1, p.croiss / 120)); if (p.gel <= -8 && p.croiss <= 130 && ['Herbacée', 'Racine'].includes(p.strate)) f = Math.max(f, .6); if (tm < 8 && p.gel >= 0 && !gsNear(s, i)) f *= .3; }
       else f = 1;
       const sf = c.stress > 7 ? .3 : c.stress > 0 ? .5 : 1;
-      c.g += f * clamp(1 + sy.growth, .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1);
+      c.g += f * clamp(1 + sy.growth, .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1) * (hasAdv(s, 'botaniste') ? 1.1 : 1);
       const st = phase(c).stage; c.stage = st; c.ready = ready(s, c);
       if (st === 'mature' && wasStage !== 'mature' && wasStage !== undefined) ev.push({ t: 'good', text: p.name + ' est arrivé à maturité.' });
       if (c.ready && !wasReady) ev.push({ t: 'good', text: p.name + ' est prêt à récolter.' });
     }
     if (wxHit && w.ev !== 'canicule' && w.ev !== 'secheresse') ev.push({ t: 'bad', text: (w.ev === 'tempete' ? 'Tempête' : 'Grêle') + ' : ' + wxHit + ' plante' + (wxHit > 1 ? 's' : '') + ' abîmée' + (wxHit > 1 ? 's' : '') + '. Les guildes et les grands arbres protègent mieux.' });
-    s.stock = s.stock.filter(it => { const p = P[it.pid]; if (s.day - it.day > (it.keep ? (it.keep === 'sec' ? 400 : 300) : Math.max(1, p.cons))) { ev.push({ t: 'warn', text: it.kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + ' perdus (trop vieux).' }); return false; } return true; });
+    s.stock = s.stock.filter(it => { const p = P[it.pid]; if (s.day - it.day > (it.keep ? (it.keep === 'sec' ? 400 : 300) : Math.max(1, p.cons * (hasAdv(s, 'autonome') ? 1.5 : 1)))) { ev.push({ t: 'warn', text: it.kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + ' perdus (trop vieux).' }); return false; } return true; });
     pests(s, w, m, ev);
     for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * GSHARE); const tgt = clamp((ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100)) + (hamacOk(s) ? 10 : 0), 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), s.day < 45 ? 35 : 0, 100); }
     { const hungry = (s.family || []).filter(f => f.joy < 25); if (hungry.length && s.day % 3 === 0) ev.push({ t: 'warn', text: hungry.map(f => f.n).join(', ') + (hungry.length > 1 ? ' ont faim' : ' a faim') + ' : cuisine avec ta récolte.' }); }
@@ -952,7 +1046,7 @@ function make(P) {
     { const ti = s.grid.findIndex(c => c && !c.treille && P[c.pid].strate === 'Arbre'); if (ti >= 0) s.grid[ti].nichoir = true; const oi = s.grid.findIndex(c => c && !c.treille && P[c.pid].strate === 'Herbacée'); if (oi >= 0) s.grid[oi].oyaUntil = s.day + 30; const gi = s.grid.findIndex((c, k) => !c && isActive(s, k) && (k % COLS) >= 2); if (gi >= 0) s.grid[gi] = { treille: true, furn: 'grandeserre' }; }
     s.stock.push({ pid: byName['Tomate'].id, kg: 1.2, day: s.day - 5, keep: 'bocal' }, { pid: byName['Thym'].id, kg: .3, day: s.day - 8, keep: 'sec' });
     s.prod = [{ day: s.day - 20, kcal: 30000 }, { day: s.day - 50, kcal: 20000 }, { day: s.day - 75, kcal: 10000 }]; s.knowledge = []; log(s, 'good', 'Jardin mature de démonstration : trois ans de travail, un matin de juillet.');
-    s.skills.pts = { tonte: 20, trogne: 14, bouture: 5, fabrication: 16, sechage: 4, transformation: 11, cuisine: 8, greffe: 2 }; checkSkills(s, true);
+    s.skills.lv = { plantation: 3, tonte: 4, cuisine: 3, trogne: 2, bouture: 2, fabrication: 2, sechage: 1, transformation: 2, greffe: 1 }; s.skills.use = { plantation: 45, tonte: 60, cuisine: 20, trogne: 8, bouture: 5, fabrication: 6, sechage: 4, transformation: 6, greffe: 3 }; s.xp = 1500; s.ptsSpent = 14; s.pts = 2; Object.keys(s.skills.lv).forEach(k => { s.skills.seen[k] = 1; }); checkSkills(s, true);
     s.grid.forEach((c, i) => { if (c && !c.treille) { c.stage = phase(c).stage; c.ready = ready(s, c); } });
     return s;
   }
@@ -1042,16 +1136,44 @@ function make(P) {
   function recycleValue(s, pid, n) { return (RECYCLE[P[pid].rarete] || 1) * n; }
   function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const g = recycleValue(s, pid, n); s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }
   function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' ginkgos.'); return { ok: n > 0, gain: g, n }; }
-  function skillLevel(s, k) { const d = SKILLS[k]; if (!d || (s.maxPlantings || 0) < d.req) return 0; const p = (s.skills && s.skills.pts[k]) || 0; return 1 + (p >= d.th[0] ? 1 : 0) + (p >= d.th[1] ? 1 : 0); }
-  function gainSkill(s, k, n) {
-    const b = skillLevel(s, k); s.skills.pts[k] = (s.skills.pts[k] || 0) + n; const a = skillLevel(s, k);
-    if (a > b && b > 0) { const m = 'Compétence « ' + SKILLS[k].n + ' » : niveau ' + a + ' ! ' + SKILLS[k].d[a - 1]; s.skillNotes.push(m); log(s, 'good', m); }
+  function skillLevel(s, k) { return (s.skills && s.skills.lv && s.skills.lv[k]) || 0; }
+  function hasAdv(s, k) { return !!(s.skills && s.skills.adv && s.skills.adv[k]); }
+  const XPM = 0.4;
+  function gainXp(s, n) {
+    if (!(n > 0)) return; const b = levelOf(s.xp).lvl; s.xp = Math.round(((s.xp || 0) + n * XPM) * 10) / 10; const a = levelOf(s.xp).lvl;
+    if (a > b) { s.pts = (s.pts || 0) + (a - b); const m = 'Niveau ' + a + ' ! Tu gagnes ' + (a - b > 1 ? (a - b) + ' points' : '1 point') + ' de compétence.'; s.skillNotes.push(m); log(s, 'good', m); }
   }
-  function checkSkills(s, quiet) { for (const k of Object.keys(SKILLS)) if (skillLevel(s, k) > 0 && !s.skills.seen[k]) { s.skills.seen[k] = 1; if (!quiet) { const m = 'Nouvelle compétence : « ' + SKILLS[k].n + ' ». ' + SKILLS[k].d[0]; s.skillNotes.push(m); log(s, 'good', m); } } }
+  function gainSkill(s, k, n) { s.skills.use[k] = (s.skills.use[k] || 0) + 1; gainXp(s, (n || 1) * (SKILLS[k] ? SKILLS[k].xpk : 5)); }
+  function checkSkills(s, quiet) { for (const k of Object.keys(SKILLS)) if (skillLevel(s, k) === 0 && (s.maxPlantings || 0) >= SKILLS[k].req && !s.skills.seen[k]) { s.skills.seen[k] = 1; if (!quiet) { const m = 'Compétence disponible : « ' + SKILLS[k].n + ' » (1 point pour la débloquer).'; s.skillNotes.push(m); log(s, 'good', m); } } }
+  function skillState(s, k) {
+    const d = SKILLS[k], lv = skillLevel(s, k), use = s.skills.use[k] || 0; if (lv >= d.max) return { max: true, lv };
+    const nx = lv + 1; let why = null;
+    if (lv === 0 && (s.maxPlantings || 0) < d.req) why = 'Débloquée après ' + d.req + ' plantations';
+    else if (nx >= 2 && use < d.use[nx - 2]) why = 'Pratique : ' + use + ' / ' + d.use[nx - 2] + ' ' + d.unit;
+    else if (!((s.pts || 0) >= 1)) why = 'Il te faut 1 point de compétence';
+    return { lv, nx, why, can: !why, use, need: nx >= 2 ? d.use[nx - 2] : 0 };
+  }
+  function skillUp(s, k) {
+    const d = SKILLS[k]; if (!d) return { ok: false, msg: 'Compétence inconnue.' }; const st = skillState(s, k);
+    if (st.max) return { ok: false, msg: 'Niveau maximum atteint.' }; if (!st.can) return { ok: false, msg: st.why + '.' };
+    s.pts--; s.ptsSpent = (s.ptsSpent || 0) + 1; s.skills.lv[k] = st.nx;
+    const m = 'Compétence « ' + d.n + ' » : niveau ' + st.nx + ' ! ' + d.d[st.nx - 1]; s.skillNotes.push(m); log(s, 'good', m); bump(s); return { ok: true, lv: st.nx, name: d.n };
+  }
+  function advProgress(s, k) { const a = ADV[k], v = a.prac.k === 'species' ? Object.keys(s.skills.species || {}).length : a.prac.k === 'soin' ? ((s.gq && s.gq.cnt.soin) || 0) : (s.meals || 0); return v; }
+  function advState(s, k) {
+    const a = ADV[k]; if (hasAdv(s, k)) return { have: true };
+    const reqs = Object.keys(a.reqs).map(r => ({ k: r, n: SKILLS[r].n, need: a.reqs[r], ok: skillLevel(s, r) >= a.reqs[r] })), prog = advProgress(s, k);
+    let why = null; const miss = reqs.filter(r => !r.ok);
+    if (miss.length) why = 'Il faut ' + miss.map(r => r.n + ' niveau ' + r.need).join(' et '); else if (prog < a.prac.n) why = 'Pratique : ' + prog + ' / ' + a.prac.n + ' ' + a.prac.t; else if ((s.pts || 0) < a.cost) why = 'Il te faut ' + a.cost + ' points de compétence';
+    return { have: false, reqs, prog, why, can: !why };
+  }
+  function advUp(s, k) { const a = ADV[k]; if (!a) return { ok: false, msg: 'Spécialisation inconnue.' }; const st = advState(s, k); if (st.have) return { ok: false, msg: 'Déjà acquise.' }; if (!st.can) return { ok: false, msg: st.why + '.' }; s.pts -= a.cost; s.ptsSpent = (s.ptsSpent || 0) + a.cost; s.skills.adv[k] = 1; const m = 'Spécialisation « ' + a.n + ' » acquise ! ' + a.d; s.skillNotes.push(m); log(s, 'good', m); bump(s); return { ok: true, name: a.n }; }
+  function xpInfo(s) { const L = levelOf(s.xp); const acq = Object.keys(SKILLS).filter(k => skillLevel(s, k) > 0).length + Object.keys(ADV).filter(k => hasAdv(s, k)).length; return { lvl: L.lvl, into: L.into, need: L.need, xp: s.xp || 0, pts: s.pts || 0, spent: s.ptsSpent || 0, acq, total: Object.keys(SKILLS).length + Object.keys(ADV).length }; }
+  function skillList(s) { return Object.keys(SKILLS).map(k => { const d = SKILLS[k], st = skillState(s, k); return { k, n: d.n, cat: d.cat, lv: skillLevel(s, k), max: d.max, d: d.d, use: s.skills.use[k] || 0, how: d.how, unit: d.unit, req: d.req, st, locked: skillLevel(s, k) === 0 }; }); }
+  function advList(s) { return Object.keys(ADV).map(k => ({ k, n: ADV[k].n, cat: ADV[k].cat, d: ADV[k].d, cost: ADV[k].cost, st: advState(s, k), prac: ADV[k].prac })); }
   function takeNotes(s) { const o = s.skillNotes || []; s.skillNotes = []; return o; }
-  function skillList(s) { return Object.keys(SKILLS).map(k => { const d = SKILLS[k], lv = skillLevel(s, k), pts = s.skills.pts[k] || 0; return { k, n: d.n, lv, pts, req: d.req, th: d.th, next: lv >= 3 ? null : d.th[lv - 1 < 0 ? 0 : lv - 1], d: d.d, how: d.how, locked: lv === 0 }; }); }
   function boutureCheck(s, i) {
-    const c = s.grid[i]; if (!c || c.treille) return { ok: false, msg: 'Choisis une plante.' }; const lv = skillLevel(s, 'bouture'); if (lv < 1) return { ok: false, msg: 'Compétence Bouture : disponible après ' + SKILLS.bouture.req + ' plantations.' };
+    const c = s.grid[i]; if (!c || c.treille) return { ok: false, msg: 'Choisis une plante.' }; const lv = skillLevel(s, 'bouture'); if (lv < 1) return { ok: false, msg: 'Débloque la compétence Bouture dans « Mon jardinier ».' };
     const p = P[c.pid]; if (!['vivace', 'continue'].includes(p.kind) || p.strate === 'Arbre') return { ok: false, msg: p.name + ' ne se bouture pas (annuelle ou arbre : essaie la greffe pour les arbres).' };
     const st = phase(c).stage; if (st === 'graine' || st === 'pousse') return { ok: false, msg: 'Trop jeune : attends qu’elle ait grandi.' };
     const gap = [0, 45, 30, 20][lv], left = gap - (s.day - (c.cutDay == null ? -999 : c.cutDay)); if (left > 0) return { ok: false, msg: 'Elle se remet de la dernière bouture : encore ' + left + ' jours.' };
@@ -1066,7 +1188,7 @@ function make(P) {
     for (const m of ['paillage', 'compost']) s.mats[m] -= r[m] || 0; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Fabriqué : ' + k + '.'); gainSkill(s, 'fabrication', 2); bump(s, 'fab'); return { ok: true };
   }
   function greffeCheck(s, i) {
-    const c = s.grid[i]; if (!c || c.treille) return { ok: false, msg: 'Choisis un arbre ou un arbuste.' }; const lv = skillLevel(s, 'greffe'); if (lv < 1) return { ok: false, msg: 'Compétence Greffe : disponible après ' + SKILLS.greffe.req + ' plantations.' };
+    const c = s.grid[i]; if (!c || c.treille) return { ok: false, msg: 'Choisis un arbre ou un arbuste.' }; const lv = skillLevel(s, 'greffe'); if (lv < 1) return { ok: false, msg: 'Débloque la compétence Greffe dans « Mon jardinier ».' };
     const p = P[c.pid]; if (!['Arbre', 'Arbuste'].includes(p.strate) || !(p.kg > 0)) return { ok: false, msg: 'On greffe un arbre ou un arbuste fruitier.' };
     if (c.grafted) return { ok: false, msg: 'Déjà greffé.' }; if (!(s.mats.compost > 0)) return { ok: false, msg: 'Il faut 1 compost pour souder la greffe.' };
     return { ok: true, lv };
@@ -1112,36 +1234,36 @@ function make(P) {
   function guildOf(s, i) { let best = null; const g0 = guildAt(s, i); if (g0) best = { c: i, auto: g0.auto }; for (const j of neigh(i)) { const g = guildAt(s, j); if (g && (!best || (g.auto && !best.auto))) best = { c: j, auto: g.auto }; } return best; }
   function nSpecies(s) { return new Set(s.grid.filter(c => c && !c.treille).map(c => c.pid)).size; }
   const GQ = [
-    { id: 'booster', t: 'Ouvre ton booster du jour', say: 'Salut, moi c’est Guildéon ! Ouvre ton booster du jour : six cartes de plantes t’attendent.', need: 1, have: s => s.boosters, rw: { paillage: 2 } },
-    { id: 'p3', t: 'Plante 3 cartes du booster', say: 'Pose 3 cartes de ton booster dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 3, have: s => s.maxPlantings, rw: { compost: 1 } },
-    { id: 'eau3', t: 'Arrose 3 plantes', say: 'Elles ont soif ! Arrose 3 plantes, la goutte bleue te montre lesquelles.', need: 3, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
+    { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters du jour : six cartes de plantes t’attendent chaque matin. Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
+    { id: 'p3', t: 'Plante 6 cartes', say: 'Pose 6 plantes dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 6, have: s => s.maxPlantings, rw: { compost: 1 } },
+    { id: 'eau3', t: 'Arrose 10 plantes', say: 'Elles ont soif ! Arrose 10 plantes au total, la goutte bleue te montre lesquelles.', need: 10, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
     { id: 'guilde1', t: 'Plante ta première guilde', say: 'Plante une guilde : un arbre entouré d’au moins 5 plantes d’espèces différentes couvrant 4 strates (arbuste, herbacée, racine, grimpante, couvre-sol). Je te donne un bonus de croissance !', need: 1, have: s => guilds(s).n, rw: { boost: 7, paillage: 3 } },
-    { id: 'rec3', t: 'Récolte 3 fois', say: 'Un panier orange sur une plante : c’est prêt ! Récolte 3 fois.', need: 3, have: s => (s.gq.cnt.harvest || 0), rw: { compost: 1 } },
-    { id: 'repas1', t: 'Cuisine ton premier repas', say: 'Direction le garde-manger : cuisine un repas de ta forêt pour ta famille.', need: 1, have: s => s.meals, rw: { paillage: 2 } },
-    { id: 'paille3', t: 'Paille 3 plantes', say: 'La paille garde l’eau et nourrit le sol. Paille 3 plantes.', need: 3, have: s => (s.gq.cnt.mulch || 0), rw: { boost: 3 } },
+    { id: 'rec3', t: 'Récolte 8 fois', say: 'Un panier orange sur une plante : c’est prêt ! Récolte 8 fois.', need: 8, have: s => (s.gq.cnt.harvest || 0), rw: { compost: 1 } },
+    { id: 'repas1', t: 'Cuisine 3 repas', say: 'Direction le garde-manger : cuisine trois repas de ta forêt pour ta famille.', need: 3, have: s => s.meals, rw: { paillage: 2 } },
+    { id: 'paille3', t: 'Paille 8 plantes', say: 'La paille garde l’eau et nourrit le sol. Paille 8 plantes.', need: 8, have: s => (s.gq.cnt.mulch || 0), rw: { boost: 3 } },
     { id: 'atelier1', t: 'Construis ton atelier', say: 'Un atelier près de la maison : tu y feras tes conserves et ton séchage. Joue une carte Atelier !', need: 1, have: s => s.atelier ? 1 : 0, rw: { boost: 5, compost: 2 } },
-    { id: 'conserve1', t: 'Fais ta première conserve', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 1, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
-    { id: 'soin1', t: 'Soigne tes plantes avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 1, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
-    { id: 'bouture1', t: 'Prélève une bouture', say: 'Une bouture, c’est une plante gratuite ! Ouvre les Compétences, choisis Bouture et touche une vivace mature.', need: 1, have: s => (s.gq.cnt.bouture || 0), rw: { boost: 3, compost: 1 } },
+    { id: 'conserve1', t: 'Fais 3 conserves', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 3, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
+    { id: 'soin1', t: 'Soigne tes plantes 3 fois avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 3, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
+    { id: 'bouture1', t: 'Prélève 2 boutures', say: 'Une bouture, c’est une plante gratuite ! Ouvre les Compétences, choisis Bouture et touche une vivace mature.', need: 2, have: s => (s.gq.cnt.bouture || 0), rw: { boost: 3, compost: 1 } },
     { id: 'fab1', t: 'Fabrique ton premier soin', say: 'Avec du paillage et du compost, tu peux fabriquer ton propre purin d’ortie : ouvre les Compétences, onglet Fabrication.', need: 1, have: s => (s.gq.cnt.fab || 0), rw: { boost: 3, paillage: 2 } },
     { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des ginkgos ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
-    { id: 'sp6', t: '6 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 6 espèces différentes.', need: 6, have: s => nSpecies(s), rw: { compost: 2 } },
-    { id: 'tonte1', t: 'Tonds l’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 1, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
-    { id: 'p12', t: 'Atteins 12 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 12 plantations.', need: 12, have: s => s.maxPlantings, rw: { boost: 5 } },
+    { id: 'sp6', t: '9 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 9 espèces différentes.', need: 9, have: s => nSpecies(s), rw: { compost: 2 } },
+    { id: 'tonte1', t: 'Tonds 5 zones d’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 5, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
+    { id: 'p12', t: 'Atteins 20 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 20 plantations.', need: 20, have: s => s.maxPlantings, rw: { boost: 5 } },
     { id: 'guilde2', t: 'Deux guildes', say: 'Une deuxième guilde ! Elles se protègent entre elles.', need: 2, have: s => guilds(s).n, rw: { boost: 10, compost: 2 } },
-    { id: 'auto25', t: 'Autonomie à 25 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 25 %.', need: 25, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 } },
+    { id: 'auto25', t: 'Autonomie à 30 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 30 %.', need: 30, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 } },
     { id: 'trogne1', t: 'Taille une trogne', say: 'Ouvre les Compétences, choisis Trognes, puis touche un arbre au bord du jardin pour le tailler en têtard, et coupe-le ensuite : paillage et pousse accélérée.', need: 1, have: s => (s.gq.cnt.trogne || 0), rw: { paillage: 4 } },
-    { id: 'repas5', t: 'Cuisine 5 repas', say: 'Ta famille compte sur toi : 5 repas au total.', need: 5, have: s => s.meals, rw: { boost: 5 } },
+    { id: 'repas5', t: 'Cuisine 15 repas', say: 'Ta famille compte sur toi : 15 repas au total.', need: 15, have: s => s.meals, rw: { boost: 5 } },
     { id: 'miel1', t: 'Récolte du miel', say: 'Les abeilles ont travaillé ! Récolte le miel de la ruche (de mai à septembre).', need: 1, have: s => (s.gq.cnt.honey || 0), rw: { boost: 5, paillage: 2 } },
-    { id: 'sp12', t: '12 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 12 espèces.', need: 12, have: s => nSpecies(s), rw: { compost: 3 } },
-    { id: 'auto50', t: 'Autonomie à 50 %', say: 'Moitié de tes besoins couverts par ton jardin : c’est énorme. Vise 50 %.', need: 50, have: s => Math.floor(stats(s).autonomy), rw: { boost: 14, paillage: 5 } },
+    { id: 'sp12', t: '18 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 18 espèces.', need: 18, have: s => nSpecies(s), rw: { compost: 3 } },
+    { id: 'auto50', t: 'Autonomie à 60 %', say: 'Plus de la moitié de tes besoins couverts par ton jardin : c’est énorme. Vise 60 %.', need: 60, have: s => Math.floor(stats(s).autonomy), rw: { boost: 14, paillage: 5 } },
     { id: 'guilde4', t: 'Quatre guildes', say: 'Quatre guildes, bravo ! Tu penses comme une forêt.', need: 4, have: s => guilds(s).n, rw: { boost: 14, paillage: 4 } },
-    { id: 'p30', t: 'Atteins 30 plantations', say: 'Ta forêt devient un vrai jardin-forêt. Cap sur 30 plantations.', need: 30, have: s => s.maxPlantings, rw: { boost: 10, compost: 3 } }
+    { id: 'p30', t: 'Atteins 50 plantations', say: 'Ta forêt devient un vrai jardin-forêt. Cap sur 50 plantations.', need: 50, have: s => s.maxPlantings, rw: { boost: 10, compost: 3 } }
   ];
   const DAILY = [
-    { k: 'water', t: 'Arrose 4 plantes aujourd’hui', say: 'Défi du jour : arrose 4 plantes.', need: 4, rw: { paillage: 1 } },
-    { k: 'harvest', t: 'Récolte 2 fois aujourd’hui', say: 'Défi du jour : récolte 2 fois.', need: 2, rw: { compost: 1 } },
-    { k: 'mulch', t: 'Paille 2 plantes aujourd’hui', say: 'Défi du jour : paille 2 plantes.', need: 2, rw: { boost: 2 } }
+    { k: 'water', t: 'Arrose 8 plantes aujourd’hui', say: 'Défi du jour : arrose 8 plantes.', need: 8, rw: { paillage: 1 } },
+    { k: 'harvest', t: 'Récolte 4 fois aujourd’hui', say: 'Défi du jour : récolte 4 fois.', need: 4, rw: { compost: 1 } },
+    { k: 'mulch', t: 'Paille 4 plantes aujourd’hui', say: 'Défi du jour : paille 4 plantes.', need: 4, rw: { boost: 2 } }
   ];
   function rwLabel(rw) { const o = []; if (rw.paillage) o.push(rw.paillage + ' paillage'); if (rw.compost) o.push(rw.compost + ' compost'); if (rw.boost) o.push('croissance accélérée ' + rw.boost + ' j'); if (rw.eau) o.push(rw.eau + ' L d’eau'); return o.join(' + '); }
   function quests(s) {
@@ -1149,12 +1271,12 @@ function make(P) {
     for (const q of GQ) { const have = Math.min(q.need, q.have(s)), done = have >= q.need, claimed = !!s.gq.claimed[q.id]; out.push({ id: q.id, t: q.t, say: q.say, have, need: q.need, done, claimed, rw: q.rw, label: rwLabel(q.rw), daily: false }); }
     let di = s.day % DAILY.length; if (DAILY[di].k === 'mulch' && !(s.mats.paillage > 0) && !(s.gq.dc.day === s.day && s.gq.dc.mulch)) di = 0;
     const d = DAILY[di], dc = s.gq.dc.day === s.day ? (s.gq.dc[d.k] || 0) : 0, did = 'j' + s.day;
-    out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
-    out.forEach(q => { q.fv = q.daily ? 2 : Math.max(3, Math.round(4 + ((q.rw && q.rw.boost) || 0) * .6)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
+    if (s.day % 3 === 0 || dc > 0 || s.gq.claimed[did]) out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
+    out.forEach(q => { q.fv = q.daily ? 1 : Math.max(2, Math.round(2 + ((q.rw && q.rw.boost) || 0) * .3)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
     return out;
   }
   function claimQuest(s, id) {
-    const q = quests(s).find(x => x.id === id); if (!q || !q.done || q.claimed) return { ok: false };
+    const q = quests(s).find(x => x.id === id); if (!q || !q.done || q.claimed) return { ok: false }; gainXp(s, 40);
     s.gq.claimed[id] = s.day + 1;
     for (const k of ['paillage', 'compost']) if (q.rw[k]) s.mats[k] = (s.mats[k] || 0) + q.rw[k];
     if (q.rw.eau) s.tank = Math.min(s.tankMax, s.tank + q.rw.eau);
@@ -1173,7 +1295,7 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     buildTasks, runTask, synergy, placeFurn, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -1382,12 +1504,15 @@ function familyHtml() {
     return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + face(k, m.joy, 46) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + t + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
 }
 function openFamily() { modal('La famille', familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
+function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('voile') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
 function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
-  const kg = S.stock.reduce((a, b) => a + b.kg, 0);
-  $('res').innerHTML = '<div class="items"><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('voile') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') + '</div>' +
-    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + GK(16) + 'Boutique · ' + (S.feves || 0) + ' ginkgos</button><button type="button" class="btn sm" data-act="skills">' + ico('leaf') + 'Compétences</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
+  const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
+  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
+  const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
+  const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
+  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -1668,7 +1793,7 @@ function pickRoam(a) {
   if (a.who === 'd') { const g = agents.g; if ((a.c - g.c) ** 2 + (a.r - g.r) ** 2 > 7 || Math.random() < .35) return g.node; return keys[Math.floor(Math.random() * keys.length)]; }
   if (a.who === 'f') { const L = keys.filter(k => k[0] === 'y'); return L[Math.floor(Math.random() * L.length)]; }
   // le jardinier va vers une plante qui a besoin de soin, sinon flâne
-  const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 45)) need.push(i); });
+  const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 35)) need.push(i); });
   if (need.length && Math.random() < .7) { const i = need[Math.floor(Math.random() * need.length)]; a.act = S.grid[i].ready ? 'harvest' : 'water'; a.actT = 2.2; setPop(a, a.act); return nearestNode(i % STR + .5, ((i / STR) | 0) + .5); }
   return walk.ring[Math.floor(Math.random() * walk.ring.length)];
 }
@@ -1730,7 +1855,7 @@ function renderGarden() {
   syncDims(); const [DW, DH] = dispDims(), { KS, CGx, CGy } = kview(DW, DH);
   const m = G.dateOf(S.day).m, se = SEASON(m), gc = GROUND[se], w = S.w, st = G.stats(S);
   let h = '<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + gc[0] + '"/><stop offset="1" stop-color="' + gc[1] + '"/></linearGradient></defs>';
-  h += '<rect x="-400" y="-300" width="1560" height="1140" fill="url(#gg)"/>';
+  h += '<rect x="-1500" y="-1500" width="3800" height="3600" fill="url(#gg)"/>';
   for (let k = 0; k < 90; k++) { const r = rnd(k + 5), x = r() * 760, y = r() * 540; h += '<path d="M' + x.toFixed(0) + ' ' + y.toFixed(0) + 'l-2-5M' + x.toFixed(0) + ' ' + y.toFixed(0) + 'l2-6" stroke="' + shade(gc[1], -24) + '" stroke-width="1.4" stroke-linecap="round" opacity=".35"/>'; }
   // fond : arbres et haies
   LAWNS.forEach(([x, y], k) => { h += mv(x, y, lawnPatch(k, x, y, G.lawnReady(S, k), gc)); });
@@ -1790,14 +1915,13 @@ function renderGarden() {
     const pn = P[S.grid[ui.sel].pid].name, tw = pn.length * 6.6 + 18;
     h += '<g style="pointer-events:none"><rect x="' + (A[0] - tw / 2).toFixed(1) + '" y="' + (A[1] + 10) + '" width="' + tw.toFixed(1) + '" height="20" rx="10" fill="var(--ink)" opacity=".88"/><text x="' + A[0] + '" y="' + (A[1] + 24) + '" text-anchor="middle" font-family="var(--font-b)" font-size="12" font-weight="600" fill="var(--bg)">' + pn + '</text></g>';
   }
-  const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
+  const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><circle r="19" fill="transparent"/><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
   const okM = [], okC = []; S.grid.forEach((c, i) => { if (!c || c.treille) return; const p = P[c.pid]; if (p.strate === 'Couvre-sol') return; if (!c.mulch && S.mats.paillage > 0) okM.push(i); if (S.mats.compost > 0 && S.day > (c.compostUntil || -1) && G.phase(c).stage !== 'graine') okC.push(i); });
   const byH = (a, b) => S.grid[a].health - S.grid[b].health, setM = new Set(okM.sort(byH).slice(0, Math.max(3, S.mats.paillage))), setC = new Set(okC.sort(byH).slice(0, Math.max(2, S.mats.compost * 2)));
   S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 80 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : p.strate === 'Racine' ? 26 : 30;
     if (ui.strF && ui.strF !== p.strate) return;
-    const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
-    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); });
-    if (cell.water < 60) h += badge('water', cx + 1, cy + 7, cell.water < 25, i, 5); });
+    const L = []; if (cell.water < 35) L.push(['water', cell.water < 20 ? 1 : 0]); if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
+    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); }); });
   S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } });
   h += '</g>';
   LAWNS.forEach(([x, y], k) => { if (G.lawnReady(S, k)) { const q = wpos(x, y - 36); h += worldBadge('lawn', q[0].toFixed(1), q[1].toFixed(1), k); } });
@@ -1814,33 +1938,40 @@ function renderGarden() {
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = '<span>' + (S.pq && S.pq.length ? '<b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler. ' : '') + 'Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
+  else hint.innerHTML = '';
 }
 
 /* ---------- réserve ---------- */
 function renderTray() {
-  const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).sort((a, b) => (G.sowable(P[b], m) - G.sowable(P[a], m)) || P[a].name.localeCompare(P[b].name, 'fr'));
+  const m = G.dateOf(S.day).m, all = Object.keys(S.cards).map(Number).sort((a, b) => P[a].name.localeCompare(P[b].name, 'fr')), ids = all.filter(id => G.sowable(P[id], m)), off = all.filter(id => !G.sowable(P[id], m));
   const un = G.unlocked(S), nextU = Object.keys(G.UNLOCK).filter(k => !un.has(k)).sort((a, b) => G.UNLOCK[a] - G.UNLOCK[b])[0];
-  $('trayInfo').textContent = ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' cartes' + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '') : (nextU ? nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
-  $('strip').innerHTML = ids.length ? ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') : '<p class="empty">Aucune carte en réserve. Ouvre le booster du jour pour en recevoir.</p>';
+  const tot = all.reduce((a, id) => a + S.cards[id], 0), ti = $('trayInfo');
+  if (ti) ti.textContent = (ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' à planter' : '') + (off.length ? (ids.length ? ' · ' : '') + off.reduce((a, id) => a + S.cards[id], 0) + ' hors saison' : '') + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
+  const st = $('strip'); if (!st) return;
+  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ouvre le booster du jour.</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
 }
 
 /* ---------- tâches ---------- */
 function renderToday() {
-  const T = G.buildTasks(S), done = S.doneToday.day === S.day ? S.doneToday.n : 0;
-  let h = '<h2>Aujourd’hui<small>' + done + ' action' + (done > 1 ? 's' : '') + ' faite' + (done > 1 ? 's' : '') + '</small></h2>';
-  if (T.caughtUp) h += '<div class="done-box"><h3>Ton jardin est à jour.</h3><p>Tout ce qui presse est fait. Le prochain booster t’attend demain.</p><button type="button" class="btn primary" data-act="next">Passer au lendemain</button></div>';
-  const names = ['Urgent', 'À faire', 'Si tu as le temps'];
-  [0, 1, 2].forEach(pr => { const L = T.tasks.filter(t => t.prio === pr); if (!L.length) return; h += '<div class="grp">' + names[pr] + '</div>' + L.map(t => '<button type="button" class="task p' + pr + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join(''); });
-  if (T.hidden) h += '<p class="note-p">' + T.hidden + ' tâche' + (T.hidden > 1 ? 's' : '') + ' optionnelle' + (T.hidden > 1 ? 's' : '') + ' mise' + (T.hidden > 1 ? 's' : '') + ' de côté.</p>';
-  if (!T.caughtUp) h += '<div style="margin-top:8px"><button type="button" class="btn sm" data-act="next">Terminer la journée</button></div>';
-  $('today').innerHTML = h;
+  $('today').innerHTML = '<div class="dh"><h2>À planter aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip"></div>';
+}
+function tasksHtml() {
+  const T = G.buildTasks(S);
+  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '') };
 }
 
 /* ---------- fiche ---------- */
 function dur(days) { return days < 60 ? Math.max(1, Math.round(days)) + ' jours' : days < 730 ? Math.round(days / 30) + ' mois' : fmt(days / 365) + ans(days); }
 const ans = () => ' ans';
 function renderFiche() {
+  if (ui.sel !== ui.fs) { ui.fs = ui.sel; ui.ficheFull = false; }
+  const el = $('fiche'), c = ui.sel >= 0 ? S.grid[ui.sel] : null;
+  if (c && !c.treille && !ui.ficheFull) {
+    const p = P[c.pid], ph = G.phase(c);
+    el.innerHTML = '<div class="fmini"><h2>' + p.name + '</h2><p class="lat">' + p.latin + '</p><p class="note-p">' + (c.ready ? 'Prête à récolter' : ph.stage === 'graine' ? 'Graine en terre' : 'Croissance ' + Math.round(ph.prog * 100) + ' %') + ' · eau du sol ' + Math.round(c.water) + ' %</p><div class="acts"><button type="button" class="btn sm primary" data-act="fiche-open">Ouvrir la fiche</button></div></div>';
+  } else renderFiche0();
+  el.hidden = ui.sel < 0 || (c === null && ui.sel >= 0); if (!el.hidden) el.insertAdjacentHTML('afterbegin', '<button type="button" class="fclose" data-act="fiche-close" aria-label="Fermer la fiche">×</button>'); }
+function renderFiche0() {
   const el = $('fiche'), i = ui.sel, c = i >= 0 ? S.grid[i] : null, m = G.dateOf(S.day).m;
   if (i < 0) { el.innerHTML = '<h2>Parcelle</h2><p class="empty-f">Touche une plante pour voir ses besoins, ses voisines et ce qu’elle apporte à la guilde.</p>'; return; }
   if (!c) { el.innerHTML = '<h2>Parcelle libre</h2><p class="empty-f">Choisis une carte dans ta réserve pour semer ou planter ici. Seules les plantes de saison peuvent être mises en terre.</p>'; return; }
@@ -1886,12 +2017,12 @@ function openAmenager() {
   syncDims();
   const c = G.canExpand(S), mp = S.maxPlantings, bar = (v, t) => '<div class="bar"><i style="width:' + Math.min(100, Math.round(v / t * 100)) + '%"></i></div>';
   let h = '<h3 style="margin:2px 0 6px">Terrain</h3><p class="note-p">Ton terrain fait <b>' + COLS + ' × ' + ROWS + '</b> parcelles.</p>';
-  if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. Les paliers de plantation continuent de t’offrir du mobilier.</p>';
+  if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. La boutique propose tout le mobilier débloqué.</p>';
   else h += '<div class="amen-card"><b>Prochain agrandissement : ' + c.to[0] + ' × ' + c.to[1] + '</b><div class="amen-req"><span>Plantations réussies : ' + c.plant[0] + ' / ' + c.plant[1] + '</span>' + bar(c.plant[0], c.plant[1]) + '</div><div class="amen-req"><span>Espèces différentes dans le jardin : ' + c.species[0] + ' / ' + c.species[1] + '</span>' + bar(c.species[0], c.species[1]) + '</div><div class="acts"><button type="button" class="btn primary" data-act="expand"' + (c.ok ? '' : ' disabled') + '>Agrandir le terrain</button></div></div>';
-  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète à la boutique avec des ginkgos, et chaque palier de plantations t’en offre un. Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
+  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète uniquement à la boutique avec des ginkgos (une fois débloqué par tes plantations). Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
   G.FURN.concat(['canard']).forEach(k => {
     const q = (S.mats[k] || 0), un = mp >= G.FURN_UNLOCK[k], ms = G.MILESTONES.find(x => x[1][k]);
-    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + (ms && !S.rewarded[ms[0]] ? ' ou au palier de ' + ms[0] + ' plantations' : '');
+    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + '';
     h += '<div class="amen-item' + (un ? '' : ' lock') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + FURN_INFO[k].n + '</b><p>' + FURN_INFO[k].d + '</p><small>' + st + '</small>' + (q > 0 ? '<div class="acts"><button type="button" class="btn sm primary" data-act="use-furn" data-k="' + k + '">Poser</button></div>' : '') + '</div></div>';
   });
   h += '</div><h3 style="margin:14px 0 6px">Atelier, soins et eau</h3><p class="note-p">À la boutique : <b>atelier</b> et <b>séchoir</b> (à côté de la maison, pour garder la récolte), <b>bocaux</b>, <b>purin d’ortie</b> et <b>prêle</b> (soins), <b>nichoir à mésanges</b> (dans un arbre), <b>cuve</b> et <b>oya</b> (eau), <b>inoculum de mycorhizes</b>, <b>plan de guilde</b> et <b>carte Savoir</b>. Purin, prêle, nichoir, oya et cuve se fabriquent aussi avec la compétence Fabrication. Ils apparaissent dans ta barre du haut dès que tu en as. Touche la carte, puis la plante concernée.</p><h3 style="margin:14px 0 6px">Autour du jardin</h3><p class="note-p"><b>Tonte :</b> l’herbe autour du jardin repousse tous les 14 jours. Chaque zone tondue te donne +2 paillage.</p><p class="note-p"><b>Trognes :</b> c’est une compétence (bouton Compétences). Les arbres au bord de la forêt, une fois taillés en têtard, repartent tous les 3 mois : paillage et pousse accélérée à chaque coupe.</p>';
@@ -2041,23 +2172,21 @@ function gardenerPortrait() {
   return '<svg viewBox="0 0 72 80" width="72" height="80" aria-hidden="true"><rect width="72" height="80" rx="14" fill="#e6efdc"/><path d="M14 80c0-16 10-24 22-24s22 8 22 24z" fill="#5f8f4a"/><path d="M28 56h16v24H28z" fill="#e9d9a8"/><path d="M24 66l4-10M48 66l-4-10" stroke="#3d6a34" stroke-width="3" stroke-linecap="round"/><circle cx="36" cy="38" r="13" fill="#f1c9a0"/><ellipse cx="36" cy="27" rx="25" ry="5.5" fill="#d9ad52"/><path d="M23 27c0-12 6-18 13-18s13 6 13 18z" fill="#e7bf63"/><path d="M23 25h26" stroke="#b9442f" stroke-width="3"/><circle cx="31" cy="38" r="1.6" fill="#2b2018"/><circle cx="41" cy="38" r="1.6" fill="#2b2018"/><path d="M31 44q5 4 10 0" stroke="#8a4b2d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
 }
 function openSkills() {
-  const L = G.skillList(S), tab = ui.skTab || 'all';
-  const xp = L.reduce((a, s) => a + s.pts, 0), lvl = 1 + Math.floor(xp / 20), into = xp % 20, act = L.filter(s => !s.locked).length, tl = L.reduce((a, s) => a + s.lv, 0);
-  const title = lvl < 2 ? 'Apprenti jardinier-forêt' : lvl < 4 ? 'Jardinier-forêt' : lvl < 7 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
-  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + lvl + '</strong><div class="bar"><i style="width:' + (into / 20 * 100) + '%"></i></div><small class="sk-xp">' + xp + ' points de pratique · encore ' + (20 - into) + ' pour le niveau ' + (lvl + 1) + '</small></div></div>';
-  h += '<div class="sk-stats"><div><b>' + xp + '</b><span>Points de pratique</span></div><div><b>' + tl + '</b><span>Niveaux atteints</span></div><div><b>' + act + '/' + L.length + '</b><span>Compétences actives</span></div></div>';
-  h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + S.maxPlantings + ' plantation' + (S.maxPlantings > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte des points à sa compétence. Quand la barre se remplit, le niveau monte et le geste devient plus efficace.</p>';
+  const L = G.skillList(S), X = G.xpInfo(S), tab = ui.skTab || 'all';
+  const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
+  h += '<div class="sk-stats"><div><b>' + X.pts + '</b><span>Points libres</span></div><div><b>' + X.spent + '</b><span>Points investis</span></div><div><b>' + X.acq + '/' + X.total + '</b><span>Skills acquis</span></div></div>';
+  h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + X.pts + ' point' + (X.pts > 1 ? 's' : '') + ' libre' + (X.pts > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte de l’XP. À chaque niveau, tu gagnes 1 point à dépenser ici. Monter une compétence demande 1 point et assez de pratique.</p>';
   h += '<div class="sk-tabs" role="tablist">' + [['all', 'Toutes'], ['culture', 'Culture'], ['entretien', 'Entretien'], ['expertise', 'Expertise']].map(([t, n]) => '<button type="button" role="tab" aria-selected="' + (tab === t) + '" class="sk-tab' + (tab === t ? ' on' : '') + '" data-act="skill-tab" data-t="' + t + '">' + n + '</button>').join('') + '</div><div class="sk-grid">';
   SK_ORDER.filter(k => tab === 'all' || SK_CAT[k] === tab).forEach(k => {
-    const s = L.find(x => x.k === k); if (!s) return;
-    const prev = s.lv <= 1 ? 0 : s.th[0], nx = s.lv <= 1 ? s.th[0] : s.lv === 2 ? s.th[1] : null;
-    const seg = [1, 2, 3].map(n => { let f = 0; if (!s.locked) { if (n < s.lv) f = 100; else if (n === s.lv) f = s.lv >= 3 ? 100 : Math.min(100, Math.round((s.pts - prev) / (nx - prev) * 100)); } return '<i><b style="width:' + f + '%"></b></i>'; }).join('');
-    let c = '<div class="sk-card' + (s.locked ? ' lock' : '') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><span class="sk-lv">' + s.lv + '/3</span></div><h4>' + s.n + '</h4><p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
-    if (!s.locked && s.lv < 3) c += '<p class="sk-next">Niveau suivant : ' + s.d[s.lv].charAt(0).toLowerCase() + s.d[s.lv].slice(1) + '</p>';
-    c += '<div class="sk-seg">' + seg + '</div><small>' + (s.locked ? 'Débloquée après ' + s.req + ' plantations' : (s.lv >= 3 ? 'Niveau maximum · ' + s.pts + ' points' : s.pts + ' / ' + nx + ' points') + ' · ' + s.how) + '</small>';
+    const s = L.find(x => x.k === k); if (!s) return; const st = s.st;
+    const seg = Array.from({ length: s.max }, (_, i) => '<i><b style="width:' + (i < s.lv ? 100 : 0) + '%"></b></i>').join('');
+    let c = '<div class="sk-card' + (s.locked ? ' lock' : '') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><span class="sk-lv">' + s.lv + '/' + s.max + '</span></div><h4>' + s.n + '</h4><p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
+    if (!st.max && !s.locked) c += '<p class="sk-next">Niveau suivant : ' + s.d[s.lv].charAt(0).toLowerCase() + s.d[s.lv].slice(1) + '</p>';
+    c += '<div class="sk-seg" style="grid-template-columns:repeat(' + s.max + ',1fr)">' + seg + '</div><small>' + (st.max ? 'Niveau maximum · ' + s.use + ' ' + s.unit : s.locked ? 'Débloquée après ' + s.req + ' plantations' : (st.need ? 'Pratique ' + Math.min(s.use, st.need) + ' / ' + st.need + ' ' + s.unit : 'Aucune pratique requise') + ' · ' + s.how) + '</small>';
     const A = [];
-    if (s.locked) A.push('<button type="button" class="sk-btn dark" disabled>Débloquée à ' + s.req + ' plantations</button>');
-    else {
+    if (!st.max) A.push('<button type="button" class="sk-btn dark" data-act="skill-up" data-k="' + k + '"' + (st.can ? '' : ' disabled') + '>' + (st.can ? (s.locked ? 'Débloquer · 1 pt' : 'Améliorer · 1 pt') : st.why) + '</button>');
+    if (!s.locked) {
       if (k === 'trogne') A.push('<button type="button" class="sk-btn" data-act="skill-trogne">Tailler une trogne</button>');
       if (k === 'bouture') A.push('<button type="button" class="sk-btn" data-act="skill-mode" data-k="bouture">Prélever une bouture</button>');
       if (k === 'greffe') A.push('<button type="button" class="sk-btn" data-act="skill-mode" data-k="greffe">Greffer un arbre</button>');
@@ -2070,10 +2199,27 @@ function openSkills() {
     c += '<div class="sk-acts">' + A.join('') + '</div></div>';
     h += c;
   });
+  if (tab === 'all' || tab === 'expertise') G.advList(S).forEach(a => {
+    const st = a.st;
+    let c = '<div class="sk-card adv' + (st.have ? '' : ' lock') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="26" fill="#f3e3a8"/><path d="M40 18l6 14 15 2-11 10 3 15-13-8-13 8 3-15-11-10 15-2z" fill="#d9a521"/></svg><span class="sk-lv">' + (st.have ? 'Acquise' : 'Avancée') + '</span></div><h4>' + a.n + '</h4><p>' + a.d + '</p>';
+    if (!st.have) c += '<small>' + st.reqs.map(r => (r.ok ? '✓ ' : '• ') + r.n + ' niveau ' + r.need).join(' · ') + '<br>' + (st.prog >= a.prac.n ? '✓ ' : '• ') + Math.min(st.prog, a.prac.n) + ' / ' + a.prac.n + ' ' + a.prac.t + '</small><div class="sk-acts"><button type="button" class="sk-btn dark" data-act="adv-up" data-k="' + a.k + '"' + (st.can ? '' : ' disabled') + '>' + (st.can ? 'Débloquer · ' + a.cost + ' pts' : st.why) + '</button></div>';
+    h += c + '</div>';
+  });
   h += '</div>';
   modal('Mon jardinier', h, true);
 }
 
+function openStock() { const e = EXTRA(); modal('Matériel', '<p class="note-p">Touche un objet pour le poser dans le jardin.</p><div class="items" style="display:flex;flex-wrap:wrap;gap:8px">' + e.h + '</div>'); }
+function openMenu() {
+  const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+}
+function applyHud() {
+  const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
+  if (ui.trayOpen == null) ui.trayOpen = !PHONE();
+  const td = $('today'); if (td) td.classList.toggle('shut', !ui.trayOpen);
+  document.body.classList.toggle('sel', ui.sel >= 0); document.body.classList.toggle('tools-open', !!ui.toolsOpen);
+}
 function openJournal() {
   modal('Carnet du jardinier', (S.knowledge.length ? '<p class="note-p">Plantes apprises : ' + S.knowledge.map(id => P[id].name).join(', ') + '.</p>' : '') + '<ul class="log">' + (S.log.length ? S.log.map(l => '<li><span class="d">' + dateStr(l.day, true) + '</span><span class="' + (l.type === 'warn' ? 'warn' : l.type === 'bad' ? 'bad' : '') + '">' + l.text + '</span></li>').join('') : '<li>Rien pour l’instant.</li>') + '</ul>');
 }
@@ -2114,24 +2260,29 @@ document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.i
 
 /* ---------- actions ---------- */
 let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3400); }
+function vsize() { const r = $('garden') && $('garden').getBoundingClientRect(), z = view.z; if (r && r.width > 50 && r.height > 50) { const a = r.width / r.height; if (a >= 760 / 460) { const h = 460 / z; return { w: h * a, h }; } const w = 760 / z; return { w, h: w / a }; } return { w: 760 / z, h: (PHONE() ? 880 : 460) / z }; }
 function applyView() {
-  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, PHONE() ? 1 : .8, 3.2); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
-  const x = clamp(view.cx - w / 2, -150, 910 - w), y = clamp(view.cy - h / 2, -60, 600 - h); view.cx = x + w / 2; view.cy = y + h / 2;
+  const svg = $('garden'); if (!svg) return; view.z = clamp(isFinite(view.z) ? view.z : 1, camMin(), CAM.zoomMax); const { w, h } = vsize();
+  const ax = (c, sz, lo, hi) => sz >= hi - lo ? (lo + hi) / 2 : clamp(c, lo + sz / 2, hi - sz / 2); view.cx = ax(view.cx, w, -150, 910); view.cy = ax(view.cy, h, -60, 600); const x = view.cx - w / 2, y = view.cy - h / 2;
   svg.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1));
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
 }
+/* ---------- caméra : réglages centralisés ---------- */
+const CAM = { zoomMinDesk: .45, zoomMinPhone: .6, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
+const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
-  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now();
-  if (g.text !== ui.gText || g.ready > (ui.gReady || 0)) { ui.gText = g.text; ui.gUntil = now + 15000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 15200); }
-  ui.gReady = g.ready;
-  m.classList.toggle('joy', g.ready > 0); bd.hidden = !g.ready; bd.textContent = g.ready;
+  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now(), tk = tasksHtml(), notif = g.ready + tk.n;
+  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster du jour t’attend : six nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
+  if (notif > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
+  ui.gText = g.text;
+  ui.gReady = notif;
+  m.classList.toggle('joy', notif > 0); bd.hidden = !notif; bd.textContent = notif;
   say.textContent = g.text; say.hidden = !(ui.gUntil > now) || !!ui.gOpen;
   card.hidden = !ui.gOpen; m.setAttribute('aria-expanded', ui.gOpen ? 'true' : 'false');
-  if (!ui.gOpen) return;
   const row = q => '<li class="gq' + (q.done ? ' done' : '') + '"><div class="gqt"><b>' + esc(q.t) + '</b>' + (q.daily ? '<em>Défi du jour</em>' : '') + '</div><div class="gqb"><i style="width:' + Math.round(q.have / q.need * 100) + '%"></i></div><div class="gqr"><span>' + q.have + ' / ' + q.need + ' · ' + esc(q.label) + '</span>' + (q.done && !q.claimed ? '<button type="button" class="btn sm pri" data-act="guil-claim" data-id="' + q.id + '">Récupérer</button>' : q.claimed ? '<span class="ok">Fait</span>' : '') + '</div></li>';
   const ready = g.qs.filter(q => q.done && !q.claimed), open = g.qs.filter(q => !q.done && !q.daily).slice(0, 3), daily = g.qs.find(q => q.daily && !ready.includes(q)), nd = g.qs.filter(q => q.claimed && !q.daily).length;
-  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
+  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p><h4 class="gh2">Aujourd’hui</h4><div class="gtasks">' + tk.h + '</div>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
 }
 function renderStr() {
   const m = $('strmenu'); if (!m) return; m.hidden = !ui.strOpen;
@@ -2141,24 +2292,79 @@ function renderStr() {
   m.innerHTML = '<b>Strates</b>' + ['Arbre', 'Arbuste', 'Grimpante', 'Herbacée', 'Racine', 'Couvre-sol'].map(s => '<button type="button" class="sch' + (ui.strF === s ? ' on' : '') + '" data-act="strate-set" data-s="' + s + '">' + strIco(s) + '<span>' + s + '</span><em>' + (n[s] || 0) + '</em></button>').join('') + '<button type="button" class="sch' + (!ui.strF ? ' on' : '') + '" data-act="strate-set" data-s="">Tout afficher</button>';
 }
 function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach(b => b.classList.toggle('on', (ui.tool || 'select') === b.dataset.tool)); }
-(function initPan() {
-  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return; const ptrs = new Map(); let moved = 0, pinch = null;
-  const dist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
-  wrap.addEventListener('pointerdown', e => { if (!e.target.closest('#garden')) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; if (ptrs.size === 2) pinch = { d: dist(), z: view.z }; });
-  wrap.addEventListener('pointermove', e => { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
-    if (ptrs.size === 2 && pinch) { view.z = pinch.z * dist() / pinch.d; moved = 99; applyView(); return; }
-    if (ui.tool === 'move' || view.z > 1.001) { moved += Math.abs(dx) + Math.abs(dy); if (moved > 6) { const r = $('garden').getBoundingClientRect(); view.cx -= dx * (760 / view.z) / r.width; view.cy -= dy * (460 / view.z) / r.height; applyView(); } } });
-  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; };
-  wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up); wrap.addEventListener('pointerleave', up);
-  wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
-  wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
+/* ---------- navigation caméra : souris, clavier, tactile ---------- */
+const camBox = () => { const svg = $('garden'), r = svg.getBoundingClientRect(), { w, h } = vsize(), s = Math.min(r.width / w, r.height / h) || 1; return { r, w, h, s, x: view.cx - w / 2, y: view.cy - h / 2, ox: (r.width - w * s) / 2, oy: (r.height - h * s) / 2 }; };
+const camWorld = (cx, cy) => { const b = camBox(); return { x: b.x + (cx - b.r.left - b.ox) / b.s, y: b.y + (cy - b.r.top - b.oy) / b.s }; };
+function camPan(dx, dy) { const b = camBox(); view.cx -= dx / b.s; view.cy -= dy / b.s; applyView(); }
+function camZoomAt(f, cx, cy) {
+  if (!(f > 0) || !isFinite(f)) return; const p = camWorld(cx, cy); view.z = clamp(view.z * f, camMin(), CAM.zoomMax); applyView();
+  const q = camWorld(cx, cy); view.cx += p.x - q.x; view.cy += p.y - q.y; applyView();
+}
+function camReset() { view = defView(); VROT = 0; render(); }
+const camNavMode = () => (ui.tool === 'select' || ui.tool === 'move') && !ui.mode;
+const camTyping = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'));
+const cam = (function initCamera() {
+  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return { destroy() {} };
+  const ptrs = new Map(); let g = null, blockUntil = 0; const keys = new Set(); let raf = 0, last = 0;
+  const L = []; const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); L.push([t, ev, fn, o]); };
+  const cent = () => { const [a, b] = [...ptrs.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  const reset = () => { ptrs.clear(); g = null; keys.clear(); cancelAnimationFrame(raf); raf = 0; };
+  on(wrap, 'pointerdown', e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return;
+    if (e.pointerType === 'mouse') [...ptrs].forEach(([id, q]) => { if (q.type === 'mouse') ptrs.delete(id); });
+    if (ptrs.size === 0) { g = null; blockUntil = 0; }
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, type: e.pointerType, btn: e.button, dead: false, active: false });
+    if (e.pointerType === 'mouse') {
+      if (e.button === 2 || e.button === 1) { g = { mode: 'pan', id: e.pointerId, forced: true }; try { wrap.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); }
+      else if (e.button === 0 && (ui.tool === 'move' || (view.z > 1.001 && camNavMode()))) g = { mode: 'pan', id: e.pointerId };
+      return;
+    }
+    if (ptrs.size === 1) { if (camNavMode()) g = { mode: 'pan', id: e.pointerId }; }
+    else if (ptrs.size === 2) { const c = cent(); g = { mode: 'pinch', x: c.x, y: c.y, d: c.d }; blockUntil = Infinity; }
+  });
+  on(window, 'pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return; const px = p.x, py = p.y; p.x = e.clientX; p.y = e.clientY;
+    if (g && g.mode === 'pinch' && ptrs.size === 2) { const c = cent(); camPan(c.x - g.x, c.y - g.y); camZoomAt(c.d / g.d, c.x, c.y); g.x = c.x; g.y = c.y; g.d = c.d; return; }
+    const far = Math.hypot(p.x - p.sx, p.y - p.sy) > CAM.dragPx;
+    if (far && !p.active && !p.dead) { p.active = true; blockUntil = Infinity; }
+    if (g && g.mode === 'pan' && g.id === e.pointerId && p.active && !p.dead) { if (g.moved) camPan(p.x - px, p.y - py); else { g.moved = true; camPan(p.x - p.sx, p.y - p.sy); } }
+  });
+  const up = e => {
+    const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId);
+    if (g && g.mode === 'pinch') { g = null; ptrs.forEach(q => { q.dead = true; }); }
+    else if (g && g.id === e.pointerId) g = null;
+    if (blockUntil === Infinity || p.active) blockUntil = performance.now() + (ptrs.size ? 1e9 : 400);
+    if (!ptrs.size) { if (blockUntil > performance.now() + 1e8) blockUntil = performance.now() + 400; }
+  };
+  on(window, 'pointerup', up); on(window, 'pointercancel', e => { up(e); if (e.type === 'pointercancel') { ptrs.delete(e.pointerId); } });
+  on(wrap, 'lostpointercapture', e => { if (ptrs.has(e.pointerId) && ptrs.get(e.pointerId).forced) up(e); });
+  on(window, 'blur', reset); on(document, 'visibilitychange', () => { if (document.hidden) reset(); });
+  on(wrap, 'click', e => { if (blockUntil === Infinity || performance.now() < blockUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
+  on(wrap, 'contextmenu', e => { if (e.target.closest && e.target.closest('#garden')) e.preventDefault(); });
+  on(wrap, 'wheel', e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return; e.preventDefault();
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1), steps = clamp(e.ctrlKey ? dy / 12 : dy / 100, -3, 3);
+    camZoomAt(Math.pow(CAM.wheelStep, -steps), e.clientX, e.clientY);
+  }, { passive: false });
+  // clavier : ZQSD / WASD / flèches, Espace pour recentrer
+  const DIR = { arrowup: [0, 1], z: [0, 1], w: [0, 1], arrowdown: [0, -1], s: [0, -1], arrowleft: [1, 0], q: [1, 0], a: [1, 0], arrowright: [-1, 0], d: [-1, 0] };
+  const loop = t => { if (!keys.size) { raf = 0; return; } const dt = Math.min(.05, (t - last) / 1000 || .016); last = t; let dx = 0, dy = 0; keys.forEach(k => { dx += DIR[k][0]; dy += DIR[k][1]; }); const n = Math.hypot(dx, dy); if (n) camPan(dx / n * CAM.keyPxPerSec * dt, dy / n * CAM.keyPxPerSec * dt); raf = requestAnimationFrame(loop); };
+  on(document, 'keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || camTyping(e.target) || $('layer').innerHTML) return; const k = (e.key || '').toLowerCase();
+    if (DIR[k]) { e.preventDefault(); if (!keys.has(k)) keys.add(k); if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } return; }
+    if (e.key === ' ' && !(e.target.closest && e.target.closest('button,a,summary,[role="button"],.cell'))) { e.preventDefault(); camReset(); }
+  });
+  on(document, 'keyup', e => { keys.delete((e.key || '').toLowerCase()); });
+  return { reset, destroy() { reset(); L.forEach(([t, ev, fn, o]) => t.removeEventListener(ev, fn, o)); L.length = 0; }, state: () => ({ ptrs: ptrs.size, g: g && g.mode, keys: keys.size }), step: dt => { /* test */ let dx = 0, dy = 0; keys.forEach(k => { dx += DIR[k][0]; dy += DIR[k][1]; }); const n = Math.hypot(dx, dy); if (n) camPan(dx / n * CAM.keyPxPerSec * dt, dy / n * CAM.keyPxPerSec * dt); } };
 })();
+window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
-  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster du jour, six cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans le bandeau du bas, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
-  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
+  { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
   { t: 'Guildéon, ton guide', x: 'Guildéon te propose des objectifs et t’apprend les guildes : un arbre entouré de plantes complémentaires. Ouvre-le quand tu veux un conseil. Bon jardin !', target: '#gmasc', next: true, last: true }
 ];
@@ -2169,11 +2375,12 @@ function renderTuto() {
   while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
   if (!st) { t.done = true; el.hidden = true; save(); return; }
   if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
+  if (st.target && (st.target.indexOf('#today') === 0 || st.target === '#strip') && !ui.trayOpen) { ui.trayOpen = true; applyHud(); }
   el.hidden = false;
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -2258,18 +2465,18 @@ document.addEventListener('click', e => {
     else if (kd === 'honey') { const h2 = G.harvestHoney(S, i); done = h2.ok; if (done) toast('+' + fmt(h2.kg, 1) + ' kg de miel au garde-manger.'); }
     else if (kd === 'compost') { done = G.compost(S, i); if (done) { toast('Compost étalé : la plante pousse mieux pendant 30 jours.'); setTimeout(() => sendGardener(i, 'compost'), 0); } }
     else if (kd === 'mulch') { done = G.mulch(S, i); if (done) setTimeout(() => sendGardener(i, 'mulch'), 0); else toast('Plus de paillage.'); }
-    ui.sel = i; render(); if (done) flyIcon(kd, pos); return; }
+    render(); if (done) flyIcon(kd, pos); return; }
   const cell = e.target.closest('.cell'); if (cell) { clickCell(+cell.dataset.i); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   const act = a.dataset.act, i = ui.sel;
   if (act === 'veil') { if (e.target === a) closeModal(); return; }
   switch (act) {
     case 'close': closeModal(); break;
-    case 'task': doTask(a.dataset.id); break;
+    case 'task': ui.gOpen = false; doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
-    case 'mode-mat': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
+    case 'mode-mat': { if (a.closest('#layer')) closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
     case 'guil-toggle': ui.gOpen = !ui.gOpen; ui.gUntil = 0; render(); break;
@@ -2286,6 +2493,13 @@ document.addEventListener('click', e => {
     case 'cancel': ui.mode = null; render(); break;
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
+    case 'menu': openMenu(); break;
+    case 'tools-toggle': ui.toolsOpen = !ui.toolsOpen; applyHud(); break;
+    case 'stock': openStock(); break;
+    case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
+    case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
+    case 'fiche-open': ui.ficheFull = true; renderFiche(); break;
+    case 'fiche-close': ui.sel = -1; ui.mvFrom = -1; render(); break;
     case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;
     case 'craft': { const r = G.craft(S, a.dataset.k); toast(r.ok ? 'Fabriqué : ' + RECIPE_N[a.dataset.k].toLowerCase() + '.' : r.msg); save(); render(); openSkills(); break; }
@@ -2321,6 +2535,8 @@ document.addEventListener('click', e => {
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
+    case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
+    case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
@@ -2328,7 +2544,7 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } return; }
+  if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } else if (ui.tool && ui.tool !== 'select') { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; render(); } return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cell')) { e.preventDefault(); clickCell(+e.target.dataset.i); }
 });
 const PQ = { job: null };
@@ -2342,7 +2558,7 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { ui, cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();
 

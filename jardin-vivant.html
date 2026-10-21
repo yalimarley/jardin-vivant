@@ -398,6 +398,12 @@ body{padding:0}
   .app #today{left:8px;right:84px;bottom:106px}.app #today .card{width:104px}.app #today .task{width:180px}
   body.sel #today{display:none}
 }
+
+.app .tools.shut{width:auto;padding:5px}.app .tools.shut .tb:not(.tbm){display:none}.app .tools .tbm{background:var(--surface-2)}.app .tools.act .tbm{outline:2px solid var(--leaf)}
+.gh2{margin:10px 0 6px;font-family:var(--font-m);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}.gtasks .task{margin-bottom:5px}
+
+.app #today{left:74px}body.tools-open .app #today{left:262px}
+@media (max-width:560px){.app #today,body.tools-open .app #today{left:8px;bottom:70px}body.tools-open .app #today{bottom:144px}.app .endday{bottom:8px}}
 </style>
 
 <div class="app">
@@ -419,6 +425,7 @@ body{padding:0}
   <main class="stage">
     <section class="board" aria-label="Le jardin">
       <div class="garden-wrap"><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+        <button type="button" class="tb tbm" data-act="tools-toggle" title="Outils" aria-label="Ouvrir ou fermer les outils"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
         <button type="button" class="tb on" data-tool="select" data-act="tool-select" title="Sélectionner" aria-label="Sélectionner"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg></button>
         <button type="button" class="tb" data-tool="move" data-act="tool-move" title="Déplacer la carte" aria-label="Déplacer la carte"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <button type="button" class="tb" data-tool="reloc" data-act="tool-reloc" title="Déplacer une plante" aria-label="Déplacer une plante"><svg viewBox="0 0 24 24"><path d="M12 20V10M12 10c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-2-1.5-3.5-4-3.5 0 2 1.5 3.5 4 3.5zM4 20h6M17 17l3 3-3 3" transform="translate(0 -3)"/></svg></button>
@@ -1931,7 +1938,7 @@ function renderGarden() {
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = S.pq && S.pq.length ? '<span><b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler.</span>' : '';
+  else hint.innerHTML = '';
 }
 
 /* ---------- réserve ---------- */
@@ -1946,9 +1953,11 @@ function renderTray() {
 
 /* ---------- tâches ---------- */
 function renderToday() {
-  const T = G.buildTasks(S), done = S.doneToday.day === S.day ? S.doneToday.n : 0;
-  const tk = T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '');
-  $('today').innerHTML = '<div class="dh"><h2>Aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip">' + tk + '<i class="sepv"></i></div>';
+  $('today').innerHTML = '<div class="dh"><h2>À planter aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip"></div>';
+}
+function tasksHtml() {
+  const T = G.buildTasks(S);
+  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '') };
 }
 
 /* ---------- fiche ---------- */
@@ -2206,9 +2215,10 @@ function openMenu() {
   modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
+  const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
   if (ui.trayOpen == null) ui.trayOpen = !PHONE();
   const td = $('today'); if (td) td.classList.toggle('shut', !ui.trayOpen);
-  document.body.classList.toggle('sel', ui.sel >= 0);
+  document.body.classList.toggle('sel', ui.sel >= 0); document.body.classList.toggle('tools-open', !!ui.toolsOpen);
 }
 function openJournal() {
   modal('Carnet du jardinier', (S.knowledge.length ? '<p class="note-p">Plantes apprises : ' + S.knowledge.map(id => P[id].name).join(', ') + '.</p>' : '') + '<ul class="log">' + (S.log.length ? S.log.map(l => '<li><span class="d">' + dateStr(l.day, true) + '</span><span class="' + (l.type === 'warn' ? 'warn' : l.type === 'bad' ? 'bad' : '') + '">' + l.text + '</span></li>').join('') : '<li>Rien pour l’instant.</li>') + '</ul>');
@@ -2258,21 +2268,21 @@ function applyView() {
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
 }
 /* ---------- caméra : réglages centralisés ---------- */
-const CAM = { zoomMinDesk: .8, zoomMinPhone: 1, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
+const CAM = { zoomMinDesk: .45, zoomMinPhone: .6, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
 const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
-  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now();
-  if (g.ready > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
+  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now(), tk = tasksHtml(), notif = g.ready + tk.n;
+  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster du jour t’attend : six nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
+  if (notif > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
   ui.gText = g.text;
-  ui.gReady = g.ready;
-  m.classList.toggle('joy', g.ready > 0); bd.hidden = !g.ready; bd.textContent = g.ready;
+  ui.gReady = notif;
+  m.classList.toggle('joy', notif > 0); bd.hidden = !notif; bd.textContent = notif;
   say.textContent = g.text; say.hidden = !(ui.gUntil > now) || !!ui.gOpen;
   card.hidden = !ui.gOpen; m.setAttribute('aria-expanded', ui.gOpen ? 'true' : 'false');
-  if (!ui.gOpen) return;
   const row = q => '<li class="gq' + (q.done ? ' done' : '') + '"><div class="gqt"><b>' + esc(q.t) + '</b>' + (q.daily ? '<em>Défi du jour</em>' : '') + '</div><div class="gqb"><i style="width:' + Math.round(q.have / q.need * 100) + '%"></i></div><div class="gqr"><span>' + q.have + ' / ' + q.need + ' · ' + esc(q.label) + '</span>' + (q.done && !q.claimed ? '<button type="button" class="btn sm pri" data-act="guil-claim" data-id="' + q.id + '">Récupérer</button>' : q.claimed ? '<span class="ok">Fait</span>' : '') + '</div></li>';
   const ready = g.qs.filter(q => q.done && !q.claimed), open = g.qs.filter(q => !q.done && !q.daily).slice(0, 3), daily = g.qs.find(q => q.daily && !ready.includes(q)), nd = g.qs.filter(q => q.claimed && !q.daily).length;
-  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
+  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p><h4 class="gh2">Aujourd’hui</h4><div class="gtasks">' + tk.h + '</div>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
 }
 function renderStr() {
   const m = $('strmenu'); if (!m) return; m.hidden = !ui.strOpen;
@@ -2349,10 +2359,10 @@ const cam = (function initCamera() {
 })();
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
-  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster du jour, six cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans le bandeau du bas, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
-  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
   { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
@@ -2462,7 +2472,7 @@ document.addEventListener('click', e => {
   if (act === 'veil') { if (e.target === a) closeModal(); return; }
   switch (act) {
     case 'close': closeModal(); break;
-    case 'task': doTask(a.dataset.id); break;
+    case 'task': ui.gOpen = false; doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
@@ -2484,6 +2494,7 @@ document.addEventListener('click', e => {
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
     case 'menu': openMenu(); break;
+    case 'tools-toggle': ui.toolsOpen = !ui.toolsOpen; applyHud(); break;
     case 'stock': openStock(); break;
     case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
     case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
@@ -2547,7 +2558,7 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { ui, cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();
 

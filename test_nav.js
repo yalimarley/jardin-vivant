@@ -16,7 +16,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('ECHEC:', m); } else conso
         click: () => document.getElementById('garden').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: 300, clientY: 300 }))
       };
     });
-    await fn(p); ok(errs.length === 0, name + ' : aucune erreur JS ' + errs.join('|')); await ctx.close();
+    await p.click('[data-act="tools-toggle"]'); await fn(p); ok(errs.length === 0, name + ' : aucune erreur JS ' + errs.join('|')); await ctx.close();
   };
   const center = async p => p.evaluate(() => { const r = document.getElementById('garden').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   const vbv = p => p.evaluate(() => window.T.vb());
@@ -35,7 +35,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('ECHEC:', m); } else conso
     await p.evaluate(() => { for (let i = 0; i < 60; i++) document.getElementById('garden').dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -300, clientX: 600, clientY: 400 })); });
     let z = await p.evaluate(() => window.__jv.view().z); ok(z <= 3.2 + 1e-6 && isFinite(z), 'zoom max borné : ' + z.toFixed(2));
     await p.evaluate(() => { for (let i = 0; i < 80; i++) document.getElementById('garden').dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 300, clientX: 600, clientY: 400, deltaMode: 0 })); });
-    z = await p.evaluate(() => window.__jv.view().z); ok(z >= 0.8 - 1e-6 && isFinite(z), 'zoom min borné : ' + z.toFixed(2));
+    z = await p.evaluate(() => window.__jv.view().z); ok(z >= 0.45 - 1e-6 && isFinite(z), 'zoom min borné : ' + z.toFixed(2));
     // clic droit : pan, menu contextuel bloqué sur la carte uniquement
     await p.evaluate(() => { document.querySelector('[data-act="view-reset"]').click(); for (let i = 0; i < 4; i++) document.querySelector('[data-act="zoom-in"]').click(); });
     const a = await vbv(p); const cc = await center(p);

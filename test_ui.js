@@ -15,11 +15,11 @@ const viaMenu = sel => { const m = q('[data-act="menu"]'); if (m) click(m); retu
 
 ok(qa('#garden .cell').length === 48, '48 parcelles dessinées (terrain de départ 8×6)');
 ok(qa('#gauges .gauge').length === 3, '3 jauges');
-ok(qa('#today .task').length >= 1, 'tâches affichées : ' + qa('#today .task b').map(x => x.textContent).join(' | '));
+ok(qa('#gcard .task').length >= 1, 'tâches affichées : ' + qa('#gcard .task b').map(x => x.textContent).join(' | '));
 ok(/Hiver|Printemps|Été|Automne/.test(q('#when').textContent), 'date et saison : ' + q('#when').textContent.trim());
 
 // booster
-click(qa('#today .task').find(t => /booster/i.test(t.textContent)));
+click(qa('#gcard .task').find(t => /booster/i.test(t.textContent)));
 ok(q('#layer .modal'), 'fenêtre booster ouverte');
 click(q('[data-act="rip"]'));
 const fl = qa('.flipper');
@@ -29,7 +29,7 @@ ok(qa('.flipper.up').length === 6, 'toutes retournées');
 click(q('[data-act="close"]'));
 ok(!q('#layer .modal'), 'fenêtre fermée');
 ok(qa('#strip .card').length >= 3, 'cartes dans la réserve : ' + qa('#strip .card h4').map(x => x.textContent).join(', '));
-ok(!qa('#today .task').some(t => /booster/i.test(t.textContent)), 'tâche booster disparue');
+ok(!qa('#gcard .task').some(t => /booster/i.test(t.textContent)), 'tâche booster disparue');
 
 // planter
 const card = qa('#strip button.card').find(x => /Herbacée|Racine|Couvre-sol/.test(x.textContent));
@@ -39,7 +39,7 @@ const free = qa('#garden .cell.free')[0];
 const before = qa('#garden .cell.free').length;
 click(free);
 ok(qa('#garden .pqg').length === 1, 'plantation en attente : plante fantôme affichée');
-ok(/en attente/.test(q('#hint').textContent) || /en attente/.test(q('#toast').textContent), 'le jardinier annonce la file');
+ok(q('#hint').textContent === '', 'plus de message systématique « le jardinier plante »');
 w.__jv.flush();
 ok(qa('#garden .pqg').length === 0 && qa('#garden .cell.free').length === before - 1, 'plante posée sur une parcelle libre une fois le jardinier passé');
 ok(q('#fiche h2').textContent.length > 0, 'fiche affichée : ' + q('#fiche h2').textContent);
@@ -64,7 +64,7 @@ click(cell); if (q('[data-act="fiche-open"]')) click(q('[data-act="fiche-open"]'
 ok(qa('#fiche .notes li').length >= 1, 'notes de voisinage : ' + qa('#fiche .notes li').length);
 ok(qa('#garden path[stroke-dasharray]').length >= 1, 'lignes de synergie dessinées');
 // tâche récolte
-const harv = qa('#today .task').find(t => /Récolter/.test(t.textContent));
+const harv = qa('#gcard .task').find(t => /Récolter/.test(t.textContent));
 ok(harv, 'tâche de récolte présente');
 click(harv);
 // cuisine
@@ -77,15 +77,15 @@ click(q('#cookBtn'));
 ok(q('.sum .nm') && /kcal/.test(q('.sum').textContent), 'repas cuisiné : ' + q('.sum .nm').textContent);
 click(q('[data-act="close"]'));
 // savoir du jour
-const learn = qa('#today .task').find(t => /Savoir/.test(t.textContent));
+const learn = qa('#gcard .task').find(t => /Savoir/.test(t.textContent));
 if (learn) { click(learn); ok(q('#layer .modal h2').textContent === 'Savoir du jour', 'savoir du jour ouvert'); click(q('[data-act="close"]')); }
 // message de fin de journée : tout faire
 for (let k = 0; k < 8; k++) {
-  const t = qa('#today .task.p0, #today .task.p1')[0]; if (!t) break;
+  const t = qa('#gcard .task.p0, #gcard .task.p1')[0]; if (!t) break;
   click(t); if (q('[data-act="rip"]')) click(q('[data-act="rip"]')); if (q('#layer .modal')) { if (q('#kit')) { const b = qa('#kit input'); b.slice(0, 2).forEach(x => x.checked = true); b[0].dispatchEvent(new w.Event('change', { bubbles: true })); click(q('#cookBtn')); } click(q('[data-act="close"]')); }
 }
-ok(q('#today .done-box'), 'message « Ton jardin est à jour » affiché (restent : ' + qa('#today .task.p0 b, #today .task.p1 b').map(x => x.textContent).join(' | ') + ')');
-click(q('#today [data-act="next"]'));
+ok(q('#gcard .done-box'), 'message « Ton jardin est à jour » affiché (restent : ' + qa('#gcard .task.p0 b, #gcard .task.p1 b').map(x => x.textContent).join(' | ') + ')');
+click(q('#gcard [data-act="next"]'));
 ok(/13 juillet/.test(q('#when').textContent), 'lendemain atteint : ' + q('#when b').textContent);
 // herbier
 click(viaMenu('[data-act="herbier"]'));
@@ -114,7 +114,7 @@ ok(q('#gmasc') && q('#gsay'), 'Guildéon présent');
 click(q('#gmasc')); ok(!q('#gcard').hidden && qa('#gcard .gq').length >= 2, 'panneau Guildéon : objectifs listés');
 click(q('#gmasc')); ok(q('#gcard').hidden, 'panneau Guildéon fermé');
 // quelques plantes pour les tests de strates (nouvelle partie : jardin vide)
-{ click(qa('#today .task').find(t => /booster/i.test(t.textContent))); click(q('[data-act="rip"]')); click(q('[data-act="close"]'));
+{ click(qa('#gcard .task').find(t => /booster/i.test(t.textContent))); click(q('[data-act="rip"]')); click(q('[data-act="close"]'));
   for (const c0 of qa('#strip button.card')) { if (qa('#garden .cell:not(.free)').filter(e => !/Chemin/.test(e.getAttribute('aria-label') || '')).length >= 4) break; click(c0); const f2 = qa('#garden .cell.free').filter(c => !c.querySelector('.pqg'))[0]; if (f2) click(f2); }
   w.__jv.flush();  }
 // strates
@@ -124,7 +124,7 @@ click(q('[data-act="strate-set"][data-s="Arbre"]')); ok(qa('#garden .spr.dim').l
 click(q('[data-act="strate-set"][data-s=""]')); ok(qa('#garden .spr.dim').length === 0, 'filtre retiré');
 click(q('[data-act="strate-menu"]'));
 // boîte à outils
-ok(qa('#tools .tb').length === 10, 'boîte à outils : 10 boutons');
+ok(qa('#tools .tb').length === 11, 'boîte à outils : 11 boutons');
 const vb0 = q('#garden').getAttribute('viewBox'); click(q('[data-act="zoom-in"]'));
 ok(q('#garden').getAttribute('viewBox') !== vb0, 'zoom change la vue');
 for (let k = 0; k < 4; k++) { click(q('[data-act="rot-r"]')); ok(qa('#garden .cell').length === 48, 'rotation ' + (k + 1) + ' : 48 cases'); }

@@ -198,12 +198,15 @@ function familyHtml() {
     return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + face(k, m.joy, 46) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + t + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
 }
 function openFamily() { modal('La famille', familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
+function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('voile') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
 function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
-  const kg = S.stock.reduce((a, b) => a + b.kg, 0);
-  $('res').innerHTML = '<div class="items"><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('voile') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') + '</div>' +
-    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + GK(16) + 'Boutique · ' + (S.feves || 0) + ' ginkgos</button><button type="button" class="btn sm" data-act="skills">' + ico('leaf') + 'Compétences</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
+  const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
+  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
+  const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
+  const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
+  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -484,7 +487,7 @@ function pickRoam(a) {
   if (a.who === 'd') { const g = agents.g; if ((a.c - g.c) ** 2 + (a.r - g.r) ** 2 > 7 || Math.random() < .35) return g.node; return keys[Math.floor(Math.random() * keys.length)]; }
   if (a.who === 'f') { const L = keys.filter(k => k[0] === 'y'); return L[Math.floor(Math.random() * L.length)]; }
   // le jardinier va vers une plante qui a besoin de soin, sinon flâne
-  const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 45)) need.push(i); });
+  const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 35)) need.push(i); });
   if (need.length && Math.random() < .7) { const i = need[Math.floor(Math.random() * need.length)]; a.act = S.grid[i].ready ? 'harvest' : 'water'; a.actT = 2.2; setPop(a, a.act); return nearestNode(i % STR + .5, ((i / STR) | 0) + .5); }
   return walk.ring[Math.floor(Math.random() * walk.ring.length)];
 }
@@ -546,7 +549,7 @@ function renderGarden() {
   syncDims(); const [DW, DH] = dispDims(), { KS, CGx, CGy } = kview(DW, DH);
   const m = G.dateOf(S.day).m, se = SEASON(m), gc = GROUND[se], w = S.w, st = G.stats(S);
   let h = '<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + gc[0] + '"/><stop offset="1" stop-color="' + gc[1] + '"/></linearGradient></defs>';
-  h += '<rect x="-400" y="-300" width="1560" height="1140" fill="url(#gg)"/>';
+  h += '<rect x="-1500" y="-1500" width="3800" height="3600" fill="url(#gg)"/>';
   for (let k = 0; k < 90; k++) { const r = rnd(k + 5), x = r() * 760, y = r() * 540; h += '<path d="M' + x.toFixed(0) + ' ' + y.toFixed(0) + 'l-2-5M' + x.toFixed(0) + ' ' + y.toFixed(0) + 'l2-6" stroke="' + shade(gc[1], -24) + '" stroke-width="1.4" stroke-linecap="round" opacity=".35"/>'; }
   // fond : arbres et haies
   LAWNS.forEach(([x, y], k) => { h += mv(x, y, lawnPatch(k, x, y, G.lawnReady(S, k), gc)); });
@@ -606,14 +609,13 @@ function renderGarden() {
     const pn = P[S.grid[ui.sel].pid].name, tw = pn.length * 6.6 + 18;
     h += '<g style="pointer-events:none"><rect x="' + (A[0] - tw / 2).toFixed(1) + '" y="' + (A[1] + 10) + '" width="' + tw.toFixed(1) + '" height="20" rx="10" fill="var(--ink)" opacity=".88"/><text x="' + A[0] + '" y="' + (A[1] + 24) + '" text-anchor="middle" font-family="var(--font-b)" font-size="12" font-weight="600" fill="var(--bg)">' + pn + '</text></g>';
   }
-  const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
+  const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><circle r="19" fill="transparent"/><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
   const okM = [], okC = []; S.grid.forEach((c, i) => { if (!c || c.treille) return; const p = P[c.pid]; if (p.strate === 'Couvre-sol') return; if (!c.mulch && S.mats.paillage > 0) okM.push(i); if (S.mats.compost > 0 && S.day > (c.compostUntil || -1) && G.phase(c).stage !== 'graine') okC.push(i); });
   const byH = (a, b) => S.grid[a].health - S.grid[b].health, setM = new Set(okM.sort(byH).slice(0, Math.max(3, S.mats.paillage))), setC = new Set(okC.sort(byH).slice(0, Math.max(2, S.mats.compost * 2)));
   S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 80 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : p.strate === 'Racine' ? 26 : 30;
     if (ui.strF && ui.strF !== p.strate) return;
-    const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
-    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); });
-    if (cell.water < 60) h += badge('water', cx + 1, cy + 7, cell.water < 25, i, 5); });
+    const L = []; if (cell.water < 35) L.push(['water', cell.water < 20 ? 1 : 0]); if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
+    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); }); });
   S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } });
   h += '</g>';
   LAWNS.forEach(([x, y], k) => { if (G.lawnReady(S, k)) { const q = wpos(x, y - 36); h += worldBadge('lawn', q[0].toFixed(1), q[1].toFixed(1), k); } });
@@ -630,33 +632,40 @@ function renderGarden() {
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = '<span>' + (S.pq && S.pq.length ? '<b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler. ' : '') + 'Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
+  else hint.innerHTML = '';
 }
 
 /* ---------- réserve ---------- */
 function renderTray() {
-  const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).sort((a, b) => (G.sowable(P[b], m) - G.sowable(P[a], m)) || P[a].name.localeCompare(P[b].name, 'fr'));
+  const m = G.dateOf(S.day).m, all = Object.keys(S.cards).map(Number).sort((a, b) => P[a].name.localeCompare(P[b].name, 'fr')), ids = all.filter(id => G.sowable(P[id], m)), off = all.filter(id => !G.sowable(P[id], m));
   const un = G.unlocked(S), nextU = Object.keys(G.UNLOCK).filter(k => !un.has(k)).sort((a, b) => G.UNLOCK[a] - G.UNLOCK[b])[0];
-  $('trayInfo').textContent = ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' cartes' + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '') : (nextU ? nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
-  $('strip').innerHTML = ids.length ? ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') : '<p class="empty">Aucune carte en réserve. Ouvre le booster du jour pour en recevoir.</p>';
+  const tot = all.reduce((a, id) => a + S.cards[id], 0), ti = $('trayInfo');
+  if (ti) ti.textContent = (ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' à planter' : '') + (off.length ? (ids.length ? ' · ' : '') + off.reduce((a, id) => a + S.cards[id], 0) + ' hors saison' : '') + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
+  const st = $('strip'); if (!st) return;
+  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ouvre le booster du jour.</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
 }
 
 /* ---------- tâches ---------- */
 function renderToday() {
-  const T = G.buildTasks(S), done = S.doneToday.day === S.day ? S.doneToday.n : 0;
-  let h = '<h2>Aujourd’hui<small>' + done + ' action' + (done > 1 ? 's' : '') + ' faite' + (done > 1 ? 's' : '') + '</small></h2>';
-  if (T.caughtUp) h += '<div class="done-box"><h3>Ton jardin est à jour.</h3><p>Tout ce qui presse est fait. Le prochain booster t’attend demain.</p><button type="button" class="btn primary" data-act="next">Passer au lendemain</button></div>';
-  const names = ['Urgent', 'À faire', 'Si tu as le temps'];
-  [0, 1, 2].forEach(pr => { const L = T.tasks.filter(t => t.prio === pr); if (!L.length) return; h += '<div class="grp">' + names[pr] + '</div>' + L.map(t => '<button type="button" class="task p' + pr + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join(''); });
-  if (T.hidden) h += '<p class="note-p">' + T.hidden + ' tâche' + (T.hidden > 1 ? 's' : '') + ' optionnelle' + (T.hidden > 1 ? 's' : '') + ' mise' + (T.hidden > 1 ? 's' : '') + ' de côté.</p>';
-  if (!T.caughtUp) h += '<div style="margin-top:8px"><button type="button" class="btn sm" data-act="next">Terminer la journée</button></div>';
-  $('today').innerHTML = h;
+  $('today').innerHTML = '<div class="dh"><h2>À planter aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip"></div>';
+}
+function tasksHtml() {
+  const T = G.buildTasks(S);
+  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '') };
 }
 
 /* ---------- fiche ---------- */
 function dur(days) { return days < 60 ? Math.max(1, Math.round(days)) + ' jours' : days < 730 ? Math.round(days / 30) + ' mois' : fmt(days / 365) + ans(days); }
 const ans = () => ' ans';
 function renderFiche() {
+  if (ui.sel !== ui.fs) { ui.fs = ui.sel; ui.ficheFull = false; }
+  const el = $('fiche'), c = ui.sel >= 0 ? S.grid[ui.sel] : null;
+  if (c && !c.treille && !ui.ficheFull) {
+    const p = P[c.pid], ph = G.phase(c);
+    el.innerHTML = '<div class="fmini"><h2>' + p.name + '</h2><p class="lat">' + p.latin + '</p><p class="note-p">' + (c.ready ? 'Prête à récolter' : ph.stage === 'graine' ? 'Graine en terre' : 'Croissance ' + Math.round(ph.prog * 100) + ' %') + ' · eau du sol ' + Math.round(c.water) + ' %</p><div class="acts"><button type="button" class="btn sm primary" data-act="fiche-open">Ouvrir la fiche</button></div></div>';
+  } else renderFiche0();
+  el.hidden = ui.sel < 0 || (c === null && ui.sel >= 0); if (!el.hidden) el.insertAdjacentHTML('afterbegin', '<button type="button" class="fclose" data-act="fiche-close" aria-label="Fermer la fiche">×</button>'); }
+function renderFiche0() {
   const el = $('fiche'), i = ui.sel, c = i >= 0 ? S.grid[i] : null, m = G.dateOf(S.day).m;
   if (i < 0) { el.innerHTML = '<h2>Parcelle</h2><p class="empty-f">Touche une plante pour voir ses besoins, ses voisines et ce qu’elle apporte à la guilde.</p>'; return; }
   if (!c) { el.innerHTML = '<h2>Parcelle libre</h2><p class="empty-f">Choisis une carte dans ta réserve pour semer ou planter ici. Seules les plantes de saison peuvent être mises en terre.</p>'; return; }
@@ -702,12 +711,12 @@ function openAmenager() {
   syncDims();
   const c = G.canExpand(S), mp = S.maxPlantings, bar = (v, t) => '<div class="bar"><i style="width:' + Math.min(100, Math.round(v / t * 100)) + '%"></i></div>';
   let h = '<h3 style="margin:2px 0 6px">Terrain</h3><p class="note-p">Ton terrain fait <b>' + COLS + ' × ' + ROWS + '</b> parcelles.</p>';
-  if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. Les paliers de plantation continuent de t’offrir du mobilier.</p>';
+  if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. La boutique propose tout le mobilier débloqué.</p>';
   else h += '<div class="amen-card"><b>Prochain agrandissement : ' + c.to[0] + ' × ' + c.to[1] + '</b><div class="amen-req"><span>Plantations réussies : ' + c.plant[0] + ' / ' + c.plant[1] + '</span>' + bar(c.plant[0], c.plant[1]) + '</div><div class="amen-req"><span>Espèces différentes dans le jardin : ' + c.species[0] + ' / ' + c.species[1] + '</span>' + bar(c.species[0], c.species[1]) + '</div><div class="acts"><button type="button" class="btn primary" data-act="expand"' + (c.ok ? '' : ' disabled') + '>Agrandir le terrain</button></div></div>';
-  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète à la boutique avec des ginkgos, et chaque palier de plantations t’en offre un. Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
+  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète uniquement à la boutique avec des ginkgos (une fois débloqué par tes plantations). Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
   G.FURN.concat(['canard']).forEach(k => {
     const q = (S.mats[k] || 0), un = mp >= G.FURN_UNLOCK[k], ms = G.MILESTONES.find(x => x[1][k]);
-    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + (ms && !S.rewarded[ms[0]] ? ' ou au palier de ' + ms[0] + ' plantations' : '');
+    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + '';
     h += '<div class="amen-item' + (un ? '' : ' lock') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + FURN_INFO[k].n + '</b><p>' + FURN_INFO[k].d + '</p><small>' + st + '</small>' + (q > 0 ? '<div class="acts"><button type="button" class="btn sm primary" data-act="use-furn" data-k="' + k + '">Poser</button></div>' : '') + '</div></div>';
   });
   h += '</div><h3 style="margin:14px 0 6px">Atelier, soins et eau</h3><p class="note-p">À la boutique : <b>atelier</b> et <b>séchoir</b> (à côté de la maison, pour garder la récolte), <b>bocaux</b>, <b>purin d’ortie</b> et <b>prêle</b> (soins), <b>nichoir à mésanges</b> (dans un arbre), <b>cuve</b> et <b>oya</b> (eau), <b>inoculum de mycorhizes</b>, <b>plan de guilde</b> et <b>carte Savoir</b>. Purin, prêle, nichoir, oya et cuve se fabriquent aussi avec la compétence Fabrication. Ils apparaissent dans ta barre du haut dès que tu en as. Touche la carte, puis la plante concernée.</p><h3 style="margin:14px 0 6px">Autour du jardin</h3><p class="note-p"><b>Tonte :</b> l’herbe autour du jardin repousse tous les 14 jours. Chaque zone tondue te donne +2 paillage.</p><p class="note-p"><b>Trognes :</b> c’est une compétence (bouton Compétences). Les arbres au bord de la forêt, une fois taillés en têtard, repartent tous les 3 mois : paillage et pousse accélérée à chaque coupe.</p>';
@@ -857,23 +866,21 @@ function gardenerPortrait() {
   return '<svg viewBox="0 0 72 80" width="72" height="80" aria-hidden="true"><rect width="72" height="80" rx="14" fill="#e6efdc"/><path d="M14 80c0-16 10-24 22-24s22 8 22 24z" fill="#5f8f4a"/><path d="M28 56h16v24H28z" fill="#e9d9a8"/><path d="M24 66l4-10M48 66l-4-10" stroke="#3d6a34" stroke-width="3" stroke-linecap="round"/><circle cx="36" cy="38" r="13" fill="#f1c9a0"/><ellipse cx="36" cy="27" rx="25" ry="5.5" fill="#d9ad52"/><path d="M23 27c0-12 6-18 13-18s13 6 13 18z" fill="#e7bf63"/><path d="M23 25h26" stroke="#b9442f" stroke-width="3"/><circle cx="31" cy="38" r="1.6" fill="#2b2018"/><circle cx="41" cy="38" r="1.6" fill="#2b2018"/><path d="M31 44q5 4 10 0" stroke="#8a4b2d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
 }
 function openSkills() {
-  const L = G.skillList(S), tab = ui.skTab || 'all';
-  const xp = L.reduce((a, s) => a + s.pts, 0), lvl = 1 + Math.floor(xp / 20), into = xp % 20, act = L.filter(s => !s.locked).length, tl = L.reduce((a, s) => a + s.lv, 0);
-  const title = lvl < 2 ? 'Apprenti jardinier-forêt' : lvl < 4 ? 'Jardinier-forêt' : lvl < 7 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
-  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + lvl + '</strong><div class="bar"><i style="width:' + (into / 20 * 100) + '%"></i></div><small class="sk-xp">' + xp + ' points de pratique · encore ' + (20 - into) + ' pour le niveau ' + (lvl + 1) + '</small></div></div>';
-  h += '<div class="sk-stats"><div><b>' + xp + '</b><span>Points de pratique</span></div><div><b>' + tl + '</b><span>Niveaux atteints</span></div><div><b>' + act + '/' + L.length + '</b><span>Compétences actives</span></div></div>';
-  h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + S.maxPlantings + ' plantation' + (S.maxPlantings > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte des points à sa compétence. Quand la barre se remplit, le niveau monte et le geste devient plus efficace.</p>';
+  const L = G.skillList(S), X = G.xpInfo(S), tab = ui.skTab || 'all';
+  const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
+  h += '<div class="sk-stats"><div><b>' + X.pts + '</b><span>Points libres</span></div><div><b>' + X.spent + '</b><span>Points investis</span></div><div><b>' + X.acq + '/' + X.total + '</b><span>Skills acquis</span></div></div>';
+  h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + X.pts + ' point' + (X.pts > 1 ? 's' : '') + ' libre' + (X.pts > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte de l’XP. À chaque niveau, tu gagnes 1 point à dépenser ici. Monter une compétence demande 1 point et assez de pratique.</p>';
   h += '<div class="sk-tabs" role="tablist">' + [['all', 'Toutes'], ['culture', 'Culture'], ['entretien', 'Entretien'], ['expertise', 'Expertise']].map(([t, n]) => '<button type="button" role="tab" aria-selected="' + (tab === t) + '" class="sk-tab' + (tab === t ? ' on' : '') + '" data-act="skill-tab" data-t="' + t + '">' + n + '</button>').join('') + '</div><div class="sk-grid">';
   SK_ORDER.filter(k => tab === 'all' || SK_CAT[k] === tab).forEach(k => {
-    const s = L.find(x => x.k === k); if (!s) return;
-    const prev = s.lv <= 1 ? 0 : s.th[0], nx = s.lv <= 1 ? s.th[0] : s.lv === 2 ? s.th[1] : null;
-    const seg = [1, 2, 3].map(n => { let f = 0; if (!s.locked) { if (n < s.lv) f = 100; else if (n === s.lv) f = s.lv >= 3 ? 100 : Math.min(100, Math.round((s.pts - prev) / (nx - prev) * 100)); } return '<i><b style="width:' + f + '%"></b></i>'; }).join('');
-    let c = '<div class="sk-card' + (s.locked ? ' lock' : '') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><span class="sk-lv">' + s.lv + '/3</span></div><h4>' + s.n + '</h4><p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
-    if (!s.locked && s.lv < 3) c += '<p class="sk-next">Niveau suivant : ' + s.d[s.lv].charAt(0).toLowerCase() + s.d[s.lv].slice(1) + '</p>';
-    c += '<div class="sk-seg">' + seg + '</div><small>' + (s.locked ? 'Débloquée après ' + s.req + ' plantations' : (s.lv >= 3 ? 'Niveau maximum · ' + s.pts + ' points' : s.pts + ' / ' + nx + ' points') + ' · ' + s.how) + '</small>';
+    const s = L.find(x => x.k === k); if (!s) return; const st = s.st;
+    const seg = Array.from({ length: s.max }, (_, i) => '<i><b style="width:' + (i < s.lv ? 100 : 0) + '%"></b></i>').join('');
+    let c = '<div class="sk-card' + (s.locked ? ' lock' : '') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><span class="sk-lv">' + s.lv + '/' + s.max + '</span></div><h4>' + s.n + '</h4><p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
+    if (!st.max && !s.locked) c += '<p class="sk-next">Niveau suivant : ' + s.d[s.lv].charAt(0).toLowerCase() + s.d[s.lv].slice(1) + '</p>';
+    c += '<div class="sk-seg" style="grid-template-columns:repeat(' + s.max + ',1fr)">' + seg + '</div><small>' + (st.max ? 'Niveau maximum · ' + s.use + ' ' + s.unit : s.locked ? 'Débloquée après ' + s.req + ' plantations' : (st.need ? 'Pratique ' + Math.min(s.use, st.need) + ' / ' + st.need + ' ' + s.unit : 'Aucune pratique requise') + ' · ' + s.how) + '</small>';
     const A = [];
-    if (s.locked) A.push('<button type="button" class="sk-btn dark" disabled>Débloquée à ' + s.req + ' plantations</button>');
-    else {
+    if (!st.max) A.push('<button type="button" class="sk-btn dark" data-act="skill-up" data-k="' + k + '"' + (st.can ? '' : ' disabled') + '>' + (st.can ? (s.locked ? 'Débloquer · 1 pt' : 'Améliorer · 1 pt') : st.why) + '</button>');
+    if (!s.locked) {
       if (k === 'trogne') A.push('<button type="button" class="sk-btn" data-act="skill-trogne">Tailler une trogne</button>');
       if (k === 'bouture') A.push('<button type="button" class="sk-btn" data-act="skill-mode" data-k="bouture">Prélever une bouture</button>');
       if (k === 'greffe') A.push('<button type="button" class="sk-btn" data-act="skill-mode" data-k="greffe">Greffer un arbre</button>');
@@ -886,10 +893,27 @@ function openSkills() {
     c += '<div class="sk-acts">' + A.join('') + '</div></div>';
     h += c;
   });
+  if (tab === 'all' || tab === 'expertise') G.advList(S).forEach(a => {
+    const st = a.st;
+    let c = '<div class="sk-card adv' + (st.have ? '' : ' lock') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="26" fill="#f3e3a8"/><path d="M40 18l6 14 15 2-11 10 3 15-13-8-13 8 3-15-11-10 15-2z" fill="#d9a521"/></svg><span class="sk-lv">' + (st.have ? 'Acquise' : 'Avancée') + '</span></div><h4>' + a.n + '</h4><p>' + a.d + '</p>';
+    if (!st.have) c += '<small>' + st.reqs.map(r => (r.ok ? '✓ ' : '• ') + r.n + ' niveau ' + r.need).join(' · ') + '<br>' + (st.prog >= a.prac.n ? '✓ ' : '• ') + Math.min(st.prog, a.prac.n) + ' / ' + a.prac.n + ' ' + a.prac.t + '</small><div class="sk-acts"><button type="button" class="sk-btn dark" data-act="adv-up" data-k="' + a.k + '"' + (st.can ? '' : ' disabled') + '>' + (st.can ? 'Débloquer · ' + a.cost + ' pts' : st.why) + '</button></div>';
+    h += c + '</div>';
+  });
   h += '</div>';
   modal('Mon jardinier', h, true);
 }
 
+function openStock() { const e = EXTRA(); modal('Matériel', '<p class="note-p">Touche un objet pour le poser dans le jardin.</p><div class="items" style="display:flex;flex-wrap:wrap;gap:8px">' + e.h + '</div>'); }
+function openMenu() {
+  const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+}
+function applyHud() {
+  const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
+  if (ui.trayOpen == null) ui.trayOpen = !PHONE();
+  const td = $('today'); if (td) td.classList.toggle('shut', !ui.trayOpen);
+  document.body.classList.toggle('sel', ui.sel >= 0); document.body.classList.toggle('tools-open', !!ui.toolsOpen);
+}
 function openJournal() {
   modal('Carnet du jardinier', (S.knowledge.length ? '<p class="note-p">Plantes apprises : ' + S.knowledge.map(id => P[id].name).join(', ') + '.</p>' : '') + '<ul class="log">' + (S.log.length ? S.log.map(l => '<li><span class="d">' + dateStr(l.day, true) + '</span><span class="' + (l.type === 'warn' ? 'warn' : l.type === 'bad' ? 'bad' : '') + '">' + l.text + '</span></li>').join('') : '<li>Rien pour l’instant.</li>') + '</ul>');
 }
@@ -930,24 +954,29 @@ document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.i
 
 /* ---------- actions ---------- */
 let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3400); }
+function vsize() { const r = $('garden') && $('garden').getBoundingClientRect(), z = view.z; if (r && r.width > 50 && r.height > 50) { const a = r.width / r.height; if (a >= 760 / 460) { const h = 460 / z; return { w: h * a, h }; } const w = 760 / z; return { w, h: w / a }; } return { w: 760 / z, h: (PHONE() ? 880 : 460) / z }; }
 function applyView() {
-  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, PHONE() ? 1 : .8, 3.2); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
-  const x = clamp(view.cx - w / 2, -150, 910 - w), y = clamp(view.cy - h / 2, -60, 600 - h); view.cx = x + w / 2; view.cy = y + h / 2;
+  const svg = $('garden'); if (!svg) return; view.z = clamp(isFinite(view.z) ? view.z : 1, camMin(), CAM.zoomMax); const { w, h } = vsize();
+  const ax = (c, sz, lo, hi) => sz >= hi - lo ? (lo + hi) / 2 : clamp(c, lo + sz / 2, hi - sz / 2); view.cx = ax(view.cx, w, -150, 910); view.cy = ax(view.cy, h, -60, 600); const x = view.cx - w / 2, y = view.cy - h / 2;
   svg.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1));
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
 }
+/* ---------- caméra : réglages centralisés ---------- */
+const CAM = { zoomMinDesk: .45, zoomMinPhone: .6, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
+const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
-  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now();
-  if (g.text !== ui.gText || g.ready > (ui.gReady || 0)) { ui.gText = g.text; ui.gUntil = now + 15000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 15200); }
-  ui.gReady = g.ready;
-  m.classList.toggle('joy', g.ready > 0); bd.hidden = !g.ready; bd.textContent = g.ready;
+  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now(), tk = tasksHtml(), notif = g.ready + tk.n;
+  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster du jour t’attend : six nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
+  if (notif > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
+  ui.gText = g.text;
+  ui.gReady = notif;
+  m.classList.toggle('joy', notif > 0); bd.hidden = !notif; bd.textContent = notif;
   say.textContent = g.text; say.hidden = !(ui.gUntil > now) || !!ui.gOpen;
   card.hidden = !ui.gOpen; m.setAttribute('aria-expanded', ui.gOpen ? 'true' : 'false');
-  if (!ui.gOpen) return;
   const row = q => '<li class="gq' + (q.done ? ' done' : '') + '"><div class="gqt"><b>' + esc(q.t) + '</b>' + (q.daily ? '<em>Défi du jour</em>' : '') + '</div><div class="gqb"><i style="width:' + Math.round(q.have / q.need * 100) + '%"></i></div><div class="gqr"><span>' + q.have + ' / ' + q.need + ' · ' + esc(q.label) + '</span>' + (q.done && !q.claimed ? '<button type="button" class="btn sm pri" data-act="guil-claim" data-id="' + q.id + '">Récupérer</button>' : q.claimed ? '<span class="ok">Fait</span>' : '') + '</div></li>';
   const ready = g.qs.filter(q => q.done && !q.claimed), open = g.qs.filter(q => !q.done && !q.daily).slice(0, 3), daily = g.qs.find(q => q.daily && !ready.includes(q)), nd = g.qs.filter(q => q.claimed && !q.daily).length;
-  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
+  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p><h4 class="gh2">Aujourd’hui</h4><div class="gtasks">' + tk.h + '</div>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
 }
 function renderStr() {
   const m = $('strmenu'); if (!m) return; m.hidden = !ui.strOpen;
@@ -957,24 +986,79 @@ function renderStr() {
   m.innerHTML = '<b>Strates</b>' + ['Arbre', 'Arbuste', 'Grimpante', 'Herbacée', 'Racine', 'Couvre-sol'].map(s => '<button type="button" class="sch' + (ui.strF === s ? ' on' : '') + '" data-act="strate-set" data-s="' + s + '">' + strIco(s) + '<span>' + s + '</span><em>' + (n[s] || 0) + '</em></button>').join('') + '<button type="button" class="sch' + (!ui.strF ? ' on' : '') + '" data-act="strate-set" data-s="">Tout afficher</button>';
 }
 function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach(b => b.classList.toggle('on', (ui.tool || 'select') === b.dataset.tool)); }
-(function initPan() {
-  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return; const ptrs = new Map(); let moved = 0, pinch = null;
-  const dist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
-  wrap.addEventListener('pointerdown', e => { if (!e.target.closest('#garden')) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; if (ptrs.size === 2) pinch = { d: dist(), z: view.z }; });
-  wrap.addEventListener('pointermove', e => { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
-    if (ptrs.size === 2 && pinch) { view.z = pinch.z * dist() / pinch.d; moved = 99; applyView(); return; }
-    if (ui.tool === 'move' || view.z > 1.001) { moved += Math.abs(dx) + Math.abs(dy); if (moved > 6) { const r = $('garden').getBoundingClientRect(); view.cx -= dx * (760 / view.z) / r.width; view.cy -= dy * (460 / view.z) / r.height; applyView(); } } });
-  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; };
-  wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up); wrap.addEventListener('pointerleave', up);
-  wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
-  wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
+/* ---------- navigation caméra : souris, clavier, tactile ---------- */
+const camBox = () => { const svg = $('garden'), r = svg.getBoundingClientRect(), { w, h } = vsize(), s = Math.min(r.width / w, r.height / h) || 1; return { r, w, h, s, x: view.cx - w / 2, y: view.cy - h / 2, ox: (r.width - w * s) / 2, oy: (r.height - h * s) / 2 }; };
+const camWorld = (cx, cy) => { const b = camBox(); return { x: b.x + (cx - b.r.left - b.ox) / b.s, y: b.y + (cy - b.r.top - b.oy) / b.s }; };
+function camPan(dx, dy) { const b = camBox(); view.cx -= dx / b.s; view.cy -= dy / b.s; applyView(); }
+function camZoomAt(f, cx, cy) {
+  if (!(f > 0) || !isFinite(f)) return; const p = camWorld(cx, cy); view.z = clamp(view.z * f, camMin(), CAM.zoomMax); applyView();
+  const q = camWorld(cx, cy); view.cx += p.x - q.x; view.cy += p.y - q.y; applyView();
+}
+function camReset() { view = defView(); VROT = 0; render(); }
+const camNavMode = () => (ui.tool === 'select' || ui.tool === 'move') && !ui.mode;
+const camTyping = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'));
+const cam = (function initCamera() {
+  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return { destroy() {} };
+  const ptrs = new Map(); let g = null, blockUntil = 0; const keys = new Set(); let raf = 0, last = 0;
+  const L = []; const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); L.push([t, ev, fn, o]); };
+  const cent = () => { const [a, b] = [...ptrs.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  const reset = () => { ptrs.clear(); g = null; keys.clear(); cancelAnimationFrame(raf); raf = 0; };
+  on(wrap, 'pointerdown', e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return;
+    if (e.pointerType === 'mouse') [...ptrs].forEach(([id, q]) => { if (q.type === 'mouse') ptrs.delete(id); });
+    if (ptrs.size === 0) { g = null; blockUntil = 0; }
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, type: e.pointerType, btn: e.button, dead: false, active: false });
+    if (e.pointerType === 'mouse') {
+      if (e.button === 2 || e.button === 1) { g = { mode: 'pan', id: e.pointerId, forced: true }; try { wrap.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); }
+      else if (e.button === 0 && (ui.tool === 'move' || (view.z > 1.001 && camNavMode()))) g = { mode: 'pan', id: e.pointerId };
+      return;
+    }
+    if (ptrs.size === 1) { if (camNavMode()) g = { mode: 'pan', id: e.pointerId }; }
+    else if (ptrs.size === 2) { const c = cent(); g = { mode: 'pinch', x: c.x, y: c.y, d: c.d }; blockUntil = Infinity; }
+  });
+  on(window, 'pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return; const px = p.x, py = p.y; p.x = e.clientX; p.y = e.clientY;
+    if (g && g.mode === 'pinch' && ptrs.size === 2) { const c = cent(); camPan(c.x - g.x, c.y - g.y); camZoomAt(c.d / g.d, c.x, c.y); g.x = c.x; g.y = c.y; g.d = c.d; return; }
+    const far = Math.hypot(p.x - p.sx, p.y - p.sy) > CAM.dragPx;
+    if (far && !p.active && !p.dead) { p.active = true; blockUntil = Infinity; }
+    if (g && g.mode === 'pan' && g.id === e.pointerId && p.active && !p.dead) { if (g.moved) camPan(p.x - px, p.y - py); else { g.moved = true; camPan(p.x - p.sx, p.y - p.sy); } }
+  });
+  const up = e => {
+    const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId);
+    if (g && g.mode === 'pinch') { g = null; ptrs.forEach(q => { q.dead = true; }); }
+    else if (g && g.id === e.pointerId) g = null;
+    if (blockUntil === Infinity || p.active) blockUntil = performance.now() + (ptrs.size ? 1e9 : 400);
+    if (!ptrs.size) { if (blockUntil > performance.now() + 1e8) blockUntil = performance.now() + 400; }
+  };
+  on(window, 'pointerup', up); on(window, 'pointercancel', e => { up(e); if (e.type === 'pointercancel') { ptrs.delete(e.pointerId); } });
+  on(wrap, 'lostpointercapture', e => { if (ptrs.has(e.pointerId) && ptrs.get(e.pointerId).forced) up(e); });
+  on(window, 'blur', reset); on(document, 'visibilitychange', () => { if (document.hidden) reset(); });
+  on(wrap, 'click', e => { if (blockUntil === Infinity || performance.now() < blockUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
+  on(wrap, 'contextmenu', e => { if (e.target.closest && e.target.closest('#garden')) e.preventDefault(); });
+  on(wrap, 'wheel', e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return; e.preventDefault();
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1), steps = clamp(e.ctrlKey ? dy / 12 : dy / 100, -3, 3);
+    camZoomAt(Math.pow(CAM.wheelStep, -steps), e.clientX, e.clientY);
+  }, { passive: false });
+  // clavier : ZQSD / WASD / flèches, Espace pour recentrer
+  const DIR = { arrowup: [0, 1], z: [0, 1], w: [0, 1], arrowdown: [0, -1], s: [0, -1], arrowleft: [1, 0], q: [1, 0], a: [1, 0], arrowright: [-1, 0], d: [-1, 0] };
+  const loop = t => { if (!keys.size) { raf = 0; return; } const dt = Math.min(.05, (t - last) / 1000 || .016); last = t; let dx = 0, dy = 0; keys.forEach(k => { dx += DIR[k][0]; dy += DIR[k][1]; }); const n = Math.hypot(dx, dy); if (n) camPan(dx / n * CAM.keyPxPerSec * dt, dy / n * CAM.keyPxPerSec * dt); raf = requestAnimationFrame(loop); };
+  on(document, 'keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || camTyping(e.target) || $('layer').innerHTML) return; const k = (e.key || '').toLowerCase();
+    if (DIR[k]) { e.preventDefault(); if (!keys.has(k)) keys.add(k); if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } return; }
+    if (e.key === ' ' && !(e.target.closest && e.target.closest('button,a,summary,[role="button"],.cell'))) { e.preventDefault(); camReset(); }
+  });
+  on(document, 'keyup', e => { keys.delete((e.key || '').toLowerCase()); });
+  return { reset, destroy() { reset(); L.forEach(([t, ev, fn, o]) => t.removeEventListener(ev, fn, o)); L.length = 0; }, state: () => ({ ptrs: ptrs.size, g: g && g.mode, keys: keys.size }), step: dt => { /* test */ let dx = 0, dy = 0; keys.forEach(k => { dx += DIR[k][0]; dy += DIR[k][1]; }); const n = Math.hypot(dx, dy); if (n) camPan(dx / n * CAM.keyPxPerSec * dt, dy / n * CAM.keyPxPerSec * dt); } };
 })();
+window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
-  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster du jour, six cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans le bandeau du bas, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
-  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
+  { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
   { t: 'Guildéon, ton guide', x: 'Guildéon te propose des objectifs et t’apprend les guildes : un arbre entouré de plantes complémentaires. Ouvre-le quand tu veux un conseil. Bon jardin !', target: '#gmasc', next: true, last: true }
 ];
@@ -985,11 +1069,12 @@ function renderTuto() {
   while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
   if (!st) { t.done = true; el.hidden = true; save(); return; }
   if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
+  if (st.target && (st.target.indexOf('#today') === 0 || st.target === '#strip') && !ui.trayOpen) { ui.trayOpen = true; applyHud(); }
   el.hidden = false;
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -1074,18 +1159,18 @@ document.addEventListener('click', e => {
     else if (kd === 'honey') { const h2 = G.harvestHoney(S, i); done = h2.ok; if (done) toast('+' + fmt(h2.kg, 1) + ' kg de miel au garde-manger.'); }
     else if (kd === 'compost') { done = G.compost(S, i); if (done) { toast('Compost étalé : la plante pousse mieux pendant 30 jours.'); setTimeout(() => sendGardener(i, 'compost'), 0); } }
     else if (kd === 'mulch') { done = G.mulch(S, i); if (done) setTimeout(() => sendGardener(i, 'mulch'), 0); else toast('Plus de paillage.'); }
-    ui.sel = i; render(); if (done) flyIcon(kd, pos); return; }
+    render(); if (done) flyIcon(kd, pos); return; }
   const cell = e.target.closest('.cell'); if (cell) { clickCell(+cell.dataset.i); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   const act = a.dataset.act, i = ui.sel;
   if (act === 'veil') { if (e.target === a) closeModal(); return; }
   switch (act) {
     case 'close': closeModal(); break;
-    case 'task': doTask(a.dataset.id); break;
+    case 'task': ui.gOpen = false; doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
-    case 'mode-mat': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
+    case 'mode-mat': { if (a.closest('#layer')) closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
     case 'guil-toggle': ui.gOpen = !ui.gOpen; ui.gUntil = 0; render(); break;
@@ -1102,6 +1187,13 @@ document.addEventListener('click', e => {
     case 'cancel': ui.mode = null; render(); break;
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
+    case 'menu': openMenu(); break;
+    case 'tools-toggle': ui.toolsOpen = !ui.toolsOpen; applyHud(); break;
+    case 'stock': openStock(); break;
+    case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
+    case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
+    case 'fiche-open': ui.ficheFull = true; renderFiche(); break;
+    case 'fiche-close': ui.sel = -1; ui.mvFrom = -1; render(); break;
     case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;
     case 'craft': { const r = G.craft(S, a.dataset.k); toast(r.ok ? 'Fabriqué : ' + RECIPE_N[a.dataset.k].toLowerCase() + '.' : r.msg); save(); render(); openSkills(); break; }
@@ -1137,6 +1229,8 @@ document.addEventListener('click', e => {
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
+    case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
+    case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
@@ -1144,7 +1238,7 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } return; }
+  if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } else if (ui.tool && ui.tool !== 'select') { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; render(); } return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cell')) { e.preventDefault(); clickCell(+e.target.dataset.i); }
 });
 const PQ = { job: null };
@@ -1158,6 +1252,6 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { ui, cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();

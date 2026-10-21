@@ -398,6 +398,12 @@ body{padding:0}
   .app #today{left:8px;right:84px;bottom:106px}.app #today .card{width:104px}.app #today .task{width:180px}
   body.sel #today{display:none}
 }
+
+.app .tools.shut{width:auto;padding:5px}.app .tools.shut .tb:not(.tbm){display:none}.app .tools .tbm{background:var(--surface-2)}.app .tools.act .tbm{outline:2px solid var(--leaf)}
+.gh2{margin:10px 0 6px;font-family:var(--font-m);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}.gtasks .task{margin-bottom:5px}
+
+.app #today{left:74px}body.tools-open .app #today{left:262px}
+@media (max-width:560px){.app #today,body.tools-open .app #today{left:8px;bottom:70px}body.tools-open .app #today{bottom:144px}.app .endday{bottom:8px}}
 </style>
 
 <div class="app">
@@ -419,6 +425,7 @@ body{padding:0}
   <main class="stage">
     <section class="board" aria-label="Le jardin">
       <div class="garden-wrap"><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+        <button type="button" class="tb tbm" data-act="tools-toggle" title="Outils" aria-label="Ouvrir ou fermer les outils"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
         <button type="button" class="tb on" data-tool="select" data-act="tool-select" title="Sélectionner" aria-label="Sélectionner"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg></button>
         <button type="button" class="tb" data-tool="move" data-act="tool-move" title="Déplacer la carte" aria-label="Déplacer la carte"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <button type="button" class="tb" data-tool="reloc" data-act="tool-reloc" title="Déplacer une plante" aria-label="Déplacer une plante"><svg viewBox="0 0 24 24"><path d="M12 20V10M12 10c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-2-1.5-3.5-4-3.5 0 2 1.5 3.5 4 3.5zM4 20h6M17 17l3 3-3 3" transform="translate(0 -3)"/></svg></button>

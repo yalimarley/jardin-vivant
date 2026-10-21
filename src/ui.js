@@ -851,30 +851,43 @@ const SKILL_SVG = {
 };
 const SKILL_ART = k => ({ trogne: MATS.trogne.svg, fabrication: MATS.ortie.svg, sechage: MATS.sechoir.svg, transformation: MATS.bocaux.svg })[k] || SKILL_SVG[k];
 const RECIPE_N = { ortie: 'Purin d’ortie', prele: 'Prêle', nichoir: 'Nichoir à mésanges', oya: 'Oya', cuve: 'Cuve' };
+const SK_CAT = { plantation: 'culture', bouture: 'culture', greffe: 'culture', tonte: 'entretien', trogne: 'entretien', fabrication: 'entretien', cuisine: 'expertise', sechage: 'expertise', transformation: 'expertise' };
+const SK_ORDER = ['plantation', 'tonte', 'trogne', 'bouture', 'greffe', 'fabrication', 'sechage', 'transformation', 'cuisine'];
+function gardenerPortrait() {
+  return '<svg viewBox="0 0 72 80" width="72" height="80" aria-hidden="true"><rect width="72" height="80" rx="14" fill="#e6efdc"/><path d="M14 80c0-16 10-24 22-24s22 8 22 24z" fill="#5f8f4a"/><path d="M28 56h16v24H28z" fill="#e9d9a8"/><path d="M24 66l4-10M48 66l-4-10" stroke="#3d6a34" stroke-width="3" stroke-linecap="round"/><circle cx="36" cy="38" r="13" fill="#f1c9a0"/><ellipse cx="36" cy="27" rx="25" ry="5.5" fill="#d9ad52"/><path d="M23 27c0-12 6-18 13-18s13 6 13 18z" fill="#e7bf63"/><path d="M23 25h26" stroke="#b9442f" stroke-width="3"/><circle cx="31" cy="38" r="1.6" fill="#2b2018"/><circle cx="41" cy="38" r="1.6" fill="#2b2018"/><path d="M31 44q5 4 10 0" stroke="#8a4b2d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+}
 function openSkills() {
-  const L = G.skillList(S); let h = '<p class="note-p">Chaque geste que tu fais rapporte des points à sa compétence. Quand la barre est pleine, le niveau monte et le geste devient plus efficace. Les compétences se débloquent avec le nombre de plantations (tu en as <b>' + S.maxPlantings + '</b>).</p><div class="amen-grid">';
-  const order = ['trogne', 'bouture', 'fabrication', 'sechage', 'transformation', 'greffe', 'tonte', 'cuisine'];
-  order.forEach(k => {
-    const s = L.find(x => x.k === k), pips = [1, 2, 3].map(n => '<span style="color:' + (n <= s.lv ? '#d9a21b' : 'var(--line,#c9cfbe)') + '">●</span>').join(' ');
-    const prev = s.lv <= 1 ? 0 : s.th[0], nx = s.lv === 0 ? s.th[0] : s.lv === 1 ? s.th[0] : s.lv === 2 ? s.th[1] : null;
-    let h2 = '<div class="amen-item' + (s.locked ? ' lock' : '') + '"' + (k === 'fabrication' ? ' style="grid-column:1/-1"' : '') + '><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><div><b>' + s.n + '</b> <span class="k">' + (s.locked ? '' : pips + ' niveau ' + s.lv) + '</span>';
-    h2 += '<p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
-    if (s.locked) h2 += '<small>Débloquée après ' + s.req + ' plantations (tu en as ' + S.maxPlantings + ').</small>';
+  const L = G.skillList(S), tab = ui.skTab || 'all';
+  const xp = L.reduce((a, s) => a + s.pts, 0), lvl = 1 + Math.floor(xp / 20), into = xp % 20, act = L.filter(s => !s.locked).length, tl = L.reduce((a, s) => a + s.lv, 0);
+  const title = lvl < 2 ? 'Apprenti jardinier-forêt' : lvl < 4 ? 'Jardinier-forêt' : lvl < 7 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + lvl + '</strong><div class="bar"><i style="width:' + (into / 20 * 100) + '%"></i></div><small class="sk-xp">' + xp + ' points de pratique · encore ' + (20 - into) + ' pour le niveau ' + (lvl + 1) + '</small></div></div>';
+  h += '<div class="sk-stats"><div><b>' + xp + '</b><span>Points de pratique</span></div><div><b>' + tl + '</b><span>Niveaux atteints</span></div><div><b>' + act + '/' + L.length + '</b><span>Compétences actives</span></div></div>';
+  h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + S.maxPlantings + ' plantation' + (S.maxPlantings > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte des points à sa compétence. Quand la barre se remplit, le niveau monte et le geste devient plus efficace.</p>';
+  h += '<div class="sk-tabs" role="tablist">' + [['all', 'Toutes'], ['culture', 'Culture'], ['entretien', 'Entretien'], ['expertise', 'Expertise']].map(([t, n]) => '<button type="button" role="tab" aria-selected="' + (tab === t) + '" class="sk-tab' + (tab === t ? ' on' : '') + '" data-act="skill-tab" data-t="' + t + '">' + n + '</button>').join('') + '</div><div class="sk-grid">';
+  SK_ORDER.filter(k => tab === 'all' || SK_CAT[k] === tab).forEach(k => {
+    const s = L.find(x => x.k === k); if (!s) return;
+    const prev = s.lv <= 1 ? 0 : s.th[0], nx = s.lv <= 1 ? s.th[0] : s.lv === 2 ? s.th[1] : null;
+    const seg = [1, 2, 3].map(n => { let f = 0; if (!s.locked) { if (n < s.lv) f = 100; else if (n === s.lv) f = s.lv >= 3 ? 100 : Math.min(100, Math.round((s.pts - prev) / (nx - prev) * 100)); } return '<i><b style="width:' + f + '%"></b></i>'; }).join('');
+    let c = '<div class="sk-card' + (s.locked ? ' lock' : '') + '"><div class="sk-top"><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><span class="sk-lv">' + s.lv + '/3</span></div><h4>' + s.n + '</h4><p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
+    if (!s.locked && s.lv < 3) c += '<p class="sk-next">Niveau suivant : ' + s.d[s.lv].charAt(0).toLowerCase() + s.d[s.lv].slice(1) + '</p>';
+    c += '<div class="sk-seg">' + seg + '</div><small>' + (s.locked ? 'Débloquée après ' + s.req + ' plantations' : (s.lv >= 3 ? 'Niveau maximum · ' + s.pts + ' points' : s.pts + ' / ' + nx + ' points') + ' · ' + s.how) + '</small>';
+    const A = [];
+    if (s.locked) A.push('<button type="button" class="sk-btn dark" disabled>Débloquée à ' + s.req + ' plantations</button>');
     else {
-      if (s.lv < 3) h2 += '<p style="opacity:.85">Niveau suivant : ' + s.d[s.lv] + '</p>';
-      h2 += '<div class="bar"><i style="width:' + (s.lv >= 3 ? 100 : Math.min(100, Math.round((s.pts - prev) / (nx - prev) * 100))) + '%"></i></div><small>' + (s.lv >= 3 ? 'Niveau maximum · ' + s.pts + ' points' : s.pts + ' / ' + nx + ' points') + ' · ' + s.how + '</small>';
-      const A = [];
-      if (k === 'trogne') A.push('<button type="button" class="btn sm primary" data-act="skill-trogne">Tailler une trogne</button>');
-      if (k === 'bouture') A.push('<button type="button" class="btn sm primary" data-act="skill-mode" data-k="bouture">Prélever une bouture</button>');
-      if (k === 'greffe') A.push('<button type="button" class="btn sm primary" data-act="skill-mode" data-k="greffe">Greffer un arbre</button>');
-      if (k === 'sechage' || k === 'transformation') A.push(S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Ouvrir l’atelier</button>' : '<span class="k">Il faut un atelier (boutique).</span>');
-      if (k === 'fabrication') A.push(Object.keys(G.RECIPES).map(r => { const rc = G.RECIPES[r], ok = s.lv >= rc.lvl && (S.mats.paillage || 0) >= (rc.paillage || 0) && (S.mats.compost || 0) >= (rc.compost || 0); return '<button type="button" class="btn sm' + (s.lv >= rc.lvl ? '' : '') + '" data-act="craft" data-k="' + r + '"' + (ok ? '' : ' disabled') + ' title="' + (s.lv >= rc.lvl ? '' : 'Niveau ' + rc.lvl + ' requis') + '">' + RECIPE_N[r] + ' · ' + (rc.paillage || 0) + ' paillage' + (rc.compost ? ' + ' + rc.compost + ' compost' : '') + (s.lv >= rc.lvl ? '' : ' (niv. ' + rc.lvl + ')') + '</button>'; }).join(' '));
-      if (A.length) h2 += '<div class="acts" style="justify-content:flex-start;flex-wrap:wrap;gap:6px">' + A.join('') + '</div>';
+      if (k === 'trogne') A.push('<button type="button" class="sk-btn" data-act="skill-trogne">Tailler une trogne</button>');
+      if (k === 'bouture') A.push('<button type="button" class="sk-btn" data-act="skill-mode" data-k="bouture">Prélever une bouture</button>');
+      if (k === 'greffe') A.push('<button type="button" class="sk-btn" data-act="skill-mode" data-k="greffe">Greffer un arbre</button>');
+      if (k === 'sechage' || k === 'transformation') A.push(S.atelier ? '<button type="button" class="sk-btn" data-act="atelier">Ouvrir l’atelier</button>' : '<button type="button" class="sk-btn" disabled>Il faut un atelier (boutique)</button>');
+      if (k === 'fabrication') A.push(Object.keys(G.RECIPES).map(r => { const rc = G.RECIPES[r], ok = s.lv >= rc.lvl && (S.mats.paillage || 0) >= (rc.paillage || 0) && (S.mats.compost || 0) >= (rc.compost || 0); return '<button type="button" class="sk-btn sm" data-act="craft" data-k="' + r + '"' + (ok ? '' : ' disabled') + ' title="' + (s.lv >= rc.lvl ? '' : 'Niveau ' + rc.lvl + ' requis') + '">' + RECIPE_N[r] + ' · ' + (rc.paillage || 0) + ' paillage' + (rc.compost ? ' + ' + rc.compost + ' compost' : '') + (s.lv >= rc.lvl ? '' : ' (niv. ' + rc.lvl + ')') + '</button>'; }).join(''));
+      if (k === 'plantation') A.push('<button type="button" class="sk-btn" data-act="close">Aller planter</button>');
+      if (k === 'tonte') A.push('<button type="button" class="sk-btn" data-act="close">Aller tondre</button>');
+      if (k === 'cuisine') A.push('<button type="button" class="sk-btn" data-act="kitchen">Ouvrir le garde-manger</button>');
     }
-    h += h2 + '</div></div>';
+    c += '<div class="sk-acts">' + A.join('') + '</div></div>';
+    h += c;
   });
   h += '</div>';
-  modal('Compétences du jardinier', h, true);
+  modal('Mon jardinier', h, true);
 }
 
 function openJournal() {
@@ -1123,6 +1136,7 @@ document.addEventListener('click', e => {
     case 'mow1': G.mow(S, i); toast('Consoude fauchée : +2 paillage.'); render(); break;
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
+    case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
     case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;

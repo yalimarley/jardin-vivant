@@ -9,7 +9,7 @@ let fails=0; const ok=(c,m)=>{ if(c) console.log('ok  :',m); else { console.log(
   await p.goto('file://'+process.cwd()+'/jardin-vivant.html'); await p.waitForTimeout(1200);
   const txt=async sel=>(await p.$eval(sel,e=>e.textContent));
   await p.click('[data-act="skills"]'); await p.waitForTimeout(300);
-  ok(/Compétences du jardinier/.test(await txt('#layer .modal')) && /Bouture/.test(await txt('#layer .modal')),'page Compétences');
+  ok(/Mon jardinier/.test(await txt('#layer .modal')) && /Bouture/.test(await txt('#layer .modal')),'page Compétences');
   await p.screenshot({path:'k_1.png'});
   await p.evaluate(()=>{document.querySelector('#layer .modal').scrollTop=2000}); await p.waitForTimeout(150); await p.screenshot({path:'k_2.png'});
   await p.click('[data-act="craft"][data-k="ortie"]'); await p.waitForTimeout(300);

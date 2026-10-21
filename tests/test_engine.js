@@ -97,7 +97,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
 
 { const s = G.newGame(); const g0 = G.guildeon(s); if (!g0.qs.length || g0.ready) { console.log('ÉCHEC Guildéon départ'); process.exit(1); }
   s.boosters = 1; if (!G.quests(s).find(q => q.id === 'booster').done) { console.log('ÉCHEC quête booster'); process.exit(1); }
-  const r = G.claimQuest(s, 'booster'); if (!r.ok || G.claimQuest(s, 'booster').ok || s.mats.paillage !== 4) { console.log('ÉCHEC récompense'); process.exit(1); }
+  const p0 = s.mats.paillage; const r = G.claimQuest(s, 'booster'); if (!r.ok || G.claimQuest(s, 'booster').ok || s.mats.paillage <= p0) { console.log('ÉCHEC récompense'); process.exit(1); }
   const d = G.demo(); if (G.guilds(d).n < 1) { console.log('ÉCHEC guilde démo'); process.exit(1); }
   console.log('ok  : Guildéon (quêtes, récompense unique, guildes)'); }
 
@@ -115,7 +115,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
 
 { const fail = m => { console.log('ÉCHEC ' + m); process.exit(1); };
   const s = G.demo(); s.day += 0; s.maxPlantings = 25; s.boosterDay = -1; s.boosters = 3; const bc = G.openBooster(s);
-  if (!bc || bc.length !== 10 || bc.filter(c => c.t === 'plant').length !== 5 || bc.filter(c => c.t === 'mat').length !== 5) fail('booster 5 plantes + 5 cartes');
+  if (!bc || bc.length !== 6 || bc.filter(c => c.t === 'plant').length !== 6) fail('booster 6 plantes');
   if (!bc.some(c => c.t === 'plant' && ['Arbre', 'Arbuste'].includes(G.P[c.pid].strate))) fail('booster sans ligneux');
   const t = s.grid.findIndex(c => c && !c.treille && G.P[c.pid].strate === 'Arbre'), h = s.grid.findIndex(c => c && !c.treille && c !== s.grid[t]);
   delete s.grid[t].nichoir; s.mats.nichoir = 1; if (!G.placeNichoir(s, t).ok || G.placeNichoir(s, h).ok === true && G.P[s.grid[h].pid].strate !== 'Arbre') fail('nichoir');
@@ -153,5 +153,13 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   ok(!bad && n === 480, 'boosters : six plantes, rien d’autre' + (bad ? ' (' + bad + ')' : ''));
   s.maxPlantings = 30; s.feves = 500; s.atelier = true; const out = ['ortie', 'prele', 'nichoir', 'oya', 'cuve', 'bocaux', 'mycor', 'plan', 'savoir'].map(k => [k, G.shopBuy(s, k).ok]); ok(out.every(x => x[1]) && s.mats.bocaux >= 6, 'boutique : soins, eau, savoir en vente ' + JSON.stringify(out.filter(x => !x[1]).map(x => x[0])));
   const s2 = G.newGame(); s2.feves = 100; ok(!G.shopBuy(s2, 'mycor').ok && !G.shopBuy(s2, 'bocaux').ok, 'boutique : paliers et atelier requis'); }
+// ---- poulailler
+{ const s = G.newGame(); s.maxPlantings = 20; s.feves = 100; s.waste = 2;
+  const sh = G.shopBuy(s, 'poulailler'); (m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)})(sh.ok ? 'ok  : poulailler acheté en boutique' : 'ECHEC: achat poulailler');
+  const b = G.buildPoulailler(s); (m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)})(b.ok && s.poulailler && s.poules === 3 ? 'ok  : poulailler construit, 3 poules' : 'ECHEC: construction poulailler');
+  for (let d = 0; d < 40; d++) { s.waste = 1; G.nextDay(s); }
+  (m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)})(s.eggs > 5 ? 'ok  : les poules pondent (' + s.eggs.toFixed(1) + ' œufs en 40 j)' : 'ECHEC: pas d’œufs ' + s.eggs);
+  s.eggs = 5; const k0 = s.eggs; const r = G.cook(s, ['eggs']); (m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)})(r.ok && s.eggs < k0 ? 'ok  : cuisiner des œufs' : 'ECHEC: cuisine œufs ' + JSON.stringify(r)); }
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

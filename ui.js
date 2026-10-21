@@ -935,11 +935,14 @@ document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.i
 /* ---------- actions ---------- */
 let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3400); }
 function applyView() {
-  const svg = $('garden'); if (!svg) return; view.z = clamp(view.z, PHONE() ? 1 : .8, 3.2); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
+  const svg = $('garden'); if (!svg) return; view.z = clamp(isFinite(view.z) ? view.z : 1, camMin(), CAM.zoomMax); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
   const x = clamp(view.cx - w / 2, -150, 910 - w), y = clamp(view.cy - h / 2, -60, 600 - h); view.cx = x + w / 2; view.cy = y + h / 2;
   svg.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1));
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
 }
+/* ---------- caméra : réglages centralisés ---------- */
+const CAM = { zoomMinDesk: .8, zoomMinPhone: 1, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
+const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
   const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now();
@@ -962,18 +965,72 @@ function renderStr() {
   m.innerHTML = '<b>Strates</b>' + ['Arbre', 'Arbuste', 'Grimpante', 'Herbacée', 'Racine', 'Couvre-sol'].map(s => '<button type="button" class="sch' + (ui.strF === s ? ' on' : '') + '" data-act="strate-set" data-s="' + s + '">' + strIco(s) + '<span>' + s + '</span><em>' + (n[s] || 0) + '</em></button>').join('') + '<button type="button" class="sch' + (!ui.strF ? ' on' : '') + '" data-act="strate-set" data-s="">Tout afficher</button>';
 }
 function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach(b => b.classList.toggle('on', (ui.tool || 'select') === b.dataset.tool)); }
-(function initPan() {
-  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return; const ptrs = new Map(); let moved = 0, pinch = null;
-  const dist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
-  wrap.addEventListener('pointerdown', e => { if (!e.target.closest('#garden')) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; if (ptrs.size === 2) pinch = { d: dist(), z: view.z }; });
-  wrap.addEventListener('pointermove', e => { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
-    if (ptrs.size === 2 && pinch) { view.z = pinch.z * dist() / pinch.d; moved = 99; applyView(); return; }
-    if (ui.tool === 'move' || view.z > 1.001) { moved += Math.abs(dx) + Math.abs(dy); if (moved > 6) { const r = $('garden').getBoundingClientRect(); view.cx -= dx * (760 / view.z) / r.width; view.cy -= dy * (460 / view.z) / r.height; applyView(); } } });
-  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; };
-  wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up); wrap.addEventListener('pointerleave', up);
-  wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
-  wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
+/* ---------- navigation caméra : souris, clavier, tactile ---------- */
+const camBox = () => { const svg = $('garden'), r = svg.getBoundingClientRect(), w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z, s = Math.min(r.width / w, r.height / h) || 1; return { r, w, h, s, x: view.cx - w / 2, y: view.cy - h / 2, ox: (r.width - w * s) / 2, oy: (r.height - h * s) / 2 }; };
+const camWorld = (cx, cy) => { const b = camBox(); return { x: b.x + (cx - b.r.left - b.ox) / b.s, y: b.y + (cy - b.r.top - b.oy) / b.s }; };
+function camPan(dx, dy) { const b = camBox(); view.cx -= dx / b.s; view.cy -= dy / b.s; applyView(); }
+function camZoomAt(f, cx, cy) {
+  if (!(f > 0) || !isFinite(f)) return; const p = camWorld(cx, cy); view.z = clamp(view.z * f, camMin(), CAM.zoomMax); applyView();
+  const q = camWorld(cx, cy); view.cx += p.x - q.x; view.cy += p.y - q.y; applyView();
+}
+function camReset() { view = defView(); VROT = 0; render(); }
+const camNavMode = () => (ui.tool === 'select' || ui.tool === 'move') && !ui.mode;
+const camTyping = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'));
+const cam = (function initCamera() {
+  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return { destroy() {} };
+  const ptrs = new Map(); let g = null, blockUntil = 0; const keys = new Set(); let raf = 0, last = 0;
+  const L = []; const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); L.push([t, ev, fn, o]); };
+  const cent = () => { const [a, b] = [...ptrs.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  const reset = () => { ptrs.clear(); g = null; keys.clear(); cancelAnimationFrame(raf); raf = 0; };
+  on(wrap, 'pointerdown', e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return;
+    if (e.pointerType === 'mouse') [...ptrs].forEach(([id, q]) => { if (q.type === 'mouse') ptrs.delete(id); });
+    if (ptrs.size === 0) { g = null; blockUntil = 0; }
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, type: e.pointerType, btn: e.button, dead: false, active: false });
+    if (e.pointerType === 'mouse') {
+      if (e.button === 2 || e.button === 1) { g = { mode: 'pan', id: e.pointerId, forced: true }; try { wrap.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); }
+      else if (e.button === 0 && (ui.tool === 'move' || (view.z > 1.001 && camNavMode()))) g = { mode: 'pan', id: e.pointerId };
+      return;
+    }
+    if (ptrs.size === 1) { if (camNavMode()) g = { mode: 'pan', id: e.pointerId }; }
+    else if (ptrs.size === 2) { const c = cent(); g = { mode: 'pinch', x: c.x, y: c.y, d: c.d }; blockUntil = Infinity; }
+  });
+  on(window, 'pointermove', e => {
+    const p = ptrs.get(e.pointerId); if (!p) return; const px = p.x, py = p.y; p.x = e.clientX; p.y = e.clientY;
+    if (g && g.mode === 'pinch' && ptrs.size === 2) { const c = cent(); camPan(c.x - g.x, c.y - g.y); camZoomAt(c.d / g.d, c.x, c.y); g.x = c.x; g.y = c.y; g.d = c.d; return; }
+    const far = Math.hypot(p.x - p.sx, p.y - p.sy) > CAM.dragPx;
+    if (far && !p.active && !p.dead) { p.active = true; blockUntil = Infinity; }
+    if (g && g.mode === 'pan' && g.id === e.pointerId && p.active && !p.dead) { if (g.moved) camPan(p.x - px, p.y - py); else { g.moved = true; camPan(p.x - p.sx, p.y - p.sy); } }
+  });
+  const up = e => {
+    const p = ptrs.get(e.pointerId); if (!p) return; ptrs.delete(e.pointerId);
+    if (g && g.mode === 'pinch') { g = null; ptrs.forEach(q => { q.dead = true; }); }
+    else if (g && g.id === e.pointerId) g = null;
+    if (blockUntil === Infinity || p.active) blockUntil = performance.now() + (ptrs.size ? 1e9 : 400);
+    if (!ptrs.size) { if (blockUntil > performance.now() + 1e8) blockUntil = performance.now() + 400; }
+  };
+  on(window, 'pointerup', up); on(window, 'pointercancel', e => { up(e); if (e.type === 'pointercancel') { ptrs.delete(e.pointerId); } });
+  on(wrap, 'lostpointercapture', e => { if (ptrs.has(e.pointerId) && ptrs.get(e.pointerId).forced) up(e); });
+  on(window, 'blur', reset); on(document, 'visibilitychange', () => { if (document.hidden) reset(); });
+  on(wrap, 'click', e => { if (blockUntil === Infinity || performance.now() < blockUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
+  on(wrap, 'contextmenu', e => { if (e.target.closest && e.target.closest('#garden')) e.preventDefault(); });
+  on(wrap, 'wheel', e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return; e.preventDefault();
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1), steps = clamp(e.ctrlKey ? dy / 12 : dy / 100, -3, 3);
+    camZoomAt(Math.pow(CAM.wheelStep, -steps), e.clientX, e.clientY);
+  }, { passive: false });
+  // clavier : ZQSD / WASD / flèches, Espace pour recentrer
+  const DIR = { arrowup: [0, 1], z: [0, 1], w: [0, 1], arrowdown: [0, -1], s: [0, -1], arrowleft: [1, 0], q: [1, 0], a: [1, 0], arrowright: [-1, 0], d: [-1, 0] };
+  const loop = t => { if (!keys.size) { raf = 0; return; } const dt = Math.min(.05, (t - last) / 1000 || .016); last = t; let dx = 0, dy = 0; keys.forEach(k => { dx += DIR[k][0]; dy += DIR[k][1]; }); const n = Math.hypot(dx, dy); if (n) camPan(dx / n * CAM.keyPxPerSec * dt, dy / n * CAM.keyPxPerSec * dt); raf = requestAnimationFrame(loop); };
+  on(document, 'keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || camTyping(e.target) || $('layer').innerHTML) return; const k = (e.key || '').toLowerCase();
+    if (DIR[k]) { e.preventDefault(); if (!keys.has(k)) keys.add(k); if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); } return; }
+    if (e.key === ' ' && !(e.target.closest && e.target.closest('button,a,summary,[role="button"],.cell'))) { e.preventDefault(); camReset(); }
+  });
+  on(document, 'keyup', e => { keys.delete((e.key || '').toLowerCase()); });
+  return { reset, destroy() { reset(); L.forEach(([t, ev, fn, o]) => t.removeEventListener(ev, fn, o)); L.length = 0; }, state: () => ({ ptrs: ptrs.size, g: g && g.mode, keys: keys.size }), step: dt => { /* test */ let dx = 0, dy = 0; keys.forEach(k => { dx += DIR[k][0]; dy += DIR[k][1]; }); const n = Math.hypot(dx, dy); if (n) camPan(dx / n * CAM.keyPxPerSec * dt, dy / n * CAM.keyPxPerSec * dt); } };
 })();
+window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
   { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
   { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
@@ -1152,7 +1209,7 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } return; }
+  if (e.key === 'Escape') { if ($('layer').innerHTML) closeModal(); else if (ui.mode) { ui.mode = null; render(); } else if (ui.tool && ui.tool !== 'select') { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; render(); } return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cell')) { e.preventDefault(); clickCell(+e.target.dataset.i); }
 });
 const PQ = { job: null };
@@ -1166,6 +1223,6 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();

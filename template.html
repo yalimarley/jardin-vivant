@@ -292,7 +292,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .tb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tb:hover{background:var(--bg)}.tb.on{background:var(--leaf);color:var(--on-leaf)}
 .tools .sep{height:1px;background:var(--line);margin:2px 4px}
-.garden-wrap.panable #garden{cursor:grab;touch-action:none}.garden-wrap[data-tool="delete"] #garden{cursor:crosshair}
+#garden{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.garden-wrap.panable #garden{cursor:grab}.garden-wrap[data-tool="delete"] #garden{cursor:crosshair}
 .cell.delp .frame{stroke:var(--fruit);stroke-width:4}
 @media (max-width:560px){.tools{flex-direction:row;flex-wrap:wrap;left:6px;top:6px;max-width:calc(100% - 12px)}.tb{width:36px;height:36px}.tools .sep{width:1px;height:24px}}
 .guil{position:absolute;right:10px;top:10px;z-index:4;width:min(330px,calc(100% - 76px));display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}

@@ -1838,9 +1838,8 @@ function renderGarden() {
   const byH = (a, b) => S.grid[a].health - S.grid[b].health, setM = new Set(okM.sort(byH).slice(0, Math.max(3, S.mats.paillage))), setC = new Set(okC.sort(byH).slice(0, Math.max(2, S.mats.compost * 2)));
   S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 80 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : p.strate === 'Racine' ? 26 : 30;
     if (ui.strF && ui.strF !== p.strate) return;
-    const L = []; if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
-    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); });
-    if (cell.water < 35) h += badge('water', cx + 1, cy + 7, cell.water < 20, i, 5); });
+    const L = []; if (cell.water < 35) L.push(['water', cell.water < 20 ? 1 : 0]); if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
+    L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); }); });
   S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } });
   h += '</g>';
   LAWNS.forEach(([x, y], k) => { if (G.lawnReady(S, k)) { const q = wpos(x, y - 36); h += worldBadge('lawn', q[0].toFixed(1), q[1].toFixed(1), k); } });

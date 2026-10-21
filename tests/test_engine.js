@@ -149,5 +149,9 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const ti = d.grid.findIndex(c => c && !c.treille && G.P[c.pid].strate === 'Arbre' && G.P[c.pid].kg > 0 && !c.grafted); const k0 = d.skills.pts.greffe, gr = G.greffer(d, ti); ok(gr.ok && d.grid[ti].grafted >= 1 && d.skills.pts.greffe === k0 + 4 && !G.greffer(d, ti).ok, 'greffe : arbre fruitier greffé une fois');
   d.skills.pts.trogne = 12; const lt = d.mats.paillage; d.trees[1] = { formed: true, last: d.day - 200 }; G.cutTrogne(d, 1); ok(d.mats.paillage - lt >= 6, 'trogne niveau 2 : +6 paillage');
   const n = G.takeNotes(d); ok(Array.isArray(n), 'notifications de compétence'); }
+{ const s = G.newGame(); s.maxPlantings = 30; let bad = null, n = 0; for (let k = 0; k < 80; k++) { s.boosterDay = -1; s.day++; s.boosters = 2 + k; const b = G.openBooster(s); n += b.length; b.forEach(c => { if (c.t === 'mat' && !['paillage', 'compost', 'chemin'].includes(c.k)) bad = c.k; }); }
+  ok(!bad && n === 800, 'boosters : plantes, paillage, compost, chemin seulement' + (bad ? ' (' + bad + ')' : ''));
+  s.maxPlantings = 30; s.feves = 500; s.atelier = true; const out = ['ortie', 'prele', 'nichoir', 'oya', 'cuve', 'bocaux', 'mycor', 'plan', 'savoir'].map(k => [k, G.shopBuy(s, k).ok]); ok(out.every(x => x[1]) && s.mats.bocaux >= 6, 'boutique : soins, eau, savoir en vente ' + JSON.stringify(out.filter(x => !x[1]).map(x => x[0])));
+  const s2 = G.newGame(); s2.feves = 100; ok(!G.shopBuy(s2, 'mycor').ok && !G.shopBuy(s2, 'bocaux').ok, 'boutique : paliers et atelier requis'); }
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

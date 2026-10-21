@@ -15,7 +15,7 @@ const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
 const FURN = ['chemin', 'treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac'];
 const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 4, canard: 6, grandeserre: 20, hamac: 8 };
-const SHOP = { treille: 12, hamac: 20, pergola: 25, serre: 25, canard: 20, sechoir: 25, mare: 30, ruche: 35, atelier: 40, grandeserre: 60 };
+const SHOP = { ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 25, serre: 25, canard: 20, sechoir: 25, mare: 30, ruche: 35, atelier: 40, grandeserre: 60 };
 const SKILLS = {
   tonte: { n: 'Tonte', req: 0, th: [15, 45], d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone, et l’herbe repousse 3 jours plus vite.'], how: 'Tonds les zones d’herbe autour du jardin (+1 point par zone).' },
   trogne: { n: 'Trognes', req: 4, th: [12, 30], d: ['Tailler un arbre en trogne : +4 paillage et croissance accélérée 20 jours.', '+6 paillage par coupe.', '+8 paillage par coupe, croissance accélérée 30 jours, et une coupe tous les 75 jours.'], how: 'Forme une trogne (+2 points) et coupe-la (+3 points).' },
@@ -303,18 +303,15 @@ function make(P) {
         if (st === 'Racine' || st === 'Herbacée') { const fp = fastPool({ day: s.day, maxPlantings: 99, plantings: 99 }, m, [st]).filter(p => !used.has(p.id)); if (fp.length) pool = fp; }
         if (pool.length) { const p = pool[Math.floor(rng() * pool.length)]; used.add(p.id); cards.push({ t: 'plant', pid: p.id }); }
       }
-      ['paillage', 'compost', 'chemin', 'savoir'].forEach(k => cards.push({ t: 'mat', k }));
+      ['paillage', 'compost', 'chemin', 'paillage'].forEach(k => cards.push({ t: 'mat', k }));
     } else {
       const mp = s.maxPlantings, wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste';
       for (let k = 0; k < 5; k++) cards.push({ t: 'plant', pid: pickPlant(s, rng).id });
       if (s.boosters < 14 && (m >= 9 || m <= 2)) for (let k = 0; k < 2; k++) { const fp = fastPool(s, m).filter(p => !cards.slice(0, 2).some(c => c.pid === p.id)); if (fp.length) cards[k] = { t: 'plant', pid: fp[Math.floor(rng() * fp.length)].id }; }
       for (let tries = 0; tries < 8 && unlocked(s).has('Arbuste') && !cards.some(c => wood(P[c.pid])); tries++) cards[4] = { t: 'plant', pid: pickPlant(s, rng).id };
       const wp = list => { const L = list.filter(x => x[1] > 0), tot = L.reduce((a, b) => a + b[1], 0); let x = rng() * tot; for (const [k, v] of L) { x -= v; if (x <= 0) return k; } return L.length ? L[L.length - 1][0] : 'paillage'; };
-      const warm = m >= 4 && m <= 9, sum = m >= 5 && m <= 9;
-      const common = [['paillage', 40], ['compost', 32], ['chemin', 12]];
-      const soin = [['ortie', mp >= 6 ? (m >= 2 && m <= 8 ? 14 : 5) : 0], ['prele', mp >= 8 ? (m >= 2 && m <= 5 || m >= 9 && m <= 10 ? 12 : 4) : 0], ['nichoir', mp >= 10 ? 9 : 0], ['oya', mp >= 10 ? (sum ? 12 : 3) : 0], ['cuve', mp >= 4 && (s.cuves || 0) < 4 ? 6 : 0], ['bocaux', s.atelier ? (m >= 5 && m <= 10 ? 20 : 8) : 0], ['paillage', 10], ['compost', 8]];
-      const rare = [['savoir', mp >= 3 ? 12 : 0], ['plan', mp >= 5 ? 10 : 0], ['mycor', mp >= 14 ? 7 : 0], ['compost', 5], ['paillage', 5]];
-      cards.push({ t: 'mat', k: wp(common) }, { t: 'mat', k: wp(common) }, { t: 'mat', k: wp(soin) }, { t: 'mat', k: wp(soin) }, { t: 'mat', k: wp(rare) });
+      const common = [['paillage', 45], ['compost', 40], ['chemin', 6]];
+      for (let k = 0; k < 5; k++) cards.push({ t: 'mat', k: wp(common) });
     }
     for (const c of cards) { if (c.t === 'plant') s.cards[c.pid] = (s.cards[c.pid] || 0) + 1; else { c.q = MAT_QTY[c.k] || 1; s.mats[c.k] = (s.mats[c.k] || 0) + c.q; } }
     s.boosterDay = s.day; s.boosters++; s.feves = (s.feves || 0) + 1; bump(s);
@@ -591,14 +588,16 @@ function make(P) {
   function installSechoir(s) { if (!s.atelier) return { ok: false, msg: 'Construis d’abord l’atelier.' }; if (s.sechoir) return { ok: false, msg: 'Le séchoir est déjà installé.' }; if (!(s.mats.sechoir > 0)) return { ok: false, msg: 'Pas de carte Séchoir.' }; s.mats.sechoir--; s.sechoir = true; log(s, 'good', 'Séchoir installé dans l’atelier.'); bump(s); return { ok: true }; }
   function hamacOk(s) { return s.grid.some((c, i) => c && c.treille && c.furn === 'hamac' && neigh(i).filter(j => s.grid[j] && !s.grid[j].treille && s.grid[j].health > 60).length >= 3); }
   function shopInfo(s, k) {
-    const price = SHOP[k], un = k === 'atelier' ? MAT_UNLOCK.atelier : k === 'sechoir' ? MAT_UNLOCK.sechoir : FURN_UNLOCK[k];
+    const price = SHOP[k], un = MAT_UNLOCK[k] != null ? MAT_UNLOCK[k] : FURN_UNLOCK[k];
     let why = null; if (s.maxPlantings < un) why = 'Débloqué après ' + un + ' plantations'; else if (k === 'atelier' && (s.atelier || s.mats.atelier > 0)) why = s.atelier ? 'Déjà construit' : 'Déjà en réserve'; else if (k === 'sechoir' && (s.sechoir || s.mats.sechoir > 0)) why = s.sechoir ? 'Déjà installé' : 'Déjà en réserve'; else if (k === 'sechoir' && !s.atelier && !(s.mats.atelier > 0)) why = 'Il faut d’abord un atelier';
+    if (!why && k === 'cuve' && (s.cuves || 0) + (s.mats.cuve || 0) >= 4) why = 'Tu as déjà 4 cuves';
+    if (!why && k === 'bocaux' && !s.atelier) why = 'Il faut d’abord un atelier';
     return { price, unlock: un, why, owned: s.mats[k] || 0, can: !why && (s.feves || 0) >= price };
   }
   function shopBuy(s, k) {
     if (!SHOP[k]) return { ok: false, msg: 'Cet article n’est pas en vente.' }; const f = shopInfo(s, k);
     if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' ginkgos.' };
-    s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' ginkgos.'); bump(s, 'shop'); return { ok: true, price: f.price };
+    s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + (MAT_QTY[k] || 1); log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' ginkgos.'); bump(s, 'shop'); return { ok: true, price: f.price };
   }
   function recycleValue(s, pid, n) { return (RECYCLE[P[pid].rarete] || 1) * n; }
   function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const g = recycleValue(s, pid, n); s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }

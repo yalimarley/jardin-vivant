@@ -46,7 +46,9 @@ ok(q('#fiche h2').textContent.length > 0, 'fiche affichée : ' + q('#fiche h2').
 // hors saison
 // sélection d'une plante existante
 click(qa('#garden .cell:not(.free)')[0]);
-ok(q('#fiche .meters'), 'fiche avec jauges');
+ok(q('#fiche .fmini') && !q('#fiche .meters'), 'sélection : fiche réduite (nom + bouton)');
+click(q('[data-act="fiche-open"]'));
+ok(q('#fiche .meters'), 'fiche avec jauges après « Ouvrir la fiche »');
 // passer des jours
 click(viaMenu('[data-act="time"]'));
 click(q('[data-act="skip"][data-n="30"]'));
@@ -58,7 +60,7 @@ ok(/juillet 2027/.test(q('#when').textContent), 'démo juillet 2027');
 ok(qa('#garden .badge[data-badge="harvest"]').length >= 5, 'badges de récolte : ' + qa('#garden .badge[data-badge="harvest"]').length);
 // fiche d'un arbre avec voisins
 const cell = qa('#garden .cell')[1];
-click(cell);
+click(cell); if (q('[data-act="fiche-open"]')) click(q('[data-act="fiche-open"]'));
 ok(qa('#fiche .notes li').length >= 1, 'notes de voisinage : ' + qa('#fiche .notes li').length);
 ok(qa('#garden path[stroke-dasharray]').length >= 1, 'lignes de synergie dessinées');
 // tâche récolte

@@ -609,7 +609,7 @@ function renderGarden() {
     const pn = P[S.grid[ui.sel].pid].name, tw = pn.length * 6.6 + 18;
     h += '<g style="pointer-events:none"><rect x="' + (A[0] - tw / 2).toFixed(1) + '" y="' + (A[1] + 10) + '" width="' + tw.toFixed(1) + '" height="20" rx="10" fill="var(--ink)" opacity=".88"/><text x="' + A[0] + '" y="' + (A[1] + 24) + '" text-anchor="middle" font-family="var(--font-b)" font-size="12" font-weight="600" fill="var(--bg)">' + pn + '</text></g>';
   }
-  const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
+  const badge = (kind, bx, by, urgent, i, k) => '<g class="badge" data-badge="' + kind + '" data-i="' + i + '" transform="translate(' + bx + ' ' + by + ') scale(' + (1 / KS).toFixed(3) + ')" role="button" aria-label="' + BD[kind][2] + '"><circle r="19" fill="transparent"/><g class="bb" style="animation-delay:-' + ((i * 7 + k * 3) % 10) / 10 + 's"><circle class="bg" r="11" fill="' + BD[kind][0] + '" stroke="' + (urgent ? 'var(--fruit)' : '#fff') + '" stroke-width="' + (urgent ? 3.2 : 2) + '"/><g transform="translate(-7.5 -7.5) scale(.75)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + IC[BD[kind][1]] + '</g></g></g>';
   const okM = [], okC = []; S.grid.forEach((c, i) => { if (!c || c.treille) return; const p = P[c.pid]; if (p.strate === 'Couvre-sol') return; if (!c.mulch && S.mats.paillage > 0) okM.push(i); if (S.mats.compost > 0 && S.day > (c.compostUntil || -1) && G.phase(c).stage !== 'graine') okC.push(i); });
   const byH = (a, b) => S.grid[a].health - S.grid[b].health, setM = new Set(okM.sort(byH).slice(0, Math.max(3, S.mats.paillage))), setC = new Set(okC.sort(byH).slice(0, Math.max(2, S.mats.compost * 2)));
   S.grid.forEach((cell, i) => { if (!cell || cell.treille) return; const [cx, cy] = centers[i], p = P[cell.pid], tall = p.strate === 'Arbre' ? 80 : p.strate === 'Grimpante' ? 52 : p.strate === 'Arbuste' ? 42 : p.strate === 'Racine' ? 26 : 30;
@@ -655,7 +655,14 @@ function renderToday() {
 /* ---------- fiche ---------- */
 function dur(days) { return days < 60 ? Math.max(1, Math.round(days)) + ' jours' : days < 730 ? Math.round(days / 30) + ' mois' : fmt(days / 365) + ans(days); }
 const ans = () => ' ans';
-function renderFiche() { renderFiche0(); const el = $('fiche'); el.hidden = ui.sel < 0; if (!el.hidden) el.insertAdjacentHTML('afterbegin', '<button type="button" class="fclose" data-act="fiche-close" aria-label="Fermer la fiche">×</button>'); }
+function renderFiche() {
+  if (ui.sel !== ui.fs) { ui.fs = ui.sel; ui.ficheFull = false; }
+  const el = $('fiche'), c = ui.sel >= 0 ? S.grid[ui.sel] : null;
+  if (c && !c.treille && !ui.ficheFull) {
+    const p = P[c.pid], ph = G.phase(c);
+    el.innerHTML = '<div class="fmini"><h2>' + p.name + '</h2><p class="lat">' + p.latin + '</p><p class="note-p">' + (c.ready ? 'Prête à récolter' : ph.stage === 'graine' ? 'Graine en terre' : 'Croissance ' + Math.round(ph.prog * 100) + ' %') + ' · eau du sol ' + Math.round(c.water) + ' %</p><div class="acts"><button type="button" class="btn sm primary" data-act="fiche-open">Ouvrir la fiche</button></div></div>';
+  } else renderFiche0();
+  el.hidden = ui.sel < 0 || (c === null && ui.sel >= 0); if (!el.hidden) el.insertAdjacentHTML('afterbegin', '<button type="button" class="fclose" data-act="fiche-close" aria-label="Fermer la fiche">×</button>'); }
 function renderFiche0() {
   const el = $('fiche'), i = ui.sel, c = i >= 0 ? S.grid[i] : null, m = G.dateOf(S.day).m;
   if (i < 0) { el.innerHTML = '<h2>Parcelle</h2><p class="empty-f">Touche une plante pour voir ses besoins, ses voisines et ce qu’elle apporte à la guilde.</p>'; return; }
@@ -1149,7 +1156,7 @@ document.addEventListener('click', e => {
     else if (kd === 'honey') { const h2 = G.harvestHoney(S, i); done = h2.ok; if (done) toast('+' + fmt(h2.kg, 1) + ' kg de miel au garde-manger.'); }
     else if (kd === 'compost') { done = G.compost(S, i); if (done) { toast('Compost étalé : la plante pousse mieux pendant 30 jours.'); setTimeout(() => sendGardener(i, 'compost'), 0); } }
     else if (kd === 'mulch') { done = G.mulch(S, i); if (done) setTimeout(() => sendGardener(i, 'mulch'), 0); else toast('Plus de paillage.'); }
-    ui.sel = i; render(); if (done) flyIcon(kd, pos); return; }
+    render(); if (done) flyIcon(kd, pos); return; }
   const cell = e.target.closest('.cell'); if (cell) { clickCell(+cell.dataset.i); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   const act = a.dataset.act, i = ui.sel;
@@ -1181,6 +1188,7 @@ document.addEventListener('click', e => {
     case 'stock': openStock(); break;
     case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
     case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
+    case 'fiche-open': ui.ficheFull = true; renderFiche(); break;
     case 'fiche-close': ui.sel = -1; ui.mvFrom = -1; render(); break;
     case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;

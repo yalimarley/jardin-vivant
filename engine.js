@@ -96,7 +96,7 @@ function make(P) {
   const totalDays = p => maturity(p) + p.juv * 365;
 
   function blank() {
-    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), cards: {}, mats: { voile: 2, paillage: 2, compost: 1, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
+    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), cards: {}, mats: { voile: 0, paillage: 2, compost: 1, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
       tank: 300, tankMax: 500, stock: [], eaten: [], boosterDay: -1, boosters: 0, plantings: 0, maxPlantings: 0,
       cookedDay: -1, learnedDay: -1, knowledge: [], log: [], doneToday: { day: 0, n: 0 }, demo: false, w: weather(0), soil: 45, meals: 0 };
   }

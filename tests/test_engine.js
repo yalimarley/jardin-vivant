@@ -161,5 +161,16 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   (m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)})(s.eggs > 5 ? 'ok  : les poules pondent (' + s.eggs.toFixed(1) + ' œufs en 40 j)' : 'ECHEC: pas d’œufs ' + s.eggs);
   s.eggs = 5; const k0 = s.eggs; const r = G.cook(s, ['eggs']); (m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)})(r.ok && s.eggs < k0 ? 'ok  : cuisiner des œufs' : 'ECHEC: cuisine œufs ' + JSON.stringify(r)); }
 
+// ---- intempéries
+{ const T=m=>{console.log(m);if(/ECHEC/.test(m))process.exit(1)};
+  const cnt={}; for(let d=1;d<=365;d++){const w=G.weather(d); if(w.ev) cnt[w.ev]=(cnt[w.ev]||0)+1; const w2=G.weather(d); if(JSON.stringify(w)!==JSON.stringify(w2)) T('ECHEC: météo non déterministe');}
+  T(cnt.gel>0&&cnt.tempete>0&&cnt.orage>0&&cnt.canicule>0&&cnt.secheresse>0?'ok  : tous les événements arrivent sur un an '+JSON.stringify(cnt):'ECHEC: événements manquants '+JSON.stringify(cnt));
+  T(Array.from({length:14},(_,d)=>G.weather(d+1)).every(w=>!w.ev)?'ok  : pas d’intempérie pendant les deux premières semaines':'ECHEC: intempérie trop tôt');
+  const s=G.newGame(); const gd=[...Array(200).keys()].map(x=>x+20).find(d=>G.weather(d).ev==='gel'); s.day=gd-1; const fi=G.forecastInfo(s); T(fi&&fi.kind==='gel'?'ok  : alerte la veille : '+fi.title:'ECHEC: pas d’alerte la veille');
+  // voile : une plante fragile survit au gel avec voile
+  const tender=Object.values(P).find(p=>p.gel>=-3&&p.kind!=='vivace'&&p.strate==='Herbacée');
+  const mk=(voile)=>{ const s=G.newGame(); s.day=gd-1; s.mats.voile=1; const cell=s.grid.findIndex((c,i)=>!c&&G.isActive(s,i)); s.grid[cell]={pid:tender.id,g:30,water:80,health:100,stress:0,stage:'jeune'}; if(voile) G.useVoile(s,cell); G.nextDay(s,false); return !!s.grid[cell]; };
+  const w=G.weather(gd); T(!mk(false)&&w.tmin<tender.gel? (mk(true)||w.tmin<tender.gel-6?'ok  : le gel détruit une plante fragile'+(mk(true)?', le voile la sauve':''):'ECHEC: voile inutile'):'ECHEC: gel sans effet '+w.tmin+' '+tender.gel);
+}
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

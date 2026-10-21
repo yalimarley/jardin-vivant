@@ -97,7 +97,9 @@ click(q('[data-act="close"]'));
 // mobilier et personnages
 ok(qa('#garden .chr').length === 4, 'jardinier, chien et deux membres de la famille présents : ' + qa('#garden .chr').map(x => x.dataset.who).join(','));
 click(q('[data-act="time"]')); click(q('[data-act="newgame"]'));
-ok(q('[data-act="mode-mat"][data-k="chemin"]') && !q('[data-act="mode-mat"][data-k="mare"]'), 'pastille chemin visible, mare cachée au départ');
+ok((!q('[data-act="mode-mat"][data-k="chemin"]') || q('[data-act="mode-mat"][data-k="chemin"]').disabled) && !q('[data-act="mode-mat"][data-k="treille"]') && !q('[data-act="mode-mat"][data-k="pergola"]'), 'au départ : aucun aménagement avant l’achat en boutique');
+w.__jv.state().mats.chemin = 3; w.__jv.flush();
+ok(q('[data-act="mode-mat"][data-k="chemin"]') && !q('[data-act="mode-mat"][data-k="mare"]'), 'pastille chemin visible après achat, mare cachée');
 click(q('[data-act="mode-mat"][data-k="chemin"]'));
 const fcell = qa('#garden .cell.free')[10]; click(fcell);
 ok(q('#fiche h2').textContent === 'Chemin', 'chemin posé : fiche ' + q('#fiche h2').textContent);

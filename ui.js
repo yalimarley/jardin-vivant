@@ -702,12 +702,12 @@ function openAmenager() {
   syncDims();
   const c = G.canExpand(S), mp = S.maxPlantings, bar = (v, t) => '<div class="bar"><i style="width:' + Math.min(100, Math.round(v / t * 100)) + '%"></i></div>';
   let h = '<h3 style="margin:2px 0 6px">Terrain</h3><p class="note-p">Ton terrain fait <b>' + COLS + ' × ' + ROWS + '</b> parcelles.</p>';
-  if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. Les paliers de plantation continuent de t’offrir du mobilier.</p>';
+  if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. La boutique propose tout le mobilier débloqué.</p>';
   else h += '<div class="amen-card"><b>Prochain agrandissement : ' + c.to[0] + ' × ' + c.to[1] + '</b><div class="amen-req"><span>Plantations réussies : ' + c.plant[0] + ' / ' + c.plant[1] + '</span>' + bar(c.plant[0], c.plant[1]) + '</div><div class="amen-req"><span>Espèces différentes dans le jardin : ' + c.species[0] + ' / ' + c.species[1] + '</span>' + bar(c.species[0], c.species[1]) + '</div><div class="acts"><button type="button" class="btn primary" data-act="expand"' + (c.ok ? '' : ' disabled') + '>Agrandir le terrain</button></div></div>';
-  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète à la boutique avec des ginkgos, et chaque palier de plantations t’en offre un. Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
+  h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète uniquement à la boutique avec des ginkgos (une fois débloqué par tes plantations). Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
   G.FURN.concat(['canard']).forEach(k => {
     const q = (S.mats[k] || 0), un = mp >= G.FURN_UNLOCK[k], ms = G.MILESTONES.find(x => x[1][k]);
-    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + (ms && !S.rewarded[ms[0]] ? ' ou au palier de ' + ms[0] + ' plantations' : '');
+    const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + '';
     h += '<div class="amen-item' + (un ? '' : ' lock') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + FURN_INFO[k].n + '</b><p>' + FURN_INFO[k].d + '</p><small>' + st + '</small>' + (q > 0 ? '<div class="acts"><button type="button" class="btn sm primary" data-act="use-furn" data-k="' + k + '">Poser</button></div>' : '') + '</div></div>';
   });
   h += '</div><h3 style="margin:14px 0 6px">Atelier, soins et eau</h3><p class="note-p">À la boutique : <b>atelier</b> et <b>séchoir</b> (à côté de la maison, pour garder la récolte), <b>bocaux</b>, <b>purin d’ortie</b> et <b>prêle</b> (soins), <b>nichoir à mésanges</b> (dans un arbre), <b>cuve</b> et <b>oya</b> (eau), <b>inoculum de mycorhizes</b>, <b>plan de guilde</b> et <b>carte Savoir</b>. Purin, prêle, nichoir, oya et cuve se fabriquent aussi avec la compétence Fabrication. Ils apparaissent dans ta barre du haut dès que tu en as. Touche la carte, puis la plante concernée.</p><h3 style="margin:14px 0 6px">Autour du jardin</h3><p class="note-p"><b>Tonte :</b> l’herbe autour du jardin repousse tous les 14 jours. Chaque zone tondue te donne +2 paillage.</p><p class="note-p"><b>Trognes :</b> c’est une compétence (bouton Compétences). Les arbres au bord de la forêt, une fois taillés en têtard, repartent tous les 3 mois : paillage et pousse accélérée à chaque coupe.</p>';
@@ -1165,6 +1165,6 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();

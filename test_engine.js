@@ -84,7 +84,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   ok(!G.plant(s0, 9, 1).ok || true, 'plantation hors terrain testée');
   const d0 = G.demo(); d0.size = 1; ok(G.canExpand(d0).ok, 'agrandissement possible avec la démo'); ok(G.expand(d0) && G.dims(d0)[0] === 12, 'terrain passe à 12×10');
   const s1 = G.newGame(); const pp = G.P.find(p => p.id < 51 && G.sowable(p, G.dateOf(s1.day).m) && p.strate !== 'Arbre'); s1.cards[pp.id] = 3; const out = G.plant(s1, 8, pp.id); ok(!out.ok, 'parcelle hors terrain refusée');
-  s1.maxPlantings = 4; s1.plantings = 4; const r = G.plant(s1, 0, pp.id); ok(r.ok && r.reward && /pergola/.test(r.reward), 'palier de 5 plantations : pergola offerte'); ok(s1.mats.pergola === 1, 'pergola en réserve'); }
+  s1.maxPlantings = 4; s1.plantings = 4; const r = G.plant(s1, 0, pp.id); ok(r.ok && !/pergola|treille|mare|serre|ruche/.test(r.reward||''), 'palier de plantations : plus d’aménagement offert'); ok(!s1.mats.pergola && !G.newGame().mats.treille && !G.newGame().mats.chemin, 'aucun aménagement gratuit : tout vient de la boutique'); }
 
 // supports, miel, canards, soins
 { const s2 = G.demo(); const pi = s2.grid.findIndex(c => c && c.furn === 'pergola'); const cl = G.P.find(p => p.strate === 'Grimpante' && G.sowable(p, G.dateOf(s2.day).m));

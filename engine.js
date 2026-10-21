@@ -6,7 +6,7 @@ const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','aoû
 const COLS = 12, ROWS = 10, NCELL = COLS * ROWS;
 const SIZES = [[8, 6], [10, 8], [12, 10]];
 const SIZE_REQ = [null, { plant: 10, species: 6 }, { plant: 25, species: 14 }];
-const MILESTONES = [[4, { paillage: 4 }, '4 paillage pour tes premières trognes'], [3, { treille: 1 }, 'une treille'], [5, { pergola: 1 }, 'une pergola'], [6, { mare: 1, canard: 1 }, 'une mare et un couple de canards coureurs indiens'], [8, { serre: 1 }, 'une serre froide'], [12, { ruche: 1 }, 'une ruche']];
+const MILESTONES = [[4, { paillage: 4 }, '4 paillage pour tes premières trognes']];
 const CLIM = [[1,9],[2,11],[4,14],[6,17],[10,21],[13,25],[15,28],[15,28],[12,24],[9,19],[5,13],[2,9]];
 const RAINP = [.3,.27,.28,.32,.3,.24,.17,.2,.24,.3,.32,.32];
 const EVAP = [2,2.5,4,6,8,11,14,13,9,6,3,2];
@@ -96,7 +96,7 @@ function make(P) {
   const totalDays = p => maturity(p) + p.juv * 365;
 
   function blank() {
-    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), cards: {}, mats: { voile: 2, paillage: 2, compost: 1, treille: 1, chemin: 3, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
+    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), cards: {}, mats: { voile: 2, paillage: 2, compost: 1, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
       tank: 300, tankMax: 500, stock: [], eaten: [], boosterDay: -1, boosters: 0, plantings: 0, maxPlantings: 0,
       cookedDay: -1, learnedDay: -1, knowledge: [], log: [], doneToday: { day: 0, n: 0 }, demo: false, w: weather(0), soil: 45, meals: 0 };
   }
@@ -105,7 +105,7 @@ function make(P) {
   function isActive(s, i) { const d = dims(s); return (i % COLS) < d[0] && ((i / COLS) | 0) < d[1]; }
   function newGame() {
     const s = fixSave(blank());
-    s.plantings = 0; s.maxPlantings = 0; s.mats.paillage = 8; s.mats.compost = 3; s.mats.chemin = 3;
+    s.plantings = 0; s.maxPlantings = 0; s.mats.paillage = 8; s.mats.compost = 3;
     checkSkills(s, true);
     [['Courge', 8, 'cave'], ['Pomme de terre', 10, 'cave'], ['Carotte', 4, 'cave'], ['Tomate', 3, 'bocal'], ['Haricot sec', 2, 'sec'], ['Ail', .5, 'sec'], ['Thym', .3, 'sec']].forEach(([n, kg, keep]) => { if (byName[n]) s.stock.push({ pid: byName[n].id, kg, day: 0, keep }); });
     log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger contient les réserves de l’été : courge, pommes de terre, bocaux. Ouvre ton booster du jour.');

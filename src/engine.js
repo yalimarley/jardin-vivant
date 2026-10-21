@@ -6,7 +6,7 @@ const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','aoû
 const COLS = 12, ROWS = 10, NCELL = COLS * ROWS;
 const SIZES = [[8, 6], [10, 8], [12, 10]];
 const SIZE_REQ = [null, { plant: 10, species: 6 }, { plant: 25, species: 14 }];
-const MILESTONES = [[4, { trogne: 1 }, 'une carte Trogne (arbre têtard)'], [3, { treille: 1 }, 'une treille'], [5, { pergola: 1 }, 'une pergola'], [6, { mare: 1, canard: 1 }, 'une mare et un couple de canards coureurs indiens'], [8, { serre: 1 }, 'une serre froide'], [12, { ruche: 1 }, 'une ruche']];
+const MILESTONES = [[4, { paillage: 4 }, '4 paillage pour tes premières trognes'], [3, { treille: 1 }, 'une treille'], [5, { pergola: 1 }, 'une pergola'], [6, { mare: 1, canard: 1 }, 'une mare et un couple de canards coureurs indiens'], [8, { serre: 1 }, 'une serre froide'], [12, { ruche: 1 }, 'une ruche']];
 const CLIM = [[1,9],[2,11],[4,14],[6,17],[10,21],[13,25],[15,28],[15,28],[12,24],[9,19],[5,13],[2,9]];
 const RAINP = [.3,.27,.28,.32,.3,.24,.17,.2,.24,.3,.32,.32];
 const EVAP = [2,2.5,4,6,8,11,14,13,9,6,3,2];
@@ -15,10 +15,22 @@ const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
 const FURN = ['chemin', 'treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac'];
 const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 4, canard: 6, grandeserre: 20, hamac: 8 };
-const SHOP = { treille: 12, trogne: 15, hamac: 20, pergola: 25, serre: 25, canard: 20, sechoir: 25, mare: 30, ruche: 35, atelier: 40, grandeserre: 60 };
+const SHOP = { treille: 12, hamac: 20, pergola: 25, serre: 25, canard: 20, sechoir: 25, mare: 30, ruche: 35, atelier: 40, grandeserre: 60 };
+const SKILLS = {
+  tonte: { n: 'Tonte', req: 0, th: [15, 45], d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone, et l’herbe repousse 3 jours plus vite.'], how: 'Tonds les zones d’herbe autour du jardin (+1 point par zone).' },
+  trogne: { n: 'Trognes', req: 4, th: [12, 30], d: ['Tailler un arbre en trogne : +4 paillage et croissance accélérée 20 jours.', '+6 paillage par coupe.', '+8 paillage par coupe, croissance accélérée 30 jours, et une coupe tous les 75 jours.'], how: 'Forme une trogne (+2 points) et coupe-la (+3 points).' },
+  bouture: { n: 'Bouture', req: 6, th: [12, 36], d: ['Prélever une bouture sur une plante vivace mature : une nouvelle carte de la même espèce (une par plante tous les 45 jours).', 'Une bouture par plante tous les 30 jours.', 'Tous les 20 jours, et 2 cartes par bouture.'], how: 'Prélève une bouture (+3 points).' },
+  fabrication: { n: 'Fabrication', req: 8, th: [14, 40], d: ['Fabriquer soi-même du purin d’ortie et de la prêle avec du paillage et du compost.', 'Fabriquer aussi des nichoirs et des oyas.', 'Fabriquer aussi des cuves de récupération.'], how: 'Fabrique un soin ou un équipement (+2 points).' },
+  sechage: { n: 'Séchage', req: 10, th: [10, 30], d: ['Sécher herbes et fruits au séchoir : 3 kg par jour.', '5 kg par jour.', '8 kg par jour.'], how: 'Sèche une récolte au séchoir (+2 points).' },
+  transformation: { n: 'Transformation', req: 8, th: [10, 30], d: ['Mettre fruits et légumes en bocaux : 0,5 kg par bocal.', 'Confitures, compotes, jus : 0,7 kg par bocal.', 'Lacto-fermentation et conserves généreuses : 1 kg par bocal.'], how: 'Mets une récolte en bocaux (+2 points).' },
+  cuisine: { n: 'Cuisine', req: 0, th: [12, 36], d: ['Cuisiner les repas de la famille.', 'Les repas rendent la famille 10 % plus heureuse.', '20 % plus heureuse.'], how: 'Cuisine un repas (+2 points).' },
+  greffe: { n: 'Greffe', req: 14, th: [12, 32], d: ['Greffer un arbre ou un arbuste fruitier (1 compost) : +10 % de récolte et croissance avancée de 15 %.', '+20 % de récolte, croissance avancée de 25 %.', '+30 % de récolte, croissance avancée de 35 %.'], how: 'Greffe un arbre ou un arbuste (+4 points).' }
+};
+const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, paillage: 2, compost: 1 }, nichoir: { lvl: 2, paillage: 3 }, oya: { lvl: 2, paillage: 4, compost: 1 }, cuve: { lvl: 3, paillage: 6, compost: 3 } };
 const RECYCLE = { 'Commune': 1, 'Peu commune': 2, 'Rare': 4 };
 const MAT_UNLOCK = { savoir: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
 const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac']), JAR_KG = .5, DRY_CAP = 3;
+const JARKG = [0, .5, .7, 1], DRYCAP = [0, 3, 5, 8];
 const MAT_QTY = { chemin: 3, bocaux: 6 };
 const NOT_EXO = new Set(['Maïs', 'Tournesol', 'Basilic vivace', 'Basilic']), EXO_EXTRA = new Set(['Curcuma', 'Poivre-cannelle', 'Thym antillais']);
 const isExo = p => !NOT_EXO.has(p.name) && p.gel >= -1 && (p.strate === "Arbre" || p.strate === "Arbuste" || EXO_EXTRA.has(p.name) || /^Bananier/.test(p.name));
@@ -66,6 +78,7 @@ function make(P) {
     const s = fixSave(blank());
     [['Trèfle blanc', 1, 3, 20], ['Radis', 3, 3, 12], ['Ail', 5, 2, 16], ['Fève', 6, 4, 18]].forEach(([n, c, r, g]) => { s.grid[r * COLS + c] = cell(byName[n].id, 0, g); });
     s.plantings = 4; s.maxPlantings = 4;
+    checkSkills(s, true);
     [['Courge', 8, 'cave'], ['Pomme de terre', 10, 'cave'], ['Carotte', 4, 'cave'], ['Tomate', 3, 'bocal'], ['Haricot sec', 2, 'sec'], ['Ail', .5, 'sec'], ['Thym', .3, 'sec']].forEach(([n, kg, keep]) => { if (byName[n]) s.stock.push({ pid: byName[n].id, kg, day: 0, keep }); });
     log(s, 'good', 'Bienvenue. Quatre plantes de saison sont déjà en terre, et le garde-manger contient les réserves de l’été : courge, pommes de terre, bocaux. Ouvre ton booster du jour.');
     return s;
@@ -162,7 +175,7 @@ function make(P) {
     const c = s.grid[i], p = P[c.pid], sy = synergy(s, i);
     let kg = p.kind === 'continue' ? p.kg * .3 : p.kg;
     if (p.kind === 'vivace' && p.juv > 0) { const yrs = (c.g - totalDays(p)) / 365; kg *= Math.min(1, .35 + .65 * Math.max(0, yrs) / 4); }
-    return Math.max(0, r2(kg * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1)));
+    return Math.max(0, r2(kg * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1) * (c.grafted ? 1 + .1 * c.grafted : 1)));
   }
   function harvest(s, i) {
     const c = s.grid[i]; if (!ready(s, c)) return { ok: false };
@@ -195,7 +208,7 @@ function make(P) {
     let reward = null; const gl = []; s.rewarded = s.rewarded || {};
     for (const [n, gift, label] of MILESTONES) if (s.maxPlantings >= n && !s.rewarded[n]) { s.rewarded[n] = true; for (const k in gift) s.mats[k] = (s.mats[k] || 0) + gift[k]; gl.push(label); }
     if (gl.length) { reward = 'Palier de plantations : tu reçois ' + gl.join(', ') + '.'; log(s, 'good', reward); }
-    bump(s); return { ok: true, reward };
+    checkSkills(s); bump(s); return { ok: true, reward };
   }
   function canExpand(s) {
     const n = (s.size || 0) + 1; if (n >= SIZES.length) return { ok: false, done: true };
@@ -205,13 +218,13 @@ function make(P) {
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
   function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
-  function fixSave(s) { gqInit(s); if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
-  function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS; }
-  function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH; bump(s, 'mow'); return true; }
-  function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS); }
-  function trogneReward(s) { s.mats.paillage += TREE_MULCH; s.boostUntil = Math.min(s.day + 60, Math.max(s.boostUntil, s.day) + 20); log(s, 'good', 'Trogne coupée : +' + TREE_MULCH + ' paillage, les plantes poussent plus vite pendant ' + Math.min(60, s.boostUntil - s.day) + ' jours.'); }
-  function formTrogne(s, k) { const t = s.trees[k]; if (!t || t.formed || !(s.mats.trogne > 0)) return false; s.mats.trogne--; t.formed = true; t.last = s.day; trogneReward(s); bump(s, 'trogne'); return true; }
-  function cutTrogne(s, k) { if (!treeReady(s, k)) return false; s.trees[k].last = s.day; trogneReward(s); bump(s, 'trogne'); return true; }
+  function fixSave(s) { gqInit(s); if (!s.skills) { s.skills = { pts: {}, seen: {} }; Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); } if (!s.skillNotes) s.skillNotes = []; if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
+  function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 3 ? 3 : 0); }
+  function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH + Math.max(0, skillLevel(s, 'tonte') - 1); gainSkill(s, 'tonte', 1); bump(s, 'mow'); return true; }
+  function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 15 : 0)); }
+  function trogneReward(s) { const lv = skillLevel(s, 'trogne'), mu = TREE_MULCH + 2 * Math.max(0, lv - 1); s.mats.paillage += mu; s.boostUntil = Math.min(s.day + 60, Math.max(s.boostUntil, s.day) + (lv >= 3 ? 30 : 20)); log(s, 'good', 'Trogne coupée : +' + mu + ' paillage, les plantes poussent plus vite pendant ' + Math.min(60, s.boostUntil - s.day) + ' jours.'); }
+  function formTrogne(s, k) { const t = s.trees[k]; if (!t || t.formed || !(s.mats.trogne > 0 || skillLevel(s, 'trogne') >= 1)) return false; if (s.mats.trogne > 0) s.mats.trogne--; t.formed = true; t.last = s.day; trogneReward(s); gainSkill(s, 'trogne', 2); bump(s, 'trogne'); return true; }
+  function cutTrogne(s, k) { if (!treeReady(s, k)) return false; s.trees[k].last = s.day; trogneReward(s); gainSkill(s, 'trogne', 3); bump(s, 'trogne'); return true; }
   function honeyReady(s, i) { const c = s.grid[i], m = dateOf(s.day).m; return !!(c && c.furn === 'ruche' && m >= 4 && m <= 8 && s.day - (c.honeyDay == null ? -999 : c.honeyDay) >= 45); }
   function honeyKg(s) { let nm = 0; s.grid.forEach(c => { if (c && !c.treille && P[c.pid].tags.includes('mellifere')) nm++; }); return r2(1 + Math.min(3, nm * .15)); }
   function harvestHoney(s, i) { if (!honeyReady(s, i)) return { ok: false }; const kg = honeyKg(s); s.grid[i].honeyDay = s.day; s.honey = r2((s.honey || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 3000) }); log(s, 'good', 'Miel récolté : ' + kg + ' kg.'); bump(s, 'honey'); return { ok: true, kg }; }
@@ -327,8 +340,8 @@ function make(P) {
     const balance = clamp((strata - 1) * 34 + (prot > 8 ? 30 : prot > 4 ? 15 : 0) + (kinds >= 3 ? 12 : 0), 0, 100);
     s.eaten.push({ day: s.day, kcal: Math.round(kcal), prot: r1(prot) }); s.cookedDay = s.day; s.meals++;
     const fam = s.family || [], tn = famNeed(s), shares = [];
-    for (const f of fam) { const sh = kcal * f.need / tn; f.hist.push({ day: s.day, kcal: Math.round(sh), bal: Math.round(balance) }); f.hist = f.hist.filter(x => s.day - x.day <= 6); shares.push({ n: f.n, ratio: Math.min(1.5, sh / (f.need * GSHARE)) }); f.joy = clamp(f.joy + Math.min(14, sh / (f.need * GSHARE) * 22) * (.6 + balance / 250), 0, 100); }
-    bump(s);
+    for (const f of fam) { const sh = kcal * f.need / tn; f.hist.push({ day: s.day, kcal: Math.round(sh), bal: Math.round(balance) }); f.hist = f.hist.filter(x => s.day - x.day <= 6); shares.push({ n: f.n, ratio: Math.min(1.5, sh / (f.need * GSHARE)) }); f.joy = clamp(f.joy + Math.min(14, sh / (f.need * GSHARE) * 22) * (.6 + balance / 250) * (1 + .1 * Math.max(0, skillLevel(s, 'cuisine') - 1)), 0, 100); }
+    gainSkill(s, 'cuisine', 2); bump(s);
     const name = mealName(used);
     log(s, 'good', 'Repas : ' + name + ' (' + Math.round(kcal) + ' kcal).');
     return { ok: true, name, kcal: Math.round(kcal), prot: r1(prot), grams, balance, shares, need: tn };
@@ -516,6 +529,7 @@ function make(P) {
     { const ti = s.grid.findIndex(c => c && !c.treille && P[c.pid].strate === 'Arbre'); if (ti >= 0) s.grid[ti].nichoir = true; const oi = s.grid.findIndex(c => c && !c.treille && P[c.pid].strate === 'Herbacée'); if (oi >= 0) s.grid[oi].oyaUntil = s.day + 30; const gi = s.grid.findIndex((c, k) => !c && isActive(s, k) && (k % COLS) >= 2); if (gi >= 0) s.grid[gi] = { treille: true, furn: 'grandeserre' }; }
     s.stock.push({ pid: byName['Tomate'].id, kg: 1.2, day: s.day - 5, keep: 'bocal' }, { pid: byName['Thym'].id, kg: .3, day: s.day - 8, keep: 'sec' });
     s.prod = [{ day: s.day - 20, kcal: 30000 }, { day: s.day - 50, kcal: 20000 }, { day: s.day - 75, kcal: 10000 }]; s.knowledge = []; log(s, 'good', 'Jardin mature de démonstration : trois ans de travail, un matin de juillet.');
+    s.skills.pts = { tonte: 20, trogne: 14, bouture: 5, fabrication: 16, sechage: 4, transformation: 11, cuisine: 8, greffe: 2 }; checkSkills(s, true);
     s.grid.forEach((c, i) => { if (c && !c.treille) { c.stage = phase(c).stage; c.ready = ready(s, c); } });
     return s;
   }
@@ -589,16 +603,47 @@ function make(P) {
   function recycleValue(s, pid, n) { return (RECYCLE[P[pid].rarete] || 1) * n; }
   function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const g = recycleValue(s, pid, n); s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }
   function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' ginkgos.'); return { ok: n > 0, gain: g, n }; }
+  function skillLevel(s, k) { const d = SKILLS[k]; if (!d || (s.maxPlantings || 0) < d.req) return 0; const p = (s.skills && s.skills.pts[k]) || 0; return 1 + (p >= d.th[0] ? 1 : 0) + (p >= d.th[1] ? 1 : 0); }
+  function gainSkill(s, k, n) {
+    const b = skillLevel(s, k); s.skills.pts[k] = (s.skills.pts[k] || 0) + n; const a = skillLevel(s, k);
+    if (a > b && b > 0) { const m = 'Compétence « ' + SKILLS[k].n + ' » : niveau ' + a + ' ! ' + SKILLS[k].d[a - 1]; s.skillNotes.push(m); log(s, 'good', m); }
+  }
+  function checkSkills(s, quiet) { for (const k of Object.keys(SKILLS)) if (skillLevel(s, k) > 0 && !s.skills.seen[k]) { s.skills.seen[k] = 1; if (!quiet) { const m = 'Nouvelle compétence : « ' + SKILLS[k].n + ' ». ' + SKILLS[k].d[0]; s.skillNotes.push(m); log(s, 'good', m); } } }
+  function takeNotes(s) { const o = s.skillNotes || []; s.skillNotes = []; return o; }
+  function skillList(s) { return Object.keys(SKILLS).map(k => { const d = SKILLS[k], lv = skillLevel(s, k), pts = s.skills.pts[k] || 0; return { k, n: d.n, lv, pts, req: d.req, th: d.th, next: lv >= 3 ? null : d.th[lv - 1 < 0 ? 0 : lv - 1], d: d.d, how: d.how, locked: lv === 0 }; }); }
+  function boutureCheck(s, i) {
+    const c = s.grid[i]; if (!c || c.treille) return { ok: false, msg: 'Choisis une plante.' }; const lv = skillLevel(s, 'bouture'); if (lv < 1) return { ok: false, msg: 'Compétence Bouture : disponible après ' + SKILLS.bouture.req + ' plantations.' };
+    const p = P[c.pid]; if (!['vivace', 'continue'].includes(p.kind) || p.strate === 'Arbre') return { ok: false, msg: p.name + ' ne se bouture pas (annuelle ou arbre : essaie la greffe pour les arbres).' };
+    const st = phase(c).stage; if (st === 'graine' || st === 'pousse') return { ok: false, msg: 'Trop jeune : attends qu’elle ait grandi.' };
+    const gap = [0, 45, 30, 20][lv], left = gap - (s.day - (c.cutDay == null ? -999 : c.cutDay)); if (left > 0) return { ok: false, msg: 'Elle se remet de la dernière bouture : encore ' + left + ' jours.' };
+    return { ok: true, lv };
+  }
+  function bouturer(s, i) { const ck = boutureCheck(s, i); if (!ck.ok) return ck; const c = s.grid[i], p = P[c.pid], n = ck.lv >= 3 ? 2 : 1; c.cutDay = s.day; c.health = Math.max(40, c.health - 6); s.cards[p.id] = (s.cards[p.id] || 0) + n; log(s, 'good', 'Bouture de ' + p.name.toLowerCase() + ' : +' + n + ' carte' + (n > 1 ? 's' : '') + '.'); gainSkill(s, 'bouture', 3); bump(s, 'bouture'); return { ok: true, n, name: p.name }; }
+  function craft(s, k) {
+    const r = RECIPES[k]; if (!r) return { ok: false, msg: 'Recette inconnue.' }; const lv = skillLevel(s, 'fabrication');
+    if (lv < r.lvl) return { ok: false, msg: lv < 1 ? 'Compétence Fabrication : disponible après ' + SKILLS.fabrication.req + ' plantations.' : 'Il faut le niveau ' + r.lvl + ' en Fabrication.' };
+    if (k === 'cuve' && (s.cuves || 0) + (s.mats.cuve || 0) >= 4) return { ok: false, msg: 'Tu as déjà 4 cuves.' };
+    for (const m of ['paillage', 'compost']) if ((r[m] || 0) > (s.mats[m] || 0)) return { ok: false, msg: 'Il te manque du ' + m + '.' };
+    for (const m of ['paillage', 'compost']) s.mats[m] -= r[m] || 0; s.mats[k] = (s.mats[k] || 0) + 1; log(s, 'good', 'Fabriqué : ' + k + '.'); gainSkill(s, 'fabrication', 2); bump(s, 'fab'); return { ok: true };
+  }
+  function greffeCheck(s, i) {
+    const c = s.grid[i]; if (!c || c.treille) return { ok: false, msg: 'Choisis un arbre ou un arbuste.' }; const lv = skillLevel(s, 'greffe'); if (lv < 1) return { ok: false, msg: 'Compétence Greffe : disponible après ' + SKILLS.greffe.req + ' plantations.' };
+    const p = P[c.pid]; if (!['Arbre', 'Arbuste'].includes(p.strate) || !(p.kg > 0)) return { ok: false, msg: 'On greffe un arbre ou un arbuste fruitier.' };
+    if (c.grafted) return { ok: false, msg: 'Déjà greffé.' }; if (!(s.mats.compost > 0)) return { ok: false, msg: 'Il faut 1 compost pour souder la greffe.' };
+    return { ok: true, lv };
+  }
+  function greffer(s, i) { const ck = greffeCheck(s, i); if (!ck.ok) return ck; const c = s.grid[i], p = P[c.pid]; s.mats.compost--; c.grafted = ck.lv; c.g = Math.min(maturity(p), c.g + maturity(p) * [0, .15, .25, .35][ck.lv]); log(s, 'good', p.name + ' greffé : plus de fruits, et plus vite.'); gainSkill(s, 'greffe', 4); bump(s, 'greffe'); return { ok: true, name: p.name }; }
   function useSavoir(s) { if (!(s.mats.savoir > 0)) return { ok: false, msg: 'Plus de carte Savoir.' }; s.mats.savoir--; return { ok: true, r: learn(s) }; }
   function preserve(s, pid, kind) {
     if (!s.atelier) return { ok: false, msg: 'Construis d’abord l’atelier.' };
+    const JK = JARKG[Math.max(1, skillLevel(s, 'transformation'))], DC = DRYCAP[Math.max(1, skillLevel(s, 'sechage'))];
     const fresh = s.stock.filter(it => it.pid === pid && !it.keep), tot = fresh.reduce((a, b) => a + b.kg, 0); if (tot <= 0.004) return { ok: false, msg: 'Rien de frais à transformer.' };
     let kg = tot, jars = 0;
-    if (kind === 'bocal') { jars = Math.min(s.mats.bocaux || 0, Math.ceil(tot / JAR_KG - 1e-9)); if (jars <= 0) return { ok: false, msg: 'Plus de bocaux : joue une carte Bocaux.' }; kg = Math.min(tot, jars * JAR_KG); jars = Math.ceil(kg / JAR_KG - 1e-9); s.mats.bocaux -= jars; }
-    else { if (!s.sechoir) return { ok: false, msg: 'Installe d’abord le séchoir.' }; const used = s.dryDay === s.day ? s.dryKg : 0, left = DRY_CAP - used; if (left <= 0.004) return { ok: false, msg: 'Le séchoir est plein pour aujourd’hui (' + DRY_CAP + ' kg par jour).' }; kg = Math.min(tot, left); s.dryDay = s.day; s.dryKg = r2(used + kg); }
+    if (kind === 'bocal') { jars = Math.min(s.mats.bocaux || 0, Math.ceil(tot / JK - 1e-9)); if (jars <= 0) return { ok: false, msg: 'Plus de bocaux : joue une carte Bocaux.' }; kg = Math.min(tot, jars * JK); jars = Math.ceil(kg / JK - 1e-9); s.mats.bocaux -= jars; }
+    else { if (!s.sechoir) return { ok: false, msg: 'Installe d’abord le séchoir.' }; const used = s.dryDay === s.day ? s.dryKg : 0, left = DC - used; if (left <= 0.004) return { ok: false, msg: 'Le séchoir est plein pour aujourd’hui (' + DC + ' kg par jour).' }; kg = Math.min(tot, left); s.dryDay = s.day; s.dryKg = r2(used + kg); }
     kg = r2(kg); let need = kg; for (const it of fresh.sort((a, b) => a.day - b.day)) { if (need <= 0) break; const t = Math.min(it.kg, need); it.kg = r2(it.kg - t); need = r2(need - t); }
     s.stock = s.stock.filter(it => it.kg > 0.004); s.stock.push({ pid, kg, day: s.day, keep: kind === 'bocal' ? 'bocal' : 'sec' });
-    log(s, 'good', (kind === 'bocal' ? 'Mise en bocaux : ' : 'Séchage : ') + kg.toFixed(2).replace('.', ',') + ' kg de ' + P[pid].name.toLowerCase() + ' (se garde longtemps).'); bump(s, 'preserve'); return { ok: true, kg, jars, name: P[pid].name };
+    log(s, 'good', (kind === 'bocal' ? 'Mise en bocaux : ' : 'Séchage : ') + kg.toFixed(2).replace('.', ',') + ' kg de ' + P[pid].name.toLowerCase() + ' (se garde longtemps).'); gainSkill(s, kind === 'bocal' ? 'transformation' : 'sechage', 2); bump(s, 'preserve'); return { ok: true, kg, jars, name: P[pid].name };
   }
   function guildPlan(s) {
     if (!(s.mats.plan > 0)) return { ok: false, msg: 'Plus de plan de guilde.' };
@@ -638,13 +683,15 @@ function make(P) {
     { id: 'atelier1', t: 'Construis ton atelier', say: 'Un atelier près de la maison : tu y feras tes conserves et ton séchage. Joue une carte Atelier !', need: 1, have: s => s.atelier ? 1 : 0, rw: { boost: 5, compost: 2 } },
     { id: 'conserve1', t: 'Fais ta première conserve', say: 'L’hiver, rien ne pousse : mets une récolte en bocal ou fais-la sécher dans ton atelier.', need: 1, have: s => (s.gq.cnt.preserve || 0), rw: { paillage: 3, boost: 5 } },
     { id: 'soin1', t: 'Soigne tes plantes avec un purin', say: 'Purin d’ortie, prêle, oya, nichoir : un soin naturel protège plusieurs plantes à la fois.', need: 1, have: s => (s.gq.cnt.soin || 0), rw: { compost: 2, boost: 3 } },
+    { id: 'bouture1', t: 'Prélève une bouture', say: 'Une bouture, c’est une plante gratuite ! Ouvre les Compétences, choisis Bouture et touche une vivace mature.', need: 1, have: s => (s.gq.cnt.bouture || 0), rw: { boost: 3, compost: 1 } },
+    { id: 'fab1', t: 'Fabrique ton premier soin', say: 'Avec du paillage et du compost, tu peux fabriquer ton propre purin d’ortie : ouvre les Compétences, onglet Fabrication.', need: 1, have: s => (s.gq.cnt.fab || 0), rw: { boost: 3, paillage: 2 } },
     { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des ginkgos ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
     { id: 'sp6', t: '6 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 6 espèces différentes.', need: 6, have: s => nSpecies(s), rw: { compost: 2 } },
     { id: 'tonte1', t: 'Tonds l’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 1, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
     { id: 'p12', t: 'Atteins 12 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 12 plantations.', need: 12, have: s => s.maxPlantings, rw: { boost: 5 } },
     { id: 'guilde2', t: 'Deux guildes', say: 'Une deuxième guilde ! Elles se protègent entre elles.', need: 2, have: s => guilds(s).n, rw: { boost: 10, compost: 2 } },
     { id: 'auto25', t: 'Autonomie à 25 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 25 %.', need: 25, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 } },
-    { id: 'trogne1', t: 'Taille une trogne', say: 'Joue ta carte Trogne sur un arbre au bord du jardin, puis coupe-le : paillage et pousse accélérée.', need: 1, have: s => (s.gq.cnt.trogne || 0), rw: { paillage: 4 } },
+    { id: 'trogne1', t: 'Taille une trogne', say: 'Ouvre les Compétences, choisis Trognes, puis touche un arbre au bord du jardin pour le tailler en têtard, et coupe-le ensuite : paillage et pousse accélérée.', need: 1, have: s => (s.gq.cnt.trogne || 0), rw: { paillage: 4 } },
     { id: 'repas5', t: 'Cuisine 5 repas', say: 'Ta famille compte sur toi : 5 repas au total.', need: 5, have: s => s.meals, rw: { boost: 5 } },
     { id: 'miel1', t: 'Récolte du miel', say: 'Les abeilles ont travaillé ! Récolte le miel de la ruche (de mai à septembre).', need: 1, have: s => (s.gq.cnt.honey || 0), rw: { boost: 5, paillage: 2 } },
     { id: 'sp12', t: '12 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 12 espèces.', need: 12, have: s => nSpecies(s), rw: { compost: 3 } },
@@ -687,7 +734,7 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     buildTasks, runTask, synergy, placeFurn, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

@@ -199,7 +199,7 @@ function renderRes() {
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0);
   $('res').innerHTML = '<div class="items"><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') + '</div>' +
-    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + GK(16) + 'Boutique · ' + (S.feves || 0) + ' ginkgos</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
+    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + GK(16) + 'Boutique · ' + (S.feves || 0) + ' ginkgos</button><button type="button" class="btn sm" data-act="skills">' + ico('leaf') + 'Compétences</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -507,9 +507,9 @@ const LAWNS = [[80, 384], [152, 428], [232, 466], [326, 492], [524, 500], [612, 
 function lawnClick(k, el) { const pos = el && badgePos(el), ok = G.mowLawn(S, k); if (ok) toast('Herbe tondue : +2 paillage.'); else toast('L’herbe repousse : prête dans ' + Math.max(1, 14 - (S.day - S.lawn[k])) + ' jours.'); render(); if (ok) flyIcon('lawn', pos); }
 function treeClick(k, el) {
   const t = S.trees[k], pos = el && badgePos(el);
-  if (ui.mode && ui.mode.k === 'trogne' && !t.formed) { if (G.formTrogne(S, k)) { toast('Trogne formée : +4 paillage, la forêt pousse plus vite.'); if (!(S.mats.trogne > 0)) ui.mode = null; render(); flyIcon('trogne', pos); } return; }
-  if (t.formed) { if (G.cutTrogne(S, k)) { toast('Trogne coupée : +4 paillage, croissance accélérée.'); render(); flyIcon('trogne', pos); } else toast('La trogne repousse : prête dans ' + Math.max(1, 90 - (S.day - t.last)) + ' jours.'); return; }
-  toast('Un arbre ordinaire. Joue une carte Trogne pour le tailler en têtard.');
+  if (ui.mode && ui.mode.k === 'trogne' && !t.formed) { if (G.formTrogne(S, k)) { toast('Trogne formée : +' + (4 + 2 * Math.max(0, G.skillLevel(S, 'trogne') - 1)) + ' paillage, la forêt pousse plus vite.'); if (!(S.mats.trogne > 0)) ui.mode = null; render(); flyIcon('trogne', pos); } return; }
+  if (t.formed) { if (G.cutTrogne(S, k)) { toast('Trogne coupée : +' + (4 + 2 * Math.max(0, G.skillLevel(S, 'trogne') - 1)) + ' paillage, croissance accélérée.'); render(); flyIcon('trogne', pos); } else toast('La trogne repousse : prête dans ' + Math.max(1, 90 - (G.skillLevel(S, 'trogne') >= 3 ? 15 : 0) - (S.day - t.last)) + ' jours.'); return; }
+  toast('Un arbre ordinaire. Ouvre les Compétences et choisis Trognes pour le tailler en têtard.');
 }
 function lawnPatch(k, x, y, ready, gc) {
   const R = rnd(k * 13 + 5), dark = shade(gc[1], -34), mid = shade(gc[1], -16);
@@ -621,6 +621,7 @@ function renderGarden() {
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
+  else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else hint.innerHTML = '<span>Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
 }
@@ -697,12 +698,12 @@ function openAmenager() {
   if (c.done) h += '<p class="note-p">Tu as atteint la taille maximale. Les paliers de plantation continuent de t’offrir du mobilier.</p>';
   else h += '<div class="amen-card"><b>Prochain agrandissement : ' + c.to[0] + ' × ' + c.to[1] + '</b><div class="amen-req"><span>Plantations réussies : ' + c.plant[0] + ' / ' + c.plant[1] + '</span>' + bar(c.plant[0], c.plant[1]) + '</div><div class="amen-req"><span>Espèces différentes dans le jardin : ' + c.species[0] + ' / ' + c.species[1] + '</span>' + bar(c.species[0], c.species[1]) + '</div><div class="acts"><button type="button" class="btn primary" data-act="expand"' + (c.ok ? '' : ' disabled') + '>Agrandir le terrain</button></div></div>';
   h += '<h3 style="margin:14px 0 6px">Embellir la forêt comestible</h3><p class="note-p">Le mobilier s’achète à la boutique avec des ginkgos, et chaque palier de plantations t’en offre un. Touche « Poser » puis une parcelle libre.</p><div class="amen-grid">';
-  G.FURN.concat(['trogne', 'canard']).forEach(k => {
+  G.FURN.concat(['canard']).forEach(k => {
     const q = (S.mats[k] || 0), un = mp >= G.FURN_UNLOCK[k], ms = G.MILESTONES.find(x => x[1][k]);
     const st = !un ? 'Débloqué après ' + G.FURN_UNLOCK[k] + ' plantations (tu en as ' + mp + ')' : q > 0 ? 'En réserve : ' + q : (G.SHOP[k] ? 'À la boutique : ' + G.SHOP[k] + ' ginkgos' : 'Dans les prochains boosters') + (ms && !S.rewarded[ms[0]] ? ' ou au palier de ' + ms[0] + ' plantations' : '');
     h += '<div class="amen-item' + (un ? '' : ' lock') + '"><svg viewBox="0 0 80 80" aria-hidden="true">' + MATS[k].svg + '</svg><div><b>' + FURN_INFO[k].n + '</b><p>' + FURN_INFO[k].d + '</p><small>' + st + '</small>' + (q > 0 ? '<div class="acts"><button type="button" class="btn sm primary" data-act="use-furn" data-k="' + k + '">Poser</button></div>' : '') + '</div></div>';
   });
-  h += '</div><h3 style="margin:14px 0 6px">Atelier, soins et eau</h3><p class="note-p">L’<b>atelier</b> et le <b>séchoir</b> (à côté de la maison, pour garder la récolte) s’achètent à la boutique. Dans les boosters tu trouveras aussi : <b>bocaux</b>, <b>purin d’ortie</b> et <b>prêle</b> (soins), <b>nichoir à mésanges</b> (dans un arbre), <b>cuve</b> et <b>oya</b> (eau), <b>inoculum de mycorhizes</b>, <b>plan de guilde</b> et <b>carte Savoir</b>. Ils apparaissent dans ta barre du haut dès que tu en as. Touche la carte, puis la plante concernée.</p><h3 style="margin:14px 0 6px">Autour du jardin</h3><p class="note-p"><b>Tonte :</b> l’herbe autour du jardin repousse tous les 14 jours. Chaque zone tondue te donne +2 paillage.</p><p class="note-p"><b>Trognes :</b> les arbres au bord de la forêt, une fois taillés en têtard, repartent tous les 3 mois. Chaque coupe donne +4 paillage et accélère la pousse des plantes.</p>';
+  h += '</div><h3 style="margin:14px 0 6px">Atelier, soins et eau</h3><p class="note-p">L’<b>atelier</b> et le <b>séchoir</b> (à côté de la maison, pour garder la récolte) s’achètent à la boutique. Dans les boosters tu trouveras aussi : <b>bocaux</b>, <b>purin d’ortie</b> et <b>prêle</b> (soins), <b>nichoir à mésanges</b> (dans un arbre), <b>cuve</b> et <b>oya</b> (eau), <b>inoculum de mycorhizes</b>, <b>plan de guilde</b> et <b>carte Savoir</b>. Ils apparaissent dans ta barre du haut dès que tu en as. Touche la carte, puis la plante concernée.</p><h3 style="margin:14px 0 6px">Autour du jardin</h3><p class="note-p"><b>Tonte :</b> l’herbe autour du jardin repousse tous les 14 jours. Chaque zone tondue te donne +2 paillage.</p><p class="note-p"><b>Trognes :</b> c’est une compétence (bouton Compétences). Les arbres au bord de la forêt, une fois taillés en têtard, repartent tous les 3 mois : paillage et pousse accélérée à chaque coupe.</p>';
   modal('Aménager le jardin', h, true);
 }
 function modal(title, body, wide) {
@@ -766,11 +767,12 @@ function openPlan(r) {
 }
 function openAtelier() {
   if (!S.atelier) { toast('Pas encore d’atelier : achète-le à la boutique.'); return; }
+  const JKG = [0, .5, .7, 1][Math.max(1, G.skillLevel(S, 'transformation'))], DCAP = [0, 3, 5, 8][Math.max(1, G.skillLevel(S, 'sechage'))];
   const fresh = {}, kept = {}; S.stock.forEach(it => { const o = it.keep ? kept : fresh; o[it.pid] = (o[it.pid] || 0) + it.kg; });
   const dried = S.dryDay === S.day ? S.dryKg : 0, jars = S.mats.bocaux || 0, fid = Object.keys(fresh).map(Number).filter(id => fresh[id] > .03), kid = Object.keys(kept).map(Number).filter(id => kept[id] > .03);
-  let h = '<p class="note-p">Ici tu transformes la récolte fraîche pour la garder longtemps. <b>Bocaux</b> : ' + jars + ' en réserve (un bocal = 0,5 kg, se garde plus d’un an). <b>Séchoir</b> : ' + (S.sechoir ? fmt(Math.max(0, 3 - dried), 1) + ' kg libres aujourd’hui sur 3 kg.' : 'pas encore installé.') + '</p>';
+  let h = '<p class="note-p">Ici tu transformes la récolte fraîche pour la garder longtemps. <b>Bocaux</b> : ' + jars + ' en réserve (un bocal = ' + fmt(JKG, 1) + ' kg, se garde plus d’un an). <b>Séchoir</b> : ' + (S.sechoir ? fmt(Math.max(0, DCAP - dried), 1) + ' kg libres aujourd’hui sur ' + DCAP + ' kg.' : 'pas encore installé.') + '</p>';
   if (!S.sechoir) h += S.mats.sechoir > 0 ? '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="inst-sechoir">Installer le séchoir</button></div>' : '<p class="note-p">Achète un séchoir à la boutique pour sécher herbes et fruits.</p>';
-  h += '<h3 style="margin:10px 0 6px">À transformer</h3>' + (fid.length ? '<div class="kit">' + fid.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ' + fmt(fresh[id], 2) + ' kg frais</span></span><span class="acts" style="margin:0;gap:6px"><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="bocal"' + (jars > 0 ? '' : ' disabled') + '>Bocaux</button><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="sec"' + (S.sechoir && dried < 3 ? '' : ' disabled') + '>Sécher</button></span></div>').join('') + '</div>' : '<p class="empty-f">Rien de frais pour l’instant. Récolte d’abord.</p>');
+  h += '<h3 style="margin:10px 0 6px">À transformer</h3>' + (fid.length ? '<div class="kit">' + fid.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ' + fmt(fresh[id], 2) + ' kg frais</span></span><span class="acts" style="margin:0;gap:6px"><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="bocal"' + (jars > 0 ? '' : ' disabled') + '>Bocaux</button><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="sec"' + (S.sechoir && dried < DCAP ? '' : ' disabled') + '>Sécher</button></span></div>').join('') + '</div>' : '<p class="empty-f">Rien de frais pour l’instant. Récolte d’abord.</p>');
   if (kid.length) h += '<h3 style="margin:12px 0 6px">En conserve</h3><p class="note-p">' + kid.map(id => P[id].name + ' ' + fmt(kept[id], 2) + ' kg').join(' · ') + '</p><p class="note-p">La cuisine utilise d’abord le frais, puis la conserve : rien ne se perd pendant l’hiver.</p>';
   modal('Atelier de transformation', h);
 }
@@ -803,6 +805,40 @@ function openShop() {
     h += '<p class="note-p">Commune 1 ginkgo, peu commune 2, rare 4 par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
   }
   modal('Boutique · ' + (S.feves || 0) + ' ginkgos', h, true);
+}
+
+const SKILL_SVG = {
+  tonte: '<path d="M16 68h48" stroke="#6a4e39" stroke-width="4" stroke-linecap="round"/><g stroke="#4f9a4a" stroke-width="3.2" stroke-linecap="round" fill="none"><path d="M20 68q-2-12-6-20M32 68q0-16-2-26M44 68q2-18 6-30M56 68q-1-12 4-22"/></g><path d="M16 24q30-12 48 20" stroke="#9aa6ae" stroke-width="4.4" fill="none" stroke-linecap="round"/><path d="M16 24L8 14" stroke="#8a6240" stroke-width="4.4" stroke-linecap="round"/>',
+  bouture: '<path d="M40 12v36" stroke="#4f9a4a" stroke-width="4" stroke-linecap="round"/><path d="M40 26c-12-2-18-10-18-16 10 0 18 6 18 16zM40 38c12-2 18-10 18-16-10 0-18 6-18 16z" fill="#7dbb5c"/><path d="M40 52q-6 8-12 10M40 52v14M40 52q6 8 12 10" stroke="#b08a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 50l36-6" stroke="#aab3ba" stroke-width="3.2" stroke-linecap="round"/>',
+  greffe: '<path d="M30 72V42l-8-16M30 42l20-20" stroke="#7a5636" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M25 46l16-9" stroke="#e8d5a8" stroke-width="5"/><circle cx="54" cy="18" r="6" fill="#e0603a"/><circle cx="19" cy="21" r="5" fill="#f0b23a"/>',
+  cuisine: '<path d="M16 38h48l-4 26H20z" fill="#7a8a96"/><path d="M12 38h56" stroke="#5f6e79" stroke-width="5" stroke-linecap="round"/><path d="M30 28q-4-8 0-14M42 28q-4-8 0-14M54 28q-4-8 0-14" stroke="#c9d3d8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M8 46h8M64 46h8" stroke="#5f6e79" stroke-width="4" stroke-linecap="round"/>'
+};
+const SKILL_ART = k => ({ trogne: MATS.trogne.svg, fabrication: MATS.ortie.svg, sechage: MATS.sechoir.svg, transformation: MATS.bocaux.svg })[k] || SKILL_SVG[k];
+const RECIPE_N = { ortie: 'Purin d’ortie', prele: 'Prêle', nichoir: 'Nichoir à mésanges', oya: 'Oya', cuve: 'Cuve' };
+function openSkills() {
+  const L = G.skillList(S); let h = '<p class="note-p">Chaque geste que tu fais rapporte des points à sa compétence. Quand la barre est pleine, le niveau monte et le geste devient plus efficace. Les compétences se débloquent avec le nombre de plantations (tu en as <b>' + S.maxPlantings + '</b>).</p><div class="amen-grid">';
+  const order = ['trogne', 'bouture', 'fabrication', 'sechage', 'transformation', 'greffe', 'tonte', 'cuisine'];
+  order.forEach(k => {
+    const s = L.find(x => x.k === k), pips = [1, 2, 3].map(n => '<span style="color:' + (n <= s.lv ? '#d9a21b' : 'var(--line,#c9cfbe)') + '">●</span>').join(' ');
+    const prev = s.lv <= 1 ? 0 : s.th[0], nx = s.lv === 0 ? s.th[0] : s.lv === 1 ? s.th[0] : s.lv === 2 ? s.th[1] : null;
+    let h2 = '<div class="amen-item' + (s.locked ? ' lock' : '') + '"' + (k === 'fabrication' ? ' style="grid-column:1/-1"' : '') + '><svg viewBox="0 0 80 80" aria-hidden="true">' + SKILL_ART(k) + '</svg><div><b>' + s.n + '</b> <span class="k">' + (s.locked ? '' : pips + ' niveau ' + s.lv) + '</span>';
+    h2 += '<p>' + (s.locked ? s.d[0] : s.d[s.lv - 1]) + '</p>';
+    if (s.locked) h2 += '<small>Débloquée après ' + s.req + ' plantations (tu en as ' + S.maxPlantings + ').</small>';
+    else {
+      if (s.lv < 3) h2 += '<p style="opacity:.85">Niveau suivant : ' + s.d[s.lv] + '</p>';
+      h2 += '<div class="bar"><i style="width:' + (s.lv >= 3 ? 100 : Math.min(100, Math.round((s.pts - prev) / (nx - prev) * 100))) + '%"></i></div><small>' + (s.lv >= 3 ? 'Niveau maximum · ' + s.pts + ' points' : s.pts + ' / ' + nx + ' points') + ' · ' + s.how + '</small>';
+      const A = [];
+      if (k === 'trogne') A.push('<button type="button" class="btn sm primary" data-act="skill-trogne">Tailler une trogne</button>');
+      if (k === 'bouture') A.push('<button type="button" class="btn sm primary" data-act="skill-mode" data-k="bouture">Prélever une bouture</button>');
+      if (k === 'greffe') A.push('<button type="button" class="btn sm primary" data-act="skill-mode" data-k="greffe">Greffer un arbre</button>');
+      if (k === 'sechage' || k === 'transformation') A.push(S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Ouvrir l’atelier</button>' : '<span class="k">Il faut un atelier (boutique).</span>');
+      if (k === 'fabrication') A.push(Object.keys(G.RECIPES).map(r => { const rc = G.RECIPES[r], ok = s.lv >= rc.lvl && (S.mats.paillage || 0) >= (rc.paillage || 0) && (S.mats.compost || 0) >= (rc.compost || 0); return '<button type="button" class="btn sm' + (s.lv >= rc.lvl ? '' : '') + '" data-act="craft" data-k="' + r + '"' + (ok ? '' : ' disabled') + ' title="' + (s.lv >= rc.lvl ? '' : 'Niveau ' + rc.lvl + ' requis') + '">' + RECIPE_N[r] + ' · ' + (rc.paillage || 0) + ' paillage' + (rc.compost ? ' + ' + rc.compost + ' compost' : '') + (s.lv >= rc.lvl ? '' : ' (niv. ' + rc.lvl + ')') + '</button>'; }).join(' '));
+      if (A.length) h2 += '<div class="acts" style="justify-content:flex-start;flex-wrap:wrap;gap:6px">' + A.join('') + '</div>';
+    }
+    h += h2 + '</div></div>';
+  });
+  h += '</div>';
+  modal('Compétences du jardinier', h, true);
 }
 
 function openJournal() {
@@ -884,7 +920,7 @@ function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach
   wrap.addEventListener('click', e => { if (moved > 6) { e.stopPropagation(); e.preventDefault(); moved = 0; } }, true);
   wrap.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey || ui.tool === 'move') { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); } }, { passive: false });
 })();
-function render() { renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); save(); wantPhotos(); }
+function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -933,6 +969,7 @@ function clickCell(i) {
     if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = i; toast('Planté.'); render(); return;
   }
   ui.planHl = null;
+  if (ui.mode && ui.mode.type === 'skill') { const kk = ui.mode.k, r = kk === 'bouture' ? G.bouturer(S, i) : G.greffer(S, i); if (!r.ok) { toast(r.msg); return; } toast(kk === 'bouture' ? 'Bouture prélevée : une nouvelle carte de ' + r.name.toLowerCase() + ' dans ta réserve.' : r.name + ' greffé : plus de fruits et plus vite.'); ui.sel = i; save(); render(); return; }
   if (ui.mode && ui.mode.type === 'mat') {
     const k = ui.mode.k; if (k === 'canard') { if (c && c.furn === 'mare') { if (G.placeDuck(S, i)) { toast('Les canards s’installent à la mare.'); if (!(S.mats.canard > 0)) ui.mode = null; ui.sel = i; render(); } else toast('Cette mare a déjà ses canards.'); } else toast('Touche une mare pour y installer les canards.'); return; }
     if (k === 'trogne') { toast('Touche un arbre au bord du jardin.'); return; }
@@ -992,6 +1029,10 @@ document.addEventListener('click', e => {
     case 'view-reset': view = { z: 1, cx: 380, cy: 286 }; VROT = 0; render(); break;
     case 'cancel': ui.mode = null; render(); break;
     case 'kitchen': openKitchen(); break;
+    case 'skills': openSkills(); break;
+    case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
+    case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;
+    case 'craft': { const r = G.craft(S, a.dataset.k); toast(r.ok ? 'Fabriqué : ' + RECIPE_N[a.dataset.k].toLowerCase() + '.' : r.msg); save(); render(); openSkills(); break; }
     case 'shop': openShop(); break;
     case 'shop-buy': { const r = G.shopBuy(S, a.dataset.k); toast(r.ok ? 'Acheté ! Retrouve-le dans la barre du haut.' : r.msg); save(); render(); openShop(); break; }
     case 'recycle1': { const r = G.recycleCards(S, +a.dataset.pid, 1); if (r.ok) toast('+' + r.gain + ' ginkgo' + (r.gain > 1 ? 's' : '') + '.'); save(); render(); openShop(); break; }

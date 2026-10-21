@@ -139,5 +139,15 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const s3 = G.newGame(); s3.boosterDay = -1; const f3 = s3.feves; G.openBooster(s3); ok(s3.feves === f3 + 1, 'booster : +1 ginkgo');
   const s4 = G.newGame(); s4.maxPlantings = 25; let seenF = false; for (let k = 0; k < 120; k++) { s4.boosterDay = -1; s4.day++; s4.boosters = 3 + k; G.openBooster(s4).forEach(c => { if (c.t === 'mat' && ['atelier', 'sechoir', 'grandeserre', 'pergola', 'hamac', 'serre', 'mare', 'ruche', 'trogne', 'canard', 'treille'].includes(c.k)) seenF = true; }); } ok(!seenF, 'plus de mobilier dans les boosters');
   const s5 = G.newGame(); s5.mats.hamac = 1; s5.grid.fill(null); s5.grid[8 * 0 + 9] = { treille: true, furn: 'hamac' }; ok(!G.hamacOk(s5), 'hamac sans plantes : pas de bonus'); }
+{ const g0 = G.newGame(); ok(G.skillLevel(g0, 'tonte') === 1 && G.skillLevel(g0, 'trogne') === 1 && G.skillLevel(g0, 'bouture') === 0 && G.skillLevel(g0, 'greffe') === 0, 'compétences de départ : tonte, trognes, cuisine');
+  ok(!G.bouturer(g0, 0).ok && !G.craft(g0, 'ortie').ok, 'bouture et fabrication verrouillées au départ');
+  const d = G.demo(); d.mats.paillage = 20; d.mats.compost = 6; const vi = d.grid.findIndex(c => c && !c.treille && ['vivace', 'continue'].includes(G.P[c.pid].kind) && G.P[c.pid].strate !== 'Arbre' && G.phase(c).stage !== 'graine' && G.phase(c).stage !== 'pousse');
+  const nc = Object.values(d.cards).reduce((a, b) => a + b, 0), r1 = G.bouturer(d, vi); ok(r1.ok && Object.values(d.cards).reduce((a, b) => a + b, 0) === nc + (G.skillLevel(d, 'bouture') >= 3 ? 2 : 1), 'bouture : +1 carte'); ok(!G.bouturer(d, vi).ok, 'bouture : délai de récupération');
+  const p0 = d.skills.pts.bouture; ok(p0 === 8, 'bouture : points de compétence (' + p0 + ')');
+  d.skills.pts.fabrication = 0; const lv0 = G.skillLevel(d, 'fabrication'); ok(G.craft(d, 'ortie').ok && d.mats.ortie >= 1 && d.skills.pts.fabrication === 2, 'fabrication du purin d’ortie'); ok(lv0 === 1 && !G.craft(d, 'cuve').ok, 'cuve : niveau 3 requis');
+  d.skills.pts.fabrication = 40; ok(G.skillLevel(d, 'fabrication') === 3 && G.craft(d, 'cuve').ok, 'niveau 3 : fabrication de la cuve');
+  const ti = d.grid.findIndex(c => c && !c.treille && G.P[c.pid].strate === 'Arbre' && G.P[c.pid].kg > 0 && !c.grafted); const k0 = d.skills.pts.greffe, gr = G.greffer(d, ti); ok(gr.ok && d.grid[ti].grafted >= 1 && d.skills.pts.greffe === k0 + 4 && !G.greffer(d, ti).ok, 'greffe : arbre fruitier greffé une fois');
+  d.skills.pts.trogne = 12; const lt = d.mats.paillage; d.trees[1] = { formed: true, last: d.day - 200 }; G.cutTrogne(d, 1); ok(d.mats.paillage - lt >= 6, 'trogne niveau 2 : +6 paillage');
+  const n = G.takeNotes(d); ok(Array.isArray(n), 'notifications de compétence'); }
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

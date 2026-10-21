@@ -59,7 +59,7 @@ let d = G.demo();
 const dt = G.buildTasks(d);
 console.log('Tâches démo :', dt.tasks.map(x => x.prio + ' ' + x.label).join(' | '), '| cachées', dt.hidden);
 ok(dt.tasks.length <= 12, 'au plus 12 tâches');
-ok(G.stats(d).plants === 42, "42 plantes dans la démo");
+ok(G.stats(d).plants === 45, "45 plantes dans la démo");
 console.log('Stats démo :', JSON.stringify(G.stats(d)));
 const rdy = d.grid.map((c, i) => c && !c.treille && G.ready(d, c) ? G.P[c.pid].name : null).filter(Boolean);
 console.log('Prêtes à récolter en démo :', rdy.join(', '));
@@ -204,6 +204,21 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const o=G.newGame(); o.skills={pts:{tonte:20,trogne:14,cuisine:8},seen:{}}; delete o.xp; delete o.pts; o.maxPlantings=20; const mg=G.fixSave(o); T(mg.skills.lv&&mg.skills.lv.tonte===2&&mg.skills.lv.trogne===2&&mg.xp>0&&mg.pts>=1?'ok  : ancienne sauvegarde migrée (niveaux conservés, XP et points créés)':'ECHEC: migration '+JSON.stringify(mg.skills.lv)+' '+mg.xp+' '+mg.pts);
   // effets
   const e=G.newGame(); const r0=G.resistance(e,0); T(typeof r0.pct==='number'?'ok  : résistance calculable':'ECHEC: résistance');
+}
+
+// --- sentiers
+{ const T = m => ok(m.startsWith('ok'), m.replace(/^(ok  : |ECHEC: )/, '')); const s = G.newGame(); s.mats.chemin = 5;
+  T(!G.addPath(s, 4, 4, 5, 4).ok ? 'ok  : un sentier ne naît pas au milieu du jardin' : 'ECHEC: sentier isolé');
+  T(!G.addPath(s, 0, 0, 1, 0).ok ? 'ok  : pas de sentier le long du bord' : 'ECHEC: sentier sur le bord');
+  T(G.addPath(s, 4, 0, 4, 1).ok && s.mats.chemin === 4 ? 'ok  : sentier depuis le bord (1 gravier)' : 'ECHEC: sentier depuis le bord');
+  T(G.addPath(s, 4, 1, 4, 2).ok && G.addPath(s, 4, 2, 5, 2).ok && s.paths.length === 3 ? 'ok  : sentier prolongé' : 'ECHEC: prolongement');
+  T(G.addPath(s, 4, 2, 5, 2).exists && s.mats.chemin === 2 ? 'ok  : tronçon déjà posé : rien de consommé' : 'ECHEC: doublon');
+  T(!G.addPath(s, 7, 7, 7, 8).ok ? 'ok  : tronçon sans lien refusé' : 'ECHEC: tronçon flottant');
+  T(G.pathAccess(s, 3 * 12 + 4) === false && G.pathAccess(s, 1 * 12 + 4) === true && G.pathAccess(s, 1 * 12 + 3) === true ? 'ok  : parcelles longées accessibles' : 'ECHEC: accès ' + [3 * 12 + 4, 12 + 4, 12 + 3].map(i => G.pathAccess(s, i)));
+  T(G.removePath(s, G.pk(4, 1, 4, 2)) && s.mats.chemin === 3 ? 'ok  : tronçon retiré, gravier rendu' : 'ECHEC: retrait');
+  T(G.pathLinkedEdges(s).length === 1 && G.pathAccess(s, 2 * 12 + 4) === false ? 'ok  : un tronçon coupé du bord ne sert plus' : 'ECHEC: tronçon orphelin ' + G.pathLinkedEdges(s).length);
+  const old = G.newGame(); old.grid[30] = { treille: true, furn: 'chemin' }; delete old.paths; G.fixSave(old);
+  T(old.grid[30] === null && old.paths.length === 0 && old.mats.chemin >= 2 ? 'ok  : ancien chemin en parcelle converti' : 'ECHEC: migration chemin');
 }
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

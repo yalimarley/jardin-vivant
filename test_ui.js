@@ -104,11 +104,9 @@ ok((!q('[data-act="mode-mat"][data-k="chemin"]') || q('[data-act="mode-mat"][dat
 w.__jv.state().mats.chemin = 3; w.__jv.flush();
 ok(q('[data-act="mode-mat"][data-k="chemin"]') && !q('[data-act="mode-mat"][data-k="mare"]'), 'pastille chemin visible après achat, mare cachée');
 click(q('[data-act="mode-mat"][data-k="chemin"]'));
-const fcell = qa('#garden .cell.free')[10]; click(fcell);
-ok(q('#fiche h2').textContent === 'Chemin', 'chemin posé : fiche ' + q('#fiche h2').textContent);
-ok(/Chemin 2/.test(q('#res').textContent), 'stock de chemin décrémenté : ' + q('#res').textContent.match(/Chemin \d/));
-click(q('[data-act="remove"]')); click(q('[data-act="remove"]'));
-ok(/Chemin 3/.test(q('#res').textContent), 'chemin repris en main');
+ok(/Sentier/.test(q('#hint').textContent), 'mode sentier : consigne de tracé affichée');
+const fcell = qa('#garden .cell.free')[10]; click(fcell); ok(!q('[data-act="remove"]') && w.__jv.state().mats.chemin === 3, 'toucher une parcelle ne pose plus de chemin');
+ok(q('#garden .pdot'), 'points de départ sur le bord du jardin affichés'); click(q('[data-act="cancel"]'));
 // Guildéon
 ok(q('#gmasc') && q('#gsay'), 'Guildéon présent');
 click(q('#gmasc')); ok(!q('#gcard').hidden && qa('#gcard .gq').length >= 2, 'panneau Guildéon : objectifs listés');

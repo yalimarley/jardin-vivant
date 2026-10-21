@@ -144,7 +144,7 @@ const MATS = {
   paillage: { n: 'Paillage', d: 'Couvre le sol : garde l’eau.', svg: '<path d="M10 62c10-8 14-8 24 0s14 8 24 0M6 48c10-8 14-8 24 0s14 8 24 0M14 34c10-8 14-8 24 0s14 8 24 0" stroke="#b08a4a" stroke-width="5" fill="none" stroke-linecap="round"/>' },
   compost: { n: 'Compost', d: 'Nourrit une plante 30 jours.', svg: '<path d="M16 28h48l-5 40H21z" fill="#6a4e39"/><path d="M12 28h56" stroke="#8a6b4a" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="44" r="4" fill="#4a3526"/><circle cx="46" cy="52" r="3.5" fill="#4a3526"/><circle cx="40" cy="38" r="3" fill="#7dbb5c"/>' },
   treille: { n: 'Treille', d: 'Support pour une grimpante.', svg: treille() },
-  chemin: { n: 'Chemin', d: 'Accès sans piétiner le sol.', svg: '<path d="M8 66L40 50l32 16-32 16z" fill="#d9c9a2" transform="translate(0 -14)"/><ellipse cx="26" cy="54" rx="7" ry="3" fill="#bfae88"/><ellipse cx="42" cy="46" rx="8" ry="3.2" fill="#efe5c6"/><ellipse cx="55" cy="55" rx="6" ry="2.6" fill="#bfae88"/><ellipse cx="38" cy="60" rx="5" ry="2.2" fill="#efe5c6"/><ellipse cx="22" cy="46" rx="4" ry="1.8" fill="#efe5c6"/>' },
+  chemin: { n: 'Chemin', d: 'Un sentier de gravier : tu soignes sans piétiner le sol.', svg: '<path d="M8 66L40 50l32 16-32 16z" fill="#d9c9a2" transform="translate(0 -14)"/><ellipse cx="26" cy="54" rx="7" ry="3" fill="#bfae88"/><ellipse cx="42" cy="46" rx="8" ry="3.2" fill="#efe5c6"/><ellipse cx="55" cy="55" rx="6" ry="2.6" fill="#bfae88"/><ellipse cx="38" cy="60" rx="5" ry="2.2" fill="#efe5c6"/><ellipse cx="22" cy="46" rx="4" ry="1.8" fill="#efe5c6"/>' },
   pergola: { n: 'Pergola', d: 'Support et ombre fraîche.', svg: '<path d="M14 70V24M66 70V24" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><path d="M8 24h64M12 32h56" stroke="#7a5636" stroke-width="4.5" stroke-linecap="round"/><path d="M20 22v-6M30 22v-6M40 22v-6M50 22v-6M60 22v-6" stroke="#7a5636" stroke-width="3.4" stroke-linecap="round"/><circle cx="22" cy="30" r="5" fill="#5aa04c"/><circle cx="38" cy="34" r="5.5" fill="#6bb35a"/><circle cx="54" cy="30" r="5" fill="#5aa04c"/><circle cx="46" cy="39" r="3" fill="#6a3d8f"/><circle cx="30" cy="40" r="3" fill="#6a3d8f"/>' },
   serre: { n: 'Serre froide', d: 'Protège du gel.', svg: '<path d="M10 66V38l30-16 30 16v28z" fill="#dff0f6" opacity=".75" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M10 38h60M40 22v44M25 30v36M55 30v36" stroke="#fff" stroke-width="2.2"/><path d="M10 66h60" stroke="#6a4e39" stroke-width="5"/><circle cx="26" cy="58" r="3.4" fill="#7dbb5c"/><circle cx="40" cy="56" r="3.4" fill="#7dbb5c"/><circle cx="54" cy="58" r="3.4" fill="#7dbb5c"/>' },
   ruche: { n: 'Ruche', d: 'Abeilles : plus de fruits.', svg: '<ellipse cx="40" cy="68" rx="24" ry="6" fill="#000" opacity=".15"/><path d="M22 66V50h36v16" fill="#e8c36a" stroke="#a77d2a" stroke-width="2"/><path d="M20 50V36h40v14" fill="#f0d283" stroke="#a77d2a" stroke-width="2"/><path d="M18 36h44l-4-10H22z" fill="#c8553a"/><rect x="34" y="56" width="12" height="4" rx="2" fill="#4a3526"/><circle cx="58" cy="26" r="3" fill="#f2b13a"/><circle cx="66" cy="34" r="2.6" fill="#f2b13a"/>' },
@@ -290,7 +290,7 @@ function butterflies(n, m) {
 
 /* ---------- mobilier ---------- */
 const FURN_INFO = {
-  chemin: { n: 'Chemin', d: 'Un passage de gravier : tu soignes les plantes voisines sans piétiner le sol (+ croissance et rendement). Indispensable pour atteindre le cœur du jardin.', unit: 'une parcelle' },
+  chemin: { n: 'Sentier', d: 'Un sentier de gravier entre les parcelles : il ne prend aucune place de plante. Il part du bord du jardin et se trace en glissant ; les plantes qu’il longe se soignent sans piétiner le sol, et un beau sentier rend la famille plus heureuse.', unit: 'un tronçon' },
   treille: { n: 'Treille', d: 'Un support pour les grimpantes voisines (haricot, pois, vigne, kiwi).' },
   pergola: { n: 'Pergola', d: 'Support pour les grimpantes voisines, et ombre fraîche l’été pour les plantes qui la préfèrent.' },
   serre: { n: 'Serre froide', d: 'Abrite ses voisines du gel (jusqu’à 4 °C de plus) et réchauffe le sol en hiver.' },
@@ -301,8 +301,8 @@ const FURN_INFO = {
   hamac: { n: 'Hamac', d: 'Un coin de repos entre deux poteaux. Tant qu’il est posé à côté d’au moins 3 plantes en bonne santé, la famille est plus heureuse (+10 de bonheur visé). Un jardin qu’on a envie d’habiter.' },
   ruche: { n: 'Ruche', d: 'Les abeilles pollinisent les fleurs voisines : plus de fruits pour les vivaces et les plantes gourmandes proches. Compte aussi dans la biodiversité.' }
 };
-const FURNK = ['chemin', 'treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac'];
-const TARGET = { voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
+const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac'];
+const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer.', voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
 const INSTANT = ['atelier', 'poulailler', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
 const dia = (cx, cy, k) => [(cx).toFixed(1) + ',' + (cy - TH * k).toFixed(1), (cx + TW * k).toFixed(1) + ',' + cy.toFixed(1), (cx).toFixed(1) + ',' + (cy + TH * k).toFixed(1), (cx - TW * k).toFixed(1) + ',' + cy.toFixed(1)];
 function furnTile(k, cx, cy, m, seed, cell) {
@@ -397,11 +397,9 @@ function rebuildWalk() {
   const key = (c, r) => 'b' + c.toFixed(2) + '_' + r.toFixed(2);
   seq.forEach(([c, r]) => ring.push(add(key(c, r), c, r)));
   ring.forEach((k, n) => link(k, ring[(n + 1) % ring.length]));
-  S.grid.forEach((cell, i) => { if (!cell || cell.furn !== 'chemin') return; const c = i % STR, r = (i / STR) | 0; if (c >= COLS || r >= ROWS) return; add('p' + i, c + .5, r + .5); });
-  S.grid.forEach((cell, i) => { if (!cell || cell.furn !== 'chemin') return; const c = i % STR, r = (i / STR) | 0, k = 'p' + i; if (c >= COLS || r >= ROWS) return;
-    if (c + 1 < COLS) link(k, 'p' + (i + 1)); if (r + 1 < ROWS) link(k, 'p' + (i + STR));
-    if (r === 0) link(k, key(c + .5, -RING)); if (r === ROWS - 1) link(k, key(c + .5, ROWS + RING));
-    if (c === 0) link(k, key(-RING, r + .5)); if (c === COLS - 1) link(k, key(COLS + RING, r + .5)); });
+  { const vk = (x, y) => 'v' + x + '_' + y; (S.paths || []).forEach(pk0 => { const [x1, y1, x2, y2] = G.pparse(pk0); add(vk(x1, y1), x1, y1); add(vk(x2, y2), x2, y2); });
+    (S.paths || []).forEach(pk0 => { const [x1, y1, x2, y2] = G.pparse(pk0); link(vk(x1, y1), vk(x2, y2)); });
+    const dm = G.dims(S); Object.keys(N).filter(k => k[0] === 'v').forEach(k => { const n = N[k]; if (n.c === 0 || n.r === 0 || n.c === dm[0] || n.r === dm[1]) { let best = null, bd = 1e9; ring.forEach(q => { const d = (N[q].c - n.c) ** 2 + (N[q].r - n.r) ** 2; if (d < bd) { bd = d; best = q; } }); link(k, best); } }); }
   { const KS = Math.min(1, 14 / (COLS + ROWS)), CGx = OX + (COLS - ROWS) / 2 * TW, CGy = OY + (COLS + ROWS) / 2 * TH;
     const ys = YARD.map(([X, Y], n) => { const xl = (X - 380) / KS + CGx, yl = (Y - 311) / KS + CGy, s1 = (xl - OX) / TW, s2 = (yl - OY) / TH; return add('y' + n, (s1 + s2) / 2, (s2 - s1) / 2); });
     ys.forEach((a, n) => ys.forEach((b, m) => { if (n < m && Math.hypot(N[a].c - N[b].c, N[a].r - N[b].r) < 2.6 / KS * .6 + 1.2) link(a, b); }));
@@ -451,7 +449,7 @@ function famStep(a) {
   else if (a.inside && walk.N.y0) { a.inside = false; a.node = 'y0'; a.c = walk.N.y0.c; a.r = walk.N.y0.r; a.path = []; a.pause = .4 + a.k * 1.6; }
 }
 function agentSvg(a) { if (a.who === 'f') return '<g class="chr person" data-who="f' + a.k + '"><ellipse cx="0" cy="1" rx="8" ry="3" fill="#000" opacity=".22"/>' + personSvg(a.k) + '</g>'; return '<g class="chr ' + (a.who === 'g' ? 'gardener' : 'doggy') + '" data-who="' + a.who + '"><ellipse cx="0" cy="1" rx="' + (a.who === 'g' ? 9 : 10) + '" ry="3.2" fill="#000" opacity=".22"/>' + (a.who === 'g' ? GARD : DOG) + '</g>'; }
-function agentPos(a) { const k = a.node && walk.N[a.node]; const onPath = k && k.k[0] === 'p'; return [isoX(a.c, a.r), isoY(a.c, a.r) - (onPath ? 3 : 0)]; }
+function agentPos(a) { const k = a.node && walk.N[a.node]; const onPath = k && k.k[0] === 'v'; return [isoX(a.c, a.r), isoY(a.c, a.r) - (onPath ? 3 : 0)]; }
 function placeAgent(a) {
   const gr = $('garden'); if (!gr) return;
   if (!a.el || !a.el.isConnected) { const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'g'); tmp.innerHTML = agentSvg(a); a.el = tmp.firstChild; a.fl = null; }
@@ -545,6 +543,28 @@ function flyIcon(kind, pos) {
   if (combo.n >= 3) s += '<text class="combo" y="-24" text-anchor="middle">×' + combo.n + '</text>';
   s += '</g>'; const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.innerHTML = s; const el = g.firstChild; svg.appendChild(el); setTimeout(() => el.remove(), 1100);
 }
+const PHW = .17, PLIFT = BH;
+function pathsSvg() {
+  const dm = G.dims(S), linked = new Set(G.pathLinkedEdges(S)), cm = ui.mode && ui.mode.type === 'mat' && ui.mode.k === 'chemin'; let h = '<g id="gPaths" style="pointer-events:none">';
+  const P3 = (c, r) => pt(c, r, PLIFT), bord = (x, y) => x === 0 || y === 0 || x === dm[0] || y === dm[1];
+  (S.paths || []).forEach((k, n) => {
+    const [x1, y1, x2, y2] = G.pparse(k), hor = y1 === y2, ok = linked.has(k);
+    const ext = (x, y) => bord(x, y) ? .4 : PHW;
+    const e1 = ext(x1, y1), e2 = ext(x2, y2);
+    let q; if (hor) q = [[x1 - e1, y1 - PHW], [x2 + e2, y1 - PHW], [x2 + e2, y1 + PHW], [x1 - e1, y1 + PHW]]; else q = [[x1 - PHW, y1 - e1], [x1 + PHW, y1 - e1], [x1 + PHW, y2 + e2], [x1 - PHW, y2 + e2]];
+    h += '<polygon points="' + q.map(p => P3(p[0], p[1])).join(' ') + '" fill="' + (ok ? '#ebdcb2' : '#d9d0bd') + '" stroke="' + (ok ? '#b39d6c' : '#a79f8c') + '" stroke-width="1.3" stroke-linejoin="round"' + (ok ? '' : ' stroke-dasharray="4 3" opacity=".85"') + '/>';
+    const R = rnd(n * 13 + x1 * 7 + y1 * 5 + 1);
+    for (let t = 0; t < 4; t++) { const u = (t + .5 + (R() - .5) * .5) / 4, c = hor ? x1 + u * (x2 - x1) : x1 + (R() - .5) * PHW, r = hor ? y1 + (R() - .5) * PHW : y1 + u * (y2 - y1);
+      h += '<ellipse cx="' + isoX(c, r).toFixed(1) + '" cy="' + (isoY(c, r) - PLIFT).toFixed(1) + '" rx="' + (2.2 + R() * 2).toFixed(1) + '" ry="' + (1 + R()).toFixed(1) + '" fill="' + (t % 2 ? '#c6b283' : '#f6edcf') + '"/>'; }
+  });
+  if (cm) {
+    const L = G.pathLinked(S), starts = []; for (let x = 1; x < dm[0]; x++) { starts.push([x, 0], [x, dm[1]]); } for (let y = 1; y < dm[1]; y++) { starts.push([0, y], [dm[0], y]); }
+    L.forEach(v => { const [x, y] = v.split(',').map(Number); if (!bord(x, y)) starts.push([x, y]); });
+    starts.forEach(([x, y]) => { h += '<circle class="pdot" cx="' + isoX(x, y).toFixed(1) + '" cy="' + (isoY(x, y) - PLIFT).toFixed(1) + '" r="4.6" fill="#fff" stroke="var(--leaf)" stroke-width="2.2" opacity=".92"/>'; });
+    if (ui.trace && ui.trace.v) h += '<circle cx="' + isoX(ui.trace.v[0], ui.trace.v[1]).toFixed(1) + '" cy="' + (isoY(ui.trace.v[0], ui.trace.v[1]) - PLIFT).toFixed(1) + '" r="8" fill="var(--leaf)" stroke="#fff" stroke-width="2.6"/>';
+  }
+  return h + '</g>';
+}
 function renderGarden() {
   syncDims(); const [DW, DH] = dispDims(), { KS, CGx, CGy } = kview(DW, DH);
   const m = G.dateOf(S.day).m, se = SEASON(m), gc = GROUND[se], w = S.w, st = G.stats(S);
@@ -563,14 +583,16 @@ function renderGarden() {
   { const Lp = P0.reduce((p, q) => q[0] < p[0] ? q : p), Rp = P0.reduce((p, q) => q[0] > p[0] ? q : p), Bp = P0.reduce((p, q) => q[1] > p[1] ? q : p);
     h += poly([Lp.join(','), Bp.join(','), Bp[0] + ',' + (Bp[1] + PT), Lp[0] + ',' + (Lp[1] + PT)], '#8a6b4a') + poly([Bp.join(','), Rp.join(','), Rp[0] + ',' + (Rp[1] + PT), Bp[0] + ',' + (Bp[1] + PT)], '#6e5338'); }
   h += poly(P0.map(p => p.join(',')), '#d8c79f') + poly(P0.map(p => p.join(',')), 'none', ' stroke="#b8a37a" stroke-width="2"');
+  h += pathsSvg();
   h += '<g id="gBack"></g>';
   const picking = ui.mode && ui.mode.type === 'plant', tre = ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k);
   const dry = c => c.water < 25;
+  const PE = new Set(S.paths || []);
   const order = []; for (let s = 0; s < DW + DH - 1; s++) for (let rr = 0; rr < DH; rr++) { const cc = s - rr; if (cc >= 0 && cc < DW) { const q = irot(cc + .5, rr + .5); order.push([Math.floor(q[0]), Math.floor(q[1])]); } }
   const centers = {}, pqSet = {}; (S.pq || []).forEach(q => { pqSet[q.i] = q; });
   for (const [c, r] of order) {
     const i = r * STR + c, cell = S.grid[i], free = !cell, lift = BH;
-    const a = c + INS, b2 = c + 1 - INS, rr0 = r + INS, rr1 = r + 1 - INS;
+    const a = c + (PE.has(G.pk(c, r, c, r + 1)) ? PHW : INS), b2 = c + 1 - (PE.has(G.pk(c + 1, r, c + 1, r + 1)) ? PHW : INS), rr0 = r + (PE.has(G.pk(c, r, c + 1, r)) ? PHW : INS), rr1 = r + 1 - (PE.has(G.pk(c, r + 1, c + 1, r + 1)) ? PHW : INS);
     const cor = [[a, rr0], [b2, rr0], [b2, rr1], [a, rr1]].map(([x, y]) => [isoX(x, y), isoY(x, y) - lift]), T = cor.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1));
     const Lc = cor.reduce((p, q) => q[0] < p[0] ? q : p), Rc = cor.reduce((p, q) => q[0] > p[0] ? q : p), Bc = cor.reduce((p, q) => q[1] > p[1] ? q : p), up = p => p[0].toFixed(1) + ',' + p[1].toFixed(1), dn = p => p[0].toFixed(1) + ',' + (p[1] + lift).toFixed(1);
     const cx = isoX(c + .5, r + .5), cyTop = isoY(c + .5, r + .5) - lift; centers[i] = [cx, cyTop];
@@ -628,7 +650,7 @@ function renderGarden() {
   const hint = $('hint');
   if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
-  else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer. Touche un tronçon de sentier pour le retirer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
@@ -1126,7 +1148,7 @@ function clickCell(i) {
   ui.planHl = null;
   if (ui.mode && ui.mode.type === 'skill') { const kk = ui.mode.k, r = kk === 'bouture' ? G.bouturer(S, i) : G.greffer(S, i); if (!r.ok) { toast(r.msg); return; } toast(kk === 'bouture' ? 'Bouture prélevée : une nouvelle carte de ' + r.name.toLowerCase() + ' dans ta réserve.' : r.name + ' greffé : plus de fruits et plus vite.'); ui.sel = i; save(); render(); return; }
   if (ui.mode && ui.mode.type === 'mat') {
-    const k = ui.mode.k; if (k === 'canard') { if (c && c.furn === 'mare') { if (G.placeDuck(S, i)) { toast('Les canards s’installent à la mare.'); if (!(S.mats.canard > 0)) ui.mode = null; ui.sel = i; render(); } else toast('Cette mare a déjà ses canards.'); } else toast('Touche une mare pour y installer les canards.'); return; }
+    const k = ui.mode.k; if (k === 'chemin') return; if (k === 'canard') { if (c && c.furn === 'mare') { if (G.placeDuck(S, i)) { toast('Les canards s’installent à la mare.'); if (!(S.mats.canard > 0)) ui.mode = null; ui.sel = i; render(); } else toast('Cette mare a déjà ses canards.'); } else toast('Touche une mare pour y installer les canards.'); return; }
     if (k === 'trogne') { toast('Touche un arbre au bord du jardin.'); return; }
     if (TARGET[k]) {
       if (!c || c.treille) { toast(TARGET[k]); return; }
@@ -1252,6 +1274,57 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { ui, cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+const trace = (function initTrace() {
+  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return {};
+  let T = null, swallow = 0;
+  const chemMode = () => ui.mode && ui.mode.type === 'mat' && ui.mode.k === 'chemin';
+  function gridAt(cx, cy) { const g = $('gGrid'); if (!g || !g.getScreenCTM) return null; const m = g.getScreenCTM(); if (!m) return null; const p = new DOMPoint(cx, cy).matrixTransform(m.inverse()), s1 = (p.x - OX) / TW, s2 = (p.y + PLIFT - OY) / TH, q = irot((s1 + s2) / 2, (s2 - s1) / 2); return { c: q[0], r: q[1] }; }
+  function vertexClient(x, y) { const g = $('gGrid'), m = g.getScreenCTM(), p = new DOMPoint(isoX(x, y), isoY(x, y) - PLIFT).matrixTransform(m); return { x: p.x, y: p.y }; }
+  const segDist = (c, r, k) => { const [x1, y1, x2, y2] = G.pparse(k), dx = x2 - x1, dy = y2 - y1, t = Math.max(0, Math.min(1, ((c - x1) * dx + (r - y1) * dy) / (dx * dx + dy * dy))); return Math.hypot(c - (x1 + t * dx), r - (y1 + t * dy)); };
+  function nearEdge(c, r, tol) { let best = null, bd = tol; (S.paths || []).forEach(k => { const d = segDist(c, r, k); if (d < bd) { bd = d; best = k; } }); return best; }
+  function startVertex(c, r) {
+    const dm = G.dims(S), L = G.pathLinked(S); let best = null, bd = 1.7; const tryV = (x, y) => { const d = Math.hypot(x - c, y - r); if (d < bd) { bd = d; best = [x, y]; } };
+    for (let x = 1; x < dm[0]; x++) { tryV(x, 0); tryV(x, dm[1]); } for (let y = 1; y < dm[1]; y++) { tryV(0, y); tryV(dm[0], y); }
+    L.forEach(v => { const [x, y] = v.split(',').map(Number); tryV(x, y); }); return best;
+  }
+  function extend(c, r) {
+    const dm = G.dims(S), tx = Math.max(0, Math.min(dm[0], Math.round(c))), ty = Math.max(0, Math.min(dm[1], Math.round(r))); let added = 0, guard = 0;
+    while ((T.v[0] !== tx || T.v[1] !== ty) && guard++ < 40) {
+      const dx = tx - T.v[0], dy = ty - T.v[1], nx = Math.abs(dx) >= Math.abs(dy) ? [T.v[0] + Math.sign(dx), T.v[1]] : [T.v[0], T.v[1] + Math.sign(dy)];
+      const res = G.addPath(S, T.v[0], T.v[1], nx[0], nx[1]);
+      if (!res.ok) { if (res.why === 'stock') { toast(res.msg); ui.mode = null; T.dead = true; added++; } break; }
+      T.v = nx; if (!res.exists) { added++; T.n++; }
+    }
+    return added;
+  }
+  const down = e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return; if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (T && T.id !== e.pointerId) { T = null; return; }
+    const g = gridAt(e.clientX, e.clientY); if (!g) return;
+    if (chemMode()) { const v = startVertex(g.c, g.r); T = { id: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false, n: 0, g0: g, v: v, bad: !v }; if (v) { ui.trace = { v }; render(); } }
+    else if (ui.tool === 'delete' && !ui.mode) T = { id: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false, del: true, g0: g };
+  };
+  const move = e => {
+    if (!T || T.id !== e.pointerId || T.del || T.dead) return;
+    if (!T.moved && Math.hypot(e.clientX - T.x0, e.clientY - T.y0) > 6) T.moved = true;
+    if (!T.moved || !T.v) return; const g = gridAt(e.clientX, e.clientY); if (!g) return;
+    if (extend(g.c, g.r)) { ui.trace = { v: T.v }; render(); }
+  };
+  const up = e => {
+    if (!T || T.id !== e.pointerId) return; const t = T; T = null; const g = gridAt(e.clientX, e.clientY);
+    if (t.moved) { ui.trace = null; if (t.n) { toast(t.n + (t.n > 1 ? ' tronçons posés' : ' tronçon posé') + (S.mats.chemin > 0 ? ' · reste ' + S.mats.chemin : '')); save(); } render(); swallow = performance.now() + 350; return; }
+    if (t.del && g) { const k = nearEdge(g.c, g.r, .15); if (k) { G.removePath(S, k); toast('Tronçon retiré : +1 gravier.'); swallow = performance.now() + 350; save(); render(); } return; }
+    if (chemMode()) { ui.trace = null; swallow = performance.now() + 350;
+      const k = g && nearEdge(g.c, g.r, .26); if (k) { G.removePath(S, k); toast('Tronçon retiré : +1 gravier.'); save(); }
+      else if (t.bad) toast('Un sentier part du bord du jardin ou d’un sentier déjà tracé : glisse depuis là.');
+      else toast('Glisse le doigt ou la souris pour tracer le sentier.');
+      render(); }
+  };
+  document.addEventListener('selectstart', e => { if (T) e.preventDefault(); });
+  wrap.addEventListener('pointerdown', down, true); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', e => { if (T && T.id === e.pointerId) { T = null; ui.trace = null; render(); } });
+  wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
+  return { gridAt, vertexClient, startVertex };
+})();
+window.__jv = { ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();

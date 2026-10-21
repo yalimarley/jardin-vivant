@@ -7,7 +7,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('ECHEC:', m); } else conso
 
 // 1. nouvelle partie
 let s = G.newGame();
-ok(s.grid.filter(Boolean).length === 4, '4 plantes de départ');
+ok(s.grid.filter(Boolean).length === 0 && s.maxPlantings === 0, 'jardin vide au départ');
 let t = G.buildTasks(s);
 ok(t.tasks.some(x => x.id === 'booster'), 'tâche booster présente');
 const b = G.openBooster(s);
@@ -51,7 +51,7 @@ for (let d = 0; d < 365; d++) {
 const stt = G.stats(s2);
 console.log('Après 1 an :', JSON.stringify(stt), 'repas:', s2.meals, 'morts:', deaths, 'plantes:', s2.plantings, 'cartes en réserve:', Object.keys(s2.cards).length);
 ok(s2.meals > 20, 'au moins 20 repas cuisinés en un an (' + s2.meals + ')');
-ok(stt.plants > 8, 'au moins 8 plantes vivantes après un an (' + stt.plants + ')');
+ok(stt.plants >= 6, 'au moins 6 plantes vivantes après un an (' + stt.plants + ')');
 ok(!Number.isNaN(stt.soil) && stt.soil >= 20 && stt.soil <= 100, 'sol dans les bornes : ' + stt.soil);
 
 // 3. démo
@@ -139,7 +139,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const s3 = G.newGame(); s3.boosterDay = -1; const f3 = s3.feves; G.openBooster(s3); ok(s3.feves === f3 + 1, 'booster : +1 ginkgo');
   const s4 = G.newGame(); s4.maxPlantings = 25; let seenF = false; for (let k = 0; k < 120; k++) { s4.boosterDay = -1; s4.day++; s4.boosters = 3 + k; G.openBooster(s4).forEach(c => { if (c.t === 'mat' && ['atelier', 'sechoir', 'grandeserre', 'pergola', 'hamac', 'serre', 'mare', 'ruche', 'trogne', 'canard', 'treille'].includes(c.k)) seenF = true; }); } ok(!seenF, 'plus de mobilier dans les boosters');
   const s5 = G.newGame(); s5.mats.hamac = 1; s5.grid.fill(null); s5.grid[8 * 0 + 9] = { treille: true, furn: 'hamac' }; ok(!G.hamacOk(s5), 'hamac sans plantes : pas de bonus'); }
-{ const g0 = G.newGame(); ok(G.skillLevel(g0, 'tonte') === 1 && G.skillLevel(g0, 'trogne') === 1 && G.skillLevel(g0, 'bouture') === 0 && G.skillLevel(g0, 'greffe') === 0, 'compétences de départ : tonte, trognes, cuisine');
+{ const g0 = G.newGame(); ok(G.skillLevel(g0, 'tonte') === 1 && G.skillLevel(g0, 'trogne') === 0 && G.skillLevel(g0, 'plantation') === 1 && G.skillLevel(g0, 'cuisine') === 1 && G.skillLevel(g0, 'bouture') === 0 && G.skillLevel(g0, 'greffe') === 0, 'compétences de départ : tonte, plantation, cuisine (trognes plus tard)');
   ok(!G.bouturer(g0, 0).ok && !G.craft(g0, 'ortie').ok, 'bouture et fabrication verrouillées au départ');
   const d = G.demo(); d.mats.paillage = 20; d.mats.compost = 6; const vi = d.grid.findIndex(c => c && !c.treille && ['vivace', 'continue'].includes(G.P[c.pid].kind) && G.P[c.pid].strate !== 'Arbre' && G.phase(c).stage !== 'graine' && G.phase(c).stage !== 'pousse');
   const nc = Object.values(d.cards).reduce((a, b) => a + b, 0), r1 = G.bouturer(d, vi); ok(r1.ok && Object.values(d.cards).reduce((a, b) => a + b, 0) === nc + (G.skillLevel(d, 'bouture') >= 3 ? 2 : 1), 'bouture : +1 carte'); ok(!G.bouturer(d, vi).ok, 'bouture : délai de récupération');

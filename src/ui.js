@@ -958,8 +958,8 @@ function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach
 })();
 const TUTO = [
   { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 4 },
-  { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 7 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },

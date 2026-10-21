@@ -108,6 +108,10 @@ ok(/Chemin 3/.test(q('#res').textContent), 'chemin repris en main');
 ok(q('#gmasc') && q('#gsay'), 'Guildéon présent');
 click(q('#gmasc')); ok(!q('#gcard').hidden && qa('#gcard .gq').length >= 2, 'panneau Guildéon : objectifs listés');
 click(q('#gmasc')); ok(q('#gcard').hidden, 'panneau Guildéon fermé');
+// quelques plantes pour les tests de strates (nouvelle partie : jardin vide)
+{ click(qa('#today .task').find(t => /booster/i.test(t.textContent))); click(q('[data-act="rip"]')); click(q('[data-act="close"]'));
+  for (const c0 of qa('#strip button.card')) { if (qa('#garden .cell:not(.free)').filter(e => !/Chemin/.test(e.getAttribute('aria-label') || '')).length >= 4) break; click(c0); const f2 = qa('#garden .cell.free').filter(c => !c.querySelector('.pqg'))[0]; if (f2) click(f2); }
+  w.__jv.flush();  }
 // strates
 ok(new Set(qa('#garden .cell:not(.free) polygon').map(e => e.getAttribute('fill')).filter(Boolean)).size >= 3, 'cases teintées selon la strate');
 click(q('[data-act="strate-menu"]')); ok(!q('#strmenu').hidden && qa('#strmenu .sch').length === 7, 'menu strates');

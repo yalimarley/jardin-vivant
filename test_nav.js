@@ -104,7 +104,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('ECHEC:', m); } else conso
     await p.evaluate(([x, y]) => { T.pe('pointerdown', 11, x, y, { pt: 'touch' }); T.pe('pointerdown', 12, x + 50, y, { pt: 'touch' }); window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 11, pointerType: 'touch' })); window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 12, pointerType: 'touch' })); }, [X, Y]);
     ok((await p.evaluate(() => window.__jv.cam.state())).ptrs === 0, 'pointercancel : état de geste réinitialisé');
     // panneaux : la barre d'outils et les fenêtres ne bougent pas la caméra
-    const e0 = await vbv(p); await p.click('[data-act="tool-select"]'); await p.tap('[data-act="skills"]'); await p.waitForTimeout(200); await p.keyboard.press('Escape'); const e1 = await vbv(p);
+    const e0 = await vbv(p); await p.click('[data-act="tool-select"]'); await p.tap('.rb[data-act="skills"]'); await p.waitForTimeout(200); await p.keyboard.press('Escape'); const e1 = await vbv(p);
     ok(e0.every((v, i) => v === e1[i]), 'barre d’outils / fenêtre Compétences : la caméra ne bouge pas');
     ok(await p.evaluate(() => getComputedStyle(document.getElementById('garden')).touchAction) === 'none', 'touch-action: none sur la carte (pas de défilement ni zoom natif)');
     // orientation

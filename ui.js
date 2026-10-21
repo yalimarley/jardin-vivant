@@ -198,12 +198,15 @@ function familyHtml() {
     return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + face(k, m.joy, 46) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + t + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
 }
 function openFamily() { modal('La famille', familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
+function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('voile') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
 function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
-  const kg = S.stock.reduce((a, b) => a + b.kg, 0);
-  $('res').innerHTML = '<div class="items"><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('grandeserre') + mat('voile') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') + '</div>' +
-    '<div class="items"><button type="button" class="btn sm" data-act="kitchen">' + ico('pot') + 'Garde-manger ' + fmt(kg) + ' kg</button><button type="button" class="btn sm" data-act="shop">' + GK(16) + 'Boutique · ' + (S.feves || 0) + ' ginkgos</button><button type="button" class="btn sm" data-act="skills">' + ico('leaf') + 'Compétences' + (S.pts > 0 ? ' · ' + S.pts + ' pt' + (S.pts > 1 ? 's' : '') : '') + '</button><button type="button" class="btn sm primary" data-act="amenager">' + ico('leaf') + 'Aménager' + (G.canExpand(S).ok ? ' · terrain à agrandir' : '') + '</button><button type="button" class="btn sm" data-act="herbier">' + ico('leaf') + 'Herbier</button><button type="button" class="btn sm" data-act="journal">' + ico('book') + 'Carnet</button><button type="button" class="btn sm" data-act="time">' + ico('clock') + 'Temps</button><button type="button" class="btn sm" data-act="famille">' + ico('leaf') + 'Famille</button></div>';
+  const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
+  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
+  const nT = G.buildTasks(S).tasks.length, rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
+  const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
+  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('today-toggle', SV('M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2'), 'Aujourd’hui', nT || '', ui.todayOpen ? ' pri' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -546,7 +549,7 @@ function renderGarden() {
   syncDims(); const [DW, DH] = dispDims(), { KS, CGx, CGy } = kview(DW, DH);
   const m = G.dateOf(S.day).m, se = SEASON(m), gc = GROUND[se], w = S.w, st = G.stats(S);
   let h = '<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + gc[0] + '"/><stop offset="1" stop-color="' + gc[1] + '"/></linearGradient></defs>';
-  h += '<rect x="-400" y="-300" width="1560" height="1140" fill="url(#gg)"/>';
+  h += '<rect x="-1500" y="-1500" width="3800" height="3600" fill="url(#gg)"/>';
   for (let k = 0; k < 90; k++) { const r = rnd(k + 5), x = r() * 760, y = r() * 540; h += '<path d="M' + x.toFixed(0) + ' ' + y.toFixed(0) + 'l-2-5M' + x.toFixed(0) + ' ' + y.toFixed(0) + 'l2-6" stroke="' + shade(gc[1], -24) + '" stroke-width="1.4" stroke-linecap="round" opacity=".35"/>'; }
   // fond : arbres et haies
   LAWNS.forEach(([x, y], k) => { h += mv(x, y, lawnPatch(k, x, y, G.lawnReady(S, k), gc)); });
@@ -629,7 +632,7 @@ function renderGarden() {
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = '<span>' + (S.pq && S.pq.length ? '<b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler. ' : '') + 'Touche une plante pour voir sa fiche et ses voisines. Goutte = elle a soif. Panier = prête à récolter. Les papillons viennent avec la biodiversité. Trace des chemins pour atteindre le cœur du jardin.</span>';
+  else hint.innerHTML = S.pq && S.pq.length ? '<span><b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler.</span>' : '';
 }
 
 /* ---------- réserve ---------- */
@@ -655,7 +658,8 @@ function renderToday() {
 /* ---------- fiche ---------- */
 function dur(days) { return days < 60 ? Math.max(1, Math.round(days)) + ' jours' : days < 730 ? Math.round(days / 30) + ' mois' : fmt(days / 365) + ans(days); }
 const ans = () => ' ans';
-function renderFiche() {
+function renderFiche() { renderFiche0(); const el = $('fiche'); el.hidden = ui.sel < 0; if (!el.hidden) el.insertAdjacentHTML('afterbegin', '<button type="button" class="fclose" data-act="fiche-close" aria-label="Fermer la fiche">×</button>'); }
+function renderFiche0() {
   const el = $('fiche'), i = ui.sel, c = i >= 0 ? S.grid[i] : null, m = G.dateOf(S.day).m;
   if (i < 0) { el.innerHTML = '<h2>Parcelle</h2><p class="empty-f">Touche une plante pour voir ses besoins, ses voisines et ce qu’elle apporte à la guilde.</p>'; return; }
   if (!c) { el.innerHTML = '<h2>Parcelle libre</h2><p class="empty-f">Choisis une carte dans ta réserve pour semer ou planter ici. Seules les plantes de saison peuvent être mises en terre.</p>'; return; }
@@ -893,6 +897,16 @@ function openSkills() {
   modal('Mon jardinier', h, true);
 }
 
+function openStock() { const e = EXTRA(); modal('Matériel', '<p class="note-p">Touche un objet pour le poser dans le jardin.</p><div class="items" style="display:flex;flex-wrap:wrap;gap:8px">' + e.h + '</div>'); }
+function openMenu() {
+  const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+}
+function applyHud() {
+  if (ui.trayOpen == null) ui.trayOpen = !PHONE(); if (ui.todayOpen == null) ui.todayOpen = window.innerWidth >= 1100;
+  const tr = $('tray'), td = $('today'); if (tr) tr.classList.toggle('shut', !ui.trayOpen); if (td) td.classList.toggle('fold', !ui.todayOpen);
+  document.body.classList.toggle('sel', ui.sel >= 0);
+}
 function openJournal() {
   modal('Carnet du jardinier', (S.knowledge.length ? '<p class="note-p">Plantes apprises : ' + S.knowledge.map(id => P[id].name).join(', ') + '.</p>' : '') + '<ul class="log">' + (S.log.length ? S.log.map(l => '<li><span class="d">' + dateStr(l.day, true) + '</span><span class="' + (l.type === 'warn' ? 'warn' : l.type === 'bad' ? 'bad' : '') + '">' + l.text + '</span></li>').join('') : '<li>Rien pour l’instant.</li>') + '</ul>');
 }
@@ -933,9 +947,10 @@ document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.i
 
 /* ---------- actions ---------- */
 let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 3400); }
+function vsize() { const r = $('garden') && $('garden').getBoundingClientRect(), z = view.z; if (r && r.width > 50 && r.height > 50) { const a = r.width / r.height; if (a >= 760 / 460) { const h = 460 / z; return { w: h * a, h }; } const w = 760 / z; return { w, h: w / a }; } return { w: 760 / z, h: (PHONE() ? 880 : 460) / z }; }
 function applyView() {
-  const svg = $('garden'); if (!svg) return; view.z = clamp(isFinite(view.z) ? view.z : 1, camMin(), CAM.zoomMax); const w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z;
-  const x = clamp(view.cx - w / 2, -150, 910 - w), y = clamp(view.cy - h / 2, -60, 600 - h); view.cx = x + w / 2; view.cy = y + h / 2;
+  const svg = $('garden'); if (!svg) return; view.z = clamp(isFinite(view.z) ? view.z : 1, camMin(), CAM.zoomMax); const { w, h } = vsize();
+  const ax = (c, sz, lo, hi) => sz >= hi - lo ? (lo + hi) / 2 : clamp(c, lo + sz / 2, hi - sz / 2); view.cx = ax(view.cx, w, -150, 910); view.cy = ax(view.cy, h, -60, 600); const x = view.cx - w / 2, y = view.cy - h / 2;
   svg.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1));
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
 }
@@ -965,7 +980,7 @@ function renderStr() {
 }
 function renderTools() { document.querySelectorAll('#tools [data-tool]').forEach(b => b.classList.toggle('on', (ui.tool || 'select') === b.dataset.tool)); }
 /* ---------- navigation caméra : souris, clavier, tactile ---------- */
-const camBox = () => { const svg = $('garden'), r = svg.getBoundingClientRect(), w = 760 / view.z, h = (PHONE() ? 880 : 460) / view.z, s = Math.min(r.width / w, r.height / h) || 1; return { r, w, h, s, x: view.cx - w / 2, y: view.cy - h / 2, ox: (r.width - w * s) / 2, oy: (r.height - h * s) / 2 }; };
+const camBox = () => { const svg = $('garden'), r = svg.getBoundingClientRect(), { w, h } = vsize(), s = Math.min(r.width / w, r.height / h) || 1; return { r, w, h, s, x: view.cx - w / 2, y: view.cy - h / 2, ox: (r.width - w * s) / 2, oy: (r.height - h * s) / 2 }; };
 const camWorld = (cx, cy) => { const b = camBox(); return { x: b.x + (cx - b.r.left - b.ox) / b.s, y: b.y + (cy - b.r.top - b.oy) / b.s }; };
 function camPan(dx, dy) { const b = camBox(); view.cx -= dx / b.s; view.cy -= dy / b.s; applyView(); }
 function camZoomAt(f, cx, cy) {
@@ -1047,11 +1062,12 @@ function renderTuto() {
   while (st && st.done && st.done() && guard++ < TUTO.length) { t.step++; st = TUTO[t.step]; }
   if (!st) { t.done = true; el.hidden = true; save(); return; }
   if (document.querySelector('#layer .modal')) { el.hidden = true; return; }
+  if (st.target && st.target.indexOf('#today') === 0 && !ui.todayOpen) { ui.todayOpen = true; applyHud(); }
   el.hidden = false;
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderTray(); renderToday(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -1147,7 +1163,7 @@ document.addEventListener('click', e => {
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
-    case 'mode-mat': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
+    case 'mode-mat': { if (a.closest('#layer')) closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;
     case 'guil-toggle': ui.gOpen = !ui.gOpen; ui.gUntil = 0; render(); break;
@@ -1164,6 +1180,11 @@ document.addEventListener('click', e => {
     case 'cancel': ui.mode = null; render(); break;
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
+    case 'menu': openMenu(); break;
+    case 'stock': openStock(); break;
+    case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
+    case 'today-toggle': ui.todayOpen = !ui.todayOpen; applyHud(); renderRes(); break;
+    case 'fiche-close': ui.sel = -1; ui.mvFrom = -1; render(); break;
     case 'skill-trogne': closeModal(); ui.tool = 'select'; ui.mode = { type: 'mat', k: 'trogne' }; render(); toast('Touche un arbre au bord du jardin pour le tailler en trogne.'); break;
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;
     case 'craft': { const r = G.craft(S, a.dataset.k); toast(r.ok ? 'Fabriqué : ' + RECIPE_N[a.dataset.k].toLowerCase() + '.' : r.msg); save(); render(); openSkills(); break; }

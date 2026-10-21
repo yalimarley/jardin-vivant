@@ -326,23 +326,94 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .sw{display:inline-block;width:14px;height:14px;border-radius:4px;flex:none;vertical-align:-2px;margin-right:4px;border:1.5px solid rgba(255,255,255,.7);box-shadow:0 0 0 1px rgba(0,0,0,.2)}.sch .sw{margin:0}
 .spr.dim{opacity:.16;transition:opacity .2s}
 @media (max-width:560px){.strmenu{left:6px;top:96px}}
+
+/* ===== écran unique : la carte plein écran, le reste flotte par-dessus ===== */
+html,body{height:100%;overflow:hidden}
+body{padding:0}
+.app{max-width:none;margin:0;padding:0;display:block;height:100dvh;position:relative}
+.stage,.board,.side{display:contents}
+.app .garden-wrap{position:fixed;inset:0;z-index:1;display:block;border:0;border-radius:0;box-shadow:none;background:#a9c46c}
+.app #garden{position:absolute;inset:0;width:100%;height:100%;max-height:none}
+.hud-tl{position:fixed;left:12px;top:12px;z-index:20;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:min(480px,calc(100vw - 100px));pointer-events:none}
+.hud-tl>*{pointer-events:auto}
+.hud-tl .top{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:color-mix(in srgb,var(--surface) 93%,transparent);border:1px solid var(--line);border-radius:14px;padding:7px 12px 7px 9px;box-shadow:var(--shadow);max-width:100%}
+.hud-tl .brand{gap:8px}.hud-tl .brand svg{width:28px;height:28px}.hud-tl .brand h1{font-size:18px}.hud-tl .brand small{display:none}
+.hud-tl .when{font-size:12.5px;gap:3px 10px}.hud-tl .when b{font-size:14px}
+.hud-tl .res{display:flex;flex-direction:column;align-items:flex-start;gap:6px;justify-content:flex-start;pointer-events:none}
+.hud-tl .res .items{display:flex;gap:5px;flex-wrap:wrap;pointer-events:none}.hud-tl .res .pill{pointer-events:auto}
+.hud-tl .pill{background:color-mix(in srgb,var(--surface) 93%,transparent);box-shadow:var(--shadow);padding:3px 9px;font-size:12.5px}
+.pill.lvl{gap:8px;cursor:pointer}.pill .mini{display:inline-block;width:46px;height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden}.pill .mini i{display:block;height:100%;background:var(--leaf-2)}
+.hud-tr{position:fixed;right:12px;top:12px;z-index:20}
+.hud-tr .gauges{flex-wrap:nowrap;gap:8px}.hud-tr .gauge{min-width:98px;padding:5px 10px;background:color-mix(in srgb,var(--surface) 93%,transparent)}.hud-tr .gauge strong{font-size:14px}.hud-tr .gauge .bar{margin-top:3px}
+.rail{position:fixed;right:12px;top:78px;z-index:20;display:flex;flex-direction:column;gap:8px}
+.rb{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;width:70px;border:0;background:none;padding:0}
+.rb .rc{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:2.5px solid var(--leaf);box-shadow:var(--shadow);transition:transform .12s}
+.rb:hover .rc{transform:scale(1.07)}.rb.pri .rc{background:var(--leaf);color:var(--on-leaf)}
+.rb .ico,.rb svg{width:24px;height:24px}.rb .rc>svg:not(.ico){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rb small{font-size:10.5px;font-weight:700;line-height:1.1;background:color-mix(in srgb,var(--surface) 90%,transparent);padding:1px 7px;border-radius:8px;white-space:nowrap}
+.rb .bdg{position:absolute;top:-5px;right:-6px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--fruit);color:#fff;font-style:normal;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid var(--surface)}
+.hud-tc{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:25;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(460px,calc(100vw - 1020px));min-width:300px;pointer-events:none}
+.hud-tc>*{pointer-events:auto;width:100%}.hint{box-shadow:var(--shadow)}.hint:empty{display:none}.wxalert[hidden]{display:none}
+.app .tools{position:absolute;left:12px;bottom:12px;top:auto;z-index:4;display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;width:236px;max-width:none;padding:6px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface) 93%,transparent)}
+.app .tools .sep{display:none}.app .tb{width:40px;height:40px}
+.app .strmenu{left:12px;top:auto;bottom:112px}
+.app .guil{position:fixed;z-index:30;right:12px;top:auto;bottom:66px;flex-direction:column-reverse;align-items:flex-end;width:min(330px,calc(100vw - 24px))}
+.app .guil .gcard{margin-bottom:8px;margin-top:0}
+.app .gsay{right:0;top:auto;bottom:86px;border-radius:14px 14px 14px 4px}.app .guil{height:78px;justify-content:flex-end}.app .guil .gcard{position:absolute;right:0;bottom:86px;width:min(330px,calc(100vw - 24px));margin:0}
+.endday{position:fixed;right:12px;bottom:12px;z-index:14;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:12px 18px;background:var(--leaf);color:var(--on-leaf);font-weight:700;font-size:14px;box-shadow:var(--shadow)}
+.endday svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.endday:hover{filter:brightness(1.07)}
+.app .tray{position:fixed;left:262px;right:260px;bottom:12px;z-index:12;padding:7px 10px 4px;border-radius:16px;background:color-mix(in srgb,var(--surface) 95%,transparent)}
+.app .tray h3{font-size:14px;margin-bottom:2px;flex-wrap:nowrap}.app .tray h3>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app .tray h3 small{font-size:12px}
+.trayx{border:0;background:var(--surface-2);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none}.trayx svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}.tray.shut .trayx svg{transform:rotate(180deg)}
+.tray.shut .strip{display:none}.tray.shut h3{margin-bottom:0}
+.app .tray .strip{padding:2px 2px 6px}.app .tray .card{width:112px;padding-bottom:6px}.app .tray .card .art{height:66px}.app .tray .card .lat,.app .tray .card .tags,.app .tray .card .cal-wrap{display:none}.app .tray .card h4{font-size:14px;margin:6px 8px 0}
+.app #today{position:fixed;right:90px;top:78px;width:320px;max-height:calc(100dvh - 78px - 190px);overflow:auto;z-index:15;background:color-mix(in srgb,var(--surface) 96%,transparent)}
+.app #today.fold{display:none}
+.app #fiche{position:fixed;left:12px;top:176px;width:340px;max-height:calc(100dvh - 176px - 190px);overflow:auto;z-index:15;background:color-mix(in srgb,var(--surface) 97%,transparent)}
+.app #fiche[hidden]{display:none}
+.fclose{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;border:0;background:var(--surface-2);font-size:18px;line-height:1;display:grid;place-items:center}
+.app #fiche{padding-right:14px}
+.foot{display:none}
+.toast{bottom:200px}
+.tuto{left:50%;right:auto;transform:translateX(-50%);bottom:200px;width:min(420px,calc(100vw - 32px))}
+@media (max-width:1180px){.hud-tr .gauge span{font-size:11px}.hud-tc{top:auto;bottom:200px;width:min(480px,calc(100vw - 32px))}.tuto,.toast{bottom:260px}.app #today{width:290px}}
+@media (max-width:560px){
+  .hud-tl{max-width:calc(100vw - 76px);left:8px;top:8px}.hud-tl .brand h1{font-size:15px}.hud-tl .brand svg{width:24px;height:24px}.hud-tl .when{font-size:11.5px}
+  .hud-tr{display:none}
+  .rail{right:6px;top:8px;gap:6px}.rb{width:52px}.rb .rc{width:42px;height:42px;border-width:2px}.rb small{display:none}.rb .ico,.rb svg{width:21px;height:21px}
+  .app .tools{left:8px;bottom:8px;width:222px;gap:5px;padding:5px}.app .tb{width:36px;height:36px}
+  .app .tray{left:8px;right:84px;bottom:106px}
+  .app .tray .card{width:104px}
+  .endday{right:8px;bottom:8px;padding:11px 14px}.endday span{display:none}.endday{width:52px;height:52px;justify-content:center;padding:0}
+  .app .guil{right:8px;bottom:68px}.app .gmasc{width:52px;height:52px}
+  .app #today{left:8px;right:8px;top:auto;bottom:106px;width:auto;max-height:52dvh}
+  .app #fiche{left:8px;right:8px;top:auto;bottom:106px;width:auto;max-height:50dvh}
+  body.sel .tray{display:none}
+  .hud-tc{top:auto;bottom:160px;left:8px;right:8px;transform:none;width:auto;min-width:0}
+  .tuto{left:8px;right:66px;transform:none;width:auto;top:74px;bottom:auto}.app .gsay{bottom:62px;max-width:calc(100vw - 100px)}.app .guil{height:52px}.app .guil .gcard{bottom:62px}
+  .toast{bottom:170px}
+}
 </style>
 
 <div class="app">
-  <header class="top">
-    <div class="brand">
-      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--leaf)"/><path d="M20 31V19" stroke="var(--on-leaf)" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="var(--on-leaf)"/></svg>
-      <div><h1>Jardin Vivant</h1><small>Prototype v2 · jardin isométrique</small></div>
-    </div>
-    <div class="when" id="when"></div>
-    <div class="gauges" id="gauges"></div>
-  </header>
+  <div class="hud-tl" id="hudtl">
+    <header class="top">
+      <div class="brand">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--leaf)"/><path d="M20 31V19" stroke="var(--on-leaf)" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="var(--on-leaf)"/></svg>
+        <div><h1>Jardin Vivant</h1><small>Prototype v2 · jardin isométrique</small></div>
+      </div>
+      <div class="when" id="when"></div>
+    </header>
+    <div class="res" id="res"></div>
+  </div>
+  <div class="hud-tr"><div class="gauges" id="gauges"></div></div>
+  <nav class="rail" id="rail" aria-label="Fonctions du jeu"></nav>
+  <div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="__GUILDEON__" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div>
+  <div class="hud-tc"><div class="wxalert" id="wxalert" role="status" hidden></div><div class="hint" id="hint" role="status"></div></div>
+  <button type="button" class="endday" data-act="next" aria-label="Terminer la journée"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg><span>Terminer la journée</span></button>
   <main class="stage">
     <section class="board" aria-label="Le jardin">
-      <div class="res" id="res"></div>
-      <div class="wxalert" id="wxalert" role="status" hidden></div>
-      <div class="hint" id="hint" role="status"></div>
-      <div class="garden-wrap"><div class="guil" id="guil"><p class="gsay" id="gsay" hidden></p><button type="button" class="gmasc" id="gmasc" data-act="guil-toggle" aria-label="Guildéon, ton guide" aria-expanded="false"><img src="__GUILDEON__" alt="Guildéon"><span class="gbadge" id="gbadge" hidden></span></button><div class="gcard" id="gcard" hidden></div></div><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
+      <div class="garden-wrap"><div class="strmenu" id="strmenu" hidden></div><div class="tools" id="tools" role="toolbar" aria-label="Outils de la carte">
         <button type="button" class="tb on" data-tool="select" data-act="tool-select" title="Sélectionner" aria-label="Sélectionner"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg></button>
         <button type="button" class="tb" data-tool="move" data-act="tool-move" title="Déplacer la carte" aria-label="Déplacer la carte"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
         <button type="button" class="tb" data-tool="reloc" data-act="tool-reloc" title="Déplacer une plante" aria-label="Déplacer une plante"><svg viewBox="0 0 24 24"><path d="M12 20V10M12 10c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-2-1.5-3.5-4-3.5 0 2 1.5 3.5 4 3.5zM4 20h6M17 17l3 3-3 3" transform="translate(0 -3)"/></svg></button>
@@ -355,8 +426,8 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
       </div><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
-      <section class="tray" aria-label="Cartes en réserve">
-        <h3>Ma réserve <small id="trayInfo"></small></h3>
+      <section class="tray" id="tray" aria-label="Cartes en réserve">
+        <h3><span>Ma réserve <small id="trayInfo"></small></span><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier la réserve"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></h3>
         <div class="strip" id="strip"></div>
       </section>
       <div class="foot" id="foot"></div>

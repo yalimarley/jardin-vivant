@@ -11,6 +11,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('ECHEC:', m); } else console.log('ok  :', m); };
 const click = el => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
 const q = (s, r) => (r || d).querySelector(s), qa = (s, r) => [...(r || d).querySelectorAll(s)];
+const viaMenu = sel => { const m = q('[data-act="menu"]'); if (m) click(m); return q(sel); };
 
 ok(qa('#garden .cell').length === 48, '48 parcelles dessinées (terrain de départ 8×6)');
 ok(qa('#gauges .gauge').length === 3, '3 jauges');
@@ -47,11 +48,11 @@ ok(q('#fiche h2').textContent.length > 0, 'fiche affichée : ' + q('#fiche h2').
 click(qa('#garden .cell:not(.free)')[0]);
 ok(q('#fiche .meters'), 'fiche avec jauges');
 // passer des jours
-click(q('[data-act="time"]'));
+click(viaMenu('[data-act="time"]'));
 click(q('[data-act="skip"][data-n="30"]'));
 ok(/novembre|décembre/.test(q('#when').textContent), 'avancé de 30 jours : ' + q('#when b').textContent);
 // démo
-click(q('[data-act="time"]'));
+click(viaMenu('[data-act="time"]'));
 click(q('[data-act="demo"]'));
 ok(/juillet 2027/.test(q('#when').textContent), 'démo juillet 2027');
 ok(qa('#garden .badge[data-badge="harvest"]').length >= 5, 'badges de récolte : ' + qa('#garden .badge[data-badge="harvest"]').length);
@@ -85,18 +86,18 @@ ok(q('#today .done-box'), 'message « Ton jardin est à jour » affiché (resten
 click(q('#today [data-act="next"]'));
 ok(/13 juillet/.test(q('#when').textContent), 'lendemain atteint : ' + q('#when b').textContent);
 // herbier
-click(q('[data-act="herbier"]'));
+click(viaMenu('[data-act="herbier"]'));
 ok(qa('.hrow').length === 60, 'herbier : 60 lignes affichées, ' + q('#hcount').textContent);
 const hq = q('#hq'); hq.value = 'noisetier'; hq.dispatchEvent(new w.Event('input', { bubbles: true }));
 ok(qa('.hrow').length >= 1 && /oisetier/i.test(q('.hrow b').textContent), 'recherche herbier : ' + qa('.hrow b').map(x => x.textContent).slice(0, 4).join(', '));
 click(q('.hrow')); ok(q('#layer .modal'), 'fiche herbier ouverte : ' + q('#layer .modal h2').textContent);
 click(q('[data-act="close"]'));
-const hp = q('[data-act="herbier"]'); click(hp); q('#hplay').checked = true; q('#hplay').dispatchEvent(new w.Event('input', { bubbles: true }));
+const hp = viaMenu('[data-act="herbier"]'); click(hp); q('#hplay').checked = true; q('#hplay').dispatchEvent(new w.Event('input', { bubbles: true }));
 ok(/^\d+ fiche/.test(q('#hcount').textContent) && parseInt(q('#hcount').textContent) < 700, 'filtre jouables : ' + q('#hcount').textContent);
 click(q('[data-act="close"]'));
 // mobilier et personnages
 ok(qa('#garden .chr').length === 4, 'jardinier, chien et deux membres de la famille présents : ' + qa('#garden .chr').map(x => x.dataset.who).join(','));
-click(q('[data-act="time"]')); click(q('[data-act="newgame"]'));
+click(viaMenu('[data-act="time"]')); click(q('[data-act="newgame"]'));
 ok((!q('[data-act="mode-mat"][data-k="chemin"]') || q('[data-act="mode-mat"][data-k="chemin"]').disabled) && !q('[data-act="mode-mat"][data-k="treille"]') && !q('[data-act="mode-mat"][data-k="pergola"]'), 'au départ : aucun aménagement avant l’achat en boutique');
 w.__jv.state().mats.chemin = 3; w.__jv.flush();
 ok(q('[data-act="mode-mat"][data-k="chemin"]') && !q('[data-act="mode-mat"][data-k="mare"]'), 'pastille chemin visible après achat, mare cachée');

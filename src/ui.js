@@ -136,7 +136,7 @@ function cardHtml(p, o) {
   return '<' + (o.btn ? 'button type="button" data-act="mode-plant" data-pid="' + p.id + '"' : 'article') + ' class="card t-' + p.strate + ' ' + rar + (o.on ? ' on' : '') + '">' +
     '<div class="art" data-pid="' + p.id + '">' + cardArt(p) + phImg(p) + (o.btn ? (now ? '<span class="now">De saison</span>' : '<span class="now no">Hors saison</span>') : '') + (o.count > 1 ? '<span class="cnt">×' + o.count + '</span>' : '') + '</div>' +
     '<h4>' + p.name + '</h4><p class="lat">' + p.latin + '</p>' +
-    '<div class="tags"><span class="tag">' + strIco(p.strate) + p.strate + '</span><span class="tag">' + verb + '</span></div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
+    '<div class="tags"><span class="tag">' + strIco(p.strate) + p.strate + '</span><span class="tag">' + verb + '</span>' + (p.gel >= -3 ? '<span class="tag frail">Craint le gel</span>' : '') + '</div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
     '</' + (o.btn ? 'button' : 'article') + '>';
 }
 const GK = (z) => '<svg class="gk" width="' + (z || 16) + '" height="' + (z || 16) + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 23.2V19.5" stroke="#a8730d" stroke-width="1.6" stroke-linecap="round"/><path d="M12 19.5L1.7 15.7A11 11 0 0 1 11.4 8.5L12 10.7L12.6 8.5A11 11 0 0 1 22.3 15.7Z" fill="#f0b92e" stroke="#a8730d" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 19.5L3.6 12.4M12 19.5L7.0 9.7M12 19.5L17.0 9.7M12 19.5L20.4 12.4" stroke="#fff3b8" stroke-width=".9" stroke-linecap="round" opacity=".9"/></svg>';
@@ -179,7 +179,7 @@ function renderTop() {
   $('when').innerHTML = '<b>' + dateStr(S.day) + '</b><span class="chip"><i style="background:' + SEASON_COL[se] + '"></i>' + se + '</span>' +
     '<span style="display:inline-flex;align-items:center;gap:6px">' + ico(wi) + fmt(w.tmin, 0) + ' à ' + fmt(w.tmax, 0) + ' °C' + (w.ev ? ' · ' + ({ gel: 'gel', canicule: 'canicule', secheresse: 'sécheresse', tempete: 'tempête', orage: w.hail ? 'orage de grêle' : 'orage' })[w.ev] : w.rain >= 1 ? ' · pluie ' + fmt(w.rain, 0) + ' mm' : w.tmin < 0 ? ' · gelée' : '') + '</span>';
   const wr = document.querySelector('.garden-wrap'); if (wr) wr.dataset.wx = w.ev || '';
-  const fc = G.forecastInfo(S), wa = $('wxalert'); if (wa) { wa.hidden = !fc; wa.className = 'wxalert' + (fc ? ' k-' + fc.kind : ''); wa.innerHTML = fc ? '<b>' + fc.title + '</b><span>' + fc.tip + '</span>' : ''; }
+  const fc = G.forecastInfo(S), wa = $('wxalert'); if (wa) { wa.hidden = !fc; wa.className = 'wxalert' + (fc ? ' k-' + fc.kind : ''); wa.innerHTML = fc ? '<b>' + fc.title + '</b><span>' + fc.tip + '</span>' + (fc.kind === 'gel' ? ((S.mats.voile || 0) > 0 ? '<button type="button" class="btn sm" data-act="protect">Protéger (' + S.mats.voile + ' voile' + (S.mats.voile > 1 ? 's' : '') + ')</button>' : '<span class="wx-hint">Plus de voile : 6 ginkgos à la boutique.</span>') : '') : ''; }
   const g = (n, v, t, cls) => '<div class="gauge" title="' + t + '"><div class="row"><span>' + n + '</span><strong>' + v + '</strong></div><div class="bar ' + (cls || '') + '"><i style="width:' + clamp(parseFloat(String(v).replace(',', '.')), 0, 100) + '%"></i></div></div>';
   $('gauges').innerHTML = g('Autonomie', fmt(st.autonomy) + ' %', 'Part de ce qu’une forêt comestible peut couvrir (le quart des besoins : fruits, légumes, aromatiques). Base ' + st.aParts.base + ' % (récolte réelle sur 90 jours ' + st.aParts.prod + ' %, potentiel de la forêt ' + st.aParts.pot + ' %), multipliée par le bonus de tes guildes : +' + st.aParts.boost + ' % (' + st.guildsAuto + ' autonome(s) sur ' + st.guildsN + ' guilde(s)).') +
     g('Biodiversité', st.biodiv + ' %', 'Espèces différentes, strates présentes, plantes qui nourrissent les pollinisateurs.') +
@@ -1239,6 +1239,7 @@ document.addEventListener('click', e => {
     case 'herb-more': hLimit += 80; $('hlist').innerHTML = herbHtml(); break;
     case 'time': openTime(); break;
     case 'rip': ripBooster(); break;
+    case 'protect': { const r = G.protectFrost(S); toast(r.msg); save(); render(); break; }
     case 'flip': a.classList.toggle('up'); break;
     case 'flipall': document.querySelectorAll('.flipper').forEach(f => f.classList.add('up')); break;
     case 'cook': { const pids = [...document.querySelectorAll('#kit input:checked')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); openKitchen(r); render(); break; }
@@ -1325,6 +1326,6 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 render(); startChars();
 })();

@@ -6,7 +6,7 @@ function run(profile,seed,days){
   for(let d=0;d<days;d++){
     const playing=profile.plays(d);
     if(playing){
-      if(s.boosterDay<s.day) G.openBooster(s);
+      if(G.boosterReady(s)) G.openBooster(s);
       // tâches
       for(let pass=0;pass<2;pass++){ const T=G.buildTasks(s).tasks||[]; for(const t of T){ if(t.act.type==='booster') continue; const r=G.runTask(s,t); if(t.act.type==='harvest'&&r&&r.r){log.kg+=r.r.kg||0;log.harvests++;} } }
       // plantation

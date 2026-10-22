@@ -472,7 +472,7 @@ const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
 const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac'];
 const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8 };
-const SHOP = { paillage: 3, compost: 4, chemin: 5, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 25, serre: 25, canard: 20, sechoir: 25, mare: 30, ruche: 35, atelier: 40, poulailler: 30, voile: 6, grandeserre: 60 };
+const SHOP = { paillage: 3, compost: 4, chemin: 5, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 15, cuve: 20, mycor: 25, treille: 15, hamac: 30, pergola: 40, serre: 40, canard: 30, sechoir: 35, mare: 50, ruche: 60, atelier: 60, poulailler: 50, voile: 6, grandeserre: 150 };
 const SKILLS = {
   plantation: { n: 'Plantation', cat: 'culture', max: 5, req: 0, use: [10, 30, 60, 120], unit: 'plantes plantées', xpk: 5, d: ['Le jardinier plante une plante à la fois, environ 7 secondes (un peu plus pour un arbre).', 'Plantation plus rapide : 6 secondes par plante.', 'Il plante deux plantes à la fois, en 4,5 secondes.', 'Deux plantes à la fois, en 3 secondes.', 'Plantation experte : quatre plantes à la fois, en 2 secondes.'], how: 'Plante une carte.' },
   tonte: { n: 'Tonte', cat: 'entretien', max: 5, req: 0, use: [8, 25, 50, 90], unit: 'zones tondues', xpk: 8, d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone.', '+5 paillage par zone, et l’herbe repousse 3 jours plus vite.', '+6 paillage par zone.'], how: 'Tonds les zones d’herbe autour du jardin.' },
@@ -503,7 +503,7 @@ const MAT_QTY = { voile: 2, chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
 const COMPOST_RATE = .6, COMPOST_KG = 2.5;
 const NOT_EXO = new Set(['Maïs', 'Tournesol', 'Basilic vivace', 'Basilic']), EXO_EXTRA = new Set(['Curcuma', 'Poivre-cannelle', 'Thym antillais']);
 const isExo = p => !NOT_EXO.has(p.name) && p.gel >= -1 && (p.strate === "Arbre" || p.strate === "Arbuste" || EXO_EXTRA.has(p.name) || /^Bananier/.test(p.name));
-const GSHARE = .25, BOOSTER_SIZE = 10, NEED_KCAL = 2000, CORE = 51;
+const gshare = s => Math.min(.25, .04 + .0002 * (s.day || 0)), BOOSTER_SIZE = 7, RCY_CAP = 12, KGM = { annuelle: 2.4, continue: 2, vivace: 1.4 }, NEED_KCAL = 2000, CORE = 51;
 const SAVE_VERSION = 1;
 const LAWN_N = 8, LAWN_DAYS = 14, TREE_N = 5, TREE_DAYS = 90, LAWN_MULCH = 2, TREE_MULCH = 4;
 function defaultFamily() { return [{ n: 'Camille', role: 'Adulte', need: 2100, joy: 50, hist: [] }, { n: 'Julien', role: 'Adulte', need: 2400, joy: 50, hist: [] }, { n: 'Léa', role: '10 ans', need: 1900, joy: 50, hist: [] }, { n: 'Noé', role: '6 ans', need: 1500, joy: 50, hist: [] }]; }
@@ -564,7 +564,7 @@ function make(P) {
     const s = fixSave(blank());
     s.plantings = 0; s.maxPlantings = 0; s.mats.paillage = 8; s.mats.compost = 3;
     checkSkills(s, true);
-    log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger est vide : il se remplira avec ta première récolte. Ouvre ton booster du jour.');
+    log(s, 'good', 'Bienvenue. Ton jardin est vide : tout reste à planter. Le garde-manger est vide : il se remplira avec ta première récolte. Ouvre ton premier booster.');
     return s;
   }
   function log(s, type, text) { s.log.unshift({ day: s.day, type, text }); if (s.log.length > 60) s.log.length = 60; }
@@ -656,7 +656,7 @@ function make(P) {
   }
   function yieldKg(s, i) {
     const c = s.grid[i], p = P[c.pid], sy = synergy(s, i);
-    let kg = p.kind === 'continue' ? p.kg * .3 : p.kg;
+    let kg = (p.kind === 'continue' ? p.kg * .3 : p.kg) * (KGM[p.kind] || 1);
     if (p.kind === 'vivace' && p.juv > 0) { const yrs = (c.g - totalDays(p)) / 365; kg *= Math.min(1, .35 + .65 * Math.max(0, yrs) / 4); }
     return Math.max(0, r2(kg * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1) * (c.grafted ? 1 + .1 * c.grafted : 1)));
   }
@@ -667,7 +667,8 @@ function make(P) {
     if (p.kind === 'annuelle') { s.grid[i] = null; s.soil = clamp(s.soil + .3, 0, 100); }
     else c.lastPick = s.day;
     log(s, 'good', 'Récolte : ' + kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + '.');
-    bump(s, 'harvest'); return { ok: true, kg, name: p.name };
+    let seed = false; if (p.kind !== 'vivace' && s.seedDay !== s.day && mulberry(s.day * 31 + i * 7 + s.plantings)() < .22) { s.seedDay = s.day; s.cards[p.id] = (s.cards[p.id] || 0) + 1; seed = true; log(s, 'good', 'Tu as gardé des graines de ' + p.name.toLowerCase() + ' : une carte en plus.'); }
+    bump(s, 'harvest'); return { ok: true, kg, name: p.name, seed };
   }
   function mowReady(s, c) { return c && !c.treille && P[c.pid].tags.includes('mulch') && phase(c).stage !== 'graine' && phase(c).stage !== 'pousse' && s.day - c.lastPick >= 21; }
   function mow(s, i) { const c = s.grid[i]; if (!mowReady(s, c)) return false; c.lastPick = s.day; s.mats.paillage += 2; log(s, 'good', 'Consoude fauchée : +2 paillage.'); bump(s); return true; }
@@ -802,8 +803,11 @@ function make(P) {
   }
   const FAST_NAMES = ['Radis', 'Épinard', 'Mâche', 'Laitue', 'Chervis', 'Ciboulette', 'Pois', 'Persil', 'Bourrache', 'Roquette', 'Poirée'];
   function fastPool(s, m, strates) { const u = unlocked(s); return FAST_NAMES.map(n => byName[n]).filter(p => p && sowable(p, m) && u.has(p.strate) && (!strates || strates.includes(p.strate))); }
+  const boosterGap = s => s.boosters < 3 ? 3 : 7;
+  function boosterIn(s) { return s.boosterDay < 0 ? 0 : Math.max(0, s.boosterDay + boosterGap(s) - s.day); }
+  function boosterReady(s) { return boosterIn(s) === 0; }
   function openBooster(s) {
-    if (s.boosterDay >= s.day) return null; gainXp(s, 10);
+    if (!boosterReady(s)) return null; gainXp(s, 10);
     const rng = mulberry(s.day * 131 + s.boosters * 17 + 7), cards = [], m = dateOf(s.day).m;
     if (s.boosters === 0) {
       const used = new Set(), want = ['Racine', 'Herbacée', 'Couvre-sol', 'Herbacée', 'Racine', 'Arbuste'];
@@ -814,13 +818,19 @@ function make(P) {
       }
     } else {
       const mp = s.maxPlantings, wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste';
-      for (let k = 0; k < 6; k++) cards.push({ t: 'plant', pid: pickPlant(s, rng).id });
+      for (let k = 0; k < BOOSTER_SIZE; k++) cards.push({ t: 'plant', pid: pickPlant(s, rng).id });
       if (s.boosters < 14 && (m >= 9 || m <= 2)) for (let k = 0; k < 2; k++) { const fp = fastPool(s, m).filter(p => !cards.slice(0, 2).some(c => c.pid === p.id)); if (fp.length) cards[k] = { t: 'plant', pid: fp[Math.floor(rng() * fp.length)].id }; }
-      for (let tries = 0; tries < 8 && unlocked(s).has('Arbuste') && !cards.some(c => wood(P[c.pid])); tries++) cards[5] = { t: 'plant', pid: pickPlant(s, rng).id };
+      // garanties : au moins 4 cartes semables maintenant, et une espèce encore inconnue
+      for (let tries = 0; tries < 30 && cards.filter(c => sowable(P[c.pid], m)).length < 4; tries++) { const k = cards.findIndex((c, ix) => ix >= 0 && ix < BOOSTER_SIZE - 1 && !sowable(P[c.pid], m)); if (k < 0) break; cards[k] = { t: 'plant', pid: pickPlant(s, rng, true).id }; }
+      { const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]), u = unlocked(s);
+        if (!cards.some(c => !known.has(c.pid))) { const pool = P.filter(p => !known.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool.length) cards[3] = { t: 'plant', pid: pool[Math.floor(rng() * pool.length)].id }; } }
+      for (let tries = 0; tries < 14 && unlocked(s).has('Arbuste') && !cards.some(c => wood(P[c.pid])); tries++) cards[BOOSTER_SIZE - 1] = { t: 'plant', pid: pickPlant(s, rng, tries < 4).id };
+      for (let tries = 0; tries < 30 && cards.filter(c => sowable(P[c.pid], m)).length < 4; tries++) { const k = cards.findIndex((c, ix) => ix >= 0 && ix < BOOSTER_SIZE - 1 && !sowable(P[c.pid], m)); if (k < 0) break; cards[k] = { t: 'plant', pid: pickPlant(s, rng, true).id }; }
     }
     for (const c of cards) { if (c.t === 'plant') s.cards[c.pid] = (s.cards[c.pid] || 0) + 1; else { c.q = MAT_QTY[c.k] || 1; s.mats[c.k] = (s.mats[c.k] || 0) + c.q; } }
-    s.boosterDay = s.day; s.boosters++; s.feves = (s.feves || 0) + 1; bump(s);
-    log(s, 'good', 'Booster du jour ouvert : ' + cards.length + ' cartes.');
+    s.boosterDay = s.day; s.boosters++; s.feves = (s.feves || 0) + 2; bump(s);
+    if (Object.values(s.cards).reduce((a, b) => a + b, 0) > 30) recycleDoubles(s);
+    log(s, 'good', 'Booster ouvert : ' + cards.length + ' cartes.');
     return cards;
   }
 
@@ -843,7 +853,7 @@ function make(P) {
     const balance = clamp((strata - 1) * 34 + (prot > 8 ? 30 : prot > 4 ? 15 : 0) + (kinds >= 3 ? 12 : 0), 0, 100);
     s.eaten.push({ day: s.day, kcal: Math.round(kcal), prot: r1(prot) }); s.cookedDay = s.day; s.meals++;
     const fam = s.family || [], tn = famNeed(s), shares = [];
-    for (const f of fam) { const sh = kcal * f.need / tn; f.hist.push({ day: s.day, kcal: Math.round(sh), bal: Math.round(balance) }); f.hist = f.hist.filter(x => s.day - x.day <= 6); shares.push({ n: f.n, ratio: Math.min(1.5, sh / (f.need * GSHARE)) }); f.joy = clamp(f.joy + Math.min(14, sh / (f.need * GSHARE) * 22) * (.6 + balance / 250) * (1 + .05 * Math.max(0, skillLevel(s, 'cuisine') - 1)), 0, 100); }
+    for (const f of fam) { const sh = kcal * f.need / tn; f.hist.push({ day: s.day, kcal: Math.round(sh), bal: Math.round(balance) }); f.hist = f.hist.filter(x => s.day - x.day <= 6); shares.push({ n: f.n, ratio: Math.min(1.5, sh / (f.need * gshare(s))) }); f.joy = clamp(f.joy + Math.min(14, sh / (f.need * gshare(s)) * 22) * (.6 + balance / 250) * (1 + .05 * Math.max(0, skillLevel(s, 'cuisine') - 1)), 0, 100); }
     s.waste = r2((s.waste || 0) + grams / 1000 * .3); gainSkill(s, 'cuisine', 2); gainXp(s, Math.round(balance / 10)); bump(s);
     const name = mealName(used);
     log(s, 'good', 'Repas : ' + name + ' (' + Math.round(kcal) + ' kcal).');
@@ -888,7 +898,7 @@ function make(P) {
   function listCells(s, f) { const o = []; s.grid.forEach((c, i) => { if (c && !c.treille && f(c, i)) o.push(i); }); return o; }
   function buildTasks(s) {
     const T = [], m = dateOf(s.day).m, free = s.grid.some((c, i) => !c && isActive(s, i));
-    if (s.boosterDay < s.day) T.push({ id: 'booster', prio: 1, icon: 'pack', label: 'Ouvrir le booster du jour', sub: 'Six cartes : graines, noyaux et plants', act: { type: 'booster' } });
+    if (boosterReady(s)) T.push({ id: 'booster', prio: 1, icon: 'pack', label: 'Ouvrir le booster de la semaine', sub: 'Sept cartes : graines, noyaux et plants', act: { type: 'booster' } });
     const urgent = listCells(s, c => c.water < 25);
     const soon = listCells(s, c => c.water >= 25 && c.water < 45 && s.w.rain < 3);
     if (urgent.length) T.push({ id: 'water-u', prio: 0, icon: 'drop', label: 'Arroser ' + urgent.length + (urgent.length > 1 ? ' plantes assoiffées' : ' plante assoiffée'), sub: 'Réserve d’eau : ' + Math.round(s.tank) + ' L', act: { type: 'water', cells: urgent } });
@@ -984,7 +994,7 @@ function make(P) {
     if (wxHit && w.ev !== 'canicule' && w.ev !== 'secheresse') ev.push({ t: 'bad', text: (w.ev === 'tempete' ? 'Tempête' : 'Grêle') + ' : ' + wxHit + ' plante' + (wxHit > 1 ? 's' : '') + ' abîmée' + (wxHit > 1 ? 's' : '') + '. Les guildes et les grands arbres protègent mieux.' });
     s.stock = s.stock.filter(it => { const p = P[it.pid]; if (s.day - it.day > (it.keep ? (it.keep === 'sec' ? 400 : 300) : Math.max(1, p.cons * (hasAdv(s, 'autonome') ? 1.5 : 1)))) { ev.push({ t: 'warn', text: it.kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + ' perdus (trop vieux).' }); return false; } return true; });
     pests(s, w, m, ev);
-    for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * GSHARE); const tgt = clamp((ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100)) + (hamacOk(s) ? 10 : 0) + pathJoy(s), 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), s.day < 45 ? 35 : 0, 100); }
+    for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * gshare(s)); const tgt = clamp((ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100)) + (hamacOk(s) ? 10 : 0) + pathJoy(s), 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), s.day < 45 ? 35 : 0, 100); }
     { const hungry = (s.family || []).filter(f => f.joy < 25); if (hungry.length && s.day % 3 === 0) ev.push({ t: 'warn', text: hungry.map(f => f.n).join(', ') + (hungry.length > 1 ? ' ont faim' : ' a faim') + ' : cuisine avec ta récolte.' }); }
     { s.waste = (s.waste || 0) + s.grid.filter(c => c && c.furn === 'mare' && c.ducks).length * .25; if (s.poulailler) { const hm = dateOf(s.day).m, per = (hm >= 3 && hm <= 8) ? .75 : (hm === 2 || hm === 9) ? .5 : .2, ate = Math.min(s.waste, .3), fed = ate >= .25 ? 1 : .5, lay = (s.poules || 3) * per * fed; s.waste = r2(s.waste - ate + (s.poules || 3) * .12); const before = s.eggs || 0; s.eggs = Math.min(EGG_CAP, r2(before + lay)); const got = s.eggs - before; s.eggsMade = r2((s.eggsMade || 0) + got); if (got > 0) (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(got * EGG_KCAL) }); }
     const take = Math.min(s.waste, COMPOST_RATE); s.waste = r2(s.waste - take); s.compostPts = (s.compostPts || 0) + take; while (s.compostPts >= COMPOST_KG) { s.compostPts -= COMPOST_KG; s.mats.compost = (s.mats.compost || 0) + 1; s.compostMade = (s.compostMade || 0) + 1; } }
@@ -1010,17 +1020,17 @@ function make(P) {
       if (p.tags.includes('azote')) azote++;
       if (p.tags.includes('mulch')) comp++;
       if (c.mulch) mul++;
-      if (p.kg > 0) { const k = p.kg * (1 + synergy(s, i).yield) * (p.kind === 'continue' ? (p.recolte.length / 12) * 2.2 : 1); pk += k; pkc += k * 10 * p.kcal; }
+      if (p.kg > 0) { const k = p.kg * (KGM[p.kind] || 1) * (1 + synergy(s, i).yield) * (p.kind === 'continue' ? (p.recolte.length / 12) * 2.2 : 1); pk += k; pkc += k * 10 * p.kcal; }
     });
     const mares = s.grid.filter(c => c && c.furn === 'mare').length;
     const ruches = s.grid.filter(c => c && c.furn === 'ruche').length + Math.min(2, s.grid.filter(c => c && c.ducks).length);
     const biodiv = cs.length ? Math.round(clamp(5 + sp.size * 1.4 + strata.size * 2 + Math.min(mell, 10) * 1.2 + Math.min(2, mares) * 5 + Math.min(2, ruches) * 3, 0, 100)) : 0;
     const eaten30 = s.eaten.filter(e => s.day - e.day < 30).reduce((a, b) => a + b.kcal, 0);
     const target = clamp(45 + Math.min(20, couvre * 3) + Math.min(10, azote * 2.5) + (cs.length ? mul / cs.length * 10 : 0) + comp * 1.5, 20, 95);
-    const need = famNeed(s) * .25, prod90 = (s.prod || []).filter(x => s.day - x.day < 90).reduce((a, b) => a + b.kcal, 0), gl = guilds(s);
-    const aProd = clamp(prod90 / (need * 90), 0, 1) * 100, aPot = clamp(pkc / (need * 365), 0, 1) * 100, base = aProd * .7 + aPot * .3, boost = Math.min(.6, gl.auto * .06 + (gl.n - gl.auto) * .025);
+    const need = famNeed(s) * gshare(s), prod90 = (s.prod || []).filter(x => s.day - x.day < 90).reduce((a, b) => a + b.kcal, 0), gl = guilds(s);
+    const aEat = clamp(eaten30 / (need * 30), 0, 1) * 100, aProd = clamp(prod90 / (need * 90), 0, 1) * 100, aPot = clamp(pkc / (need * 365), 0, 1) * 100, base = aEat * .55 + aProd * .3 + aPot * .15, boost = Math.min(.6, gl.auto * .06 + (gl.n - gl.auto) * .025);
     const autonomy = Math.round(clamp(base * (1 + boost), 0, 100) * 10) / 10;
-    return { autonomy, aParts: { prod: Math.round(aProd), pot: Math.round(aPot), base: Math.round(base), boost: Math.round(boost * 100) }, guildsN: gl.n, guildsAuto: gl.auto, biodiv, soil: Math.round(s.soil), soilTarget: target,
+    return { autonomy, aParts: { eat: Math.round(aEat), prod: Math.round(aProd), pot: Math.round(aPot), base: Math.round(base), boost: Math.round(boost * 100) }, guildsN: gl.n, guildsAuto: gl.auto, biodiv, soil: Math.round(s.soil), soilTarget: target,
       species: sp.size, plants: cs.length, potKg: Math.round(pk * 10) / 10, potCover: Math.round(clamp(pkc / (famNeed(s) * 365) * 100, 0, 100)), eaten30: Math.round(eaten30) };
   }
 
@@ -1165,8 +1175,9 @@ function make(P) {
     s.feves -= f.price; s.mats[k] = (s.mats[k] || 0) + (MAT_QTY[k] || 1); log(s, 'good', 'Boutique : achat de « ' + k + ' » pour ' + f.price + ' ginkgos.'); bump(s, 'shop'); return { ok: true, price: f.price };
   }
   function recycleValue(s, pid, n) { return (RECYCLE[P[pid].rarete] || 1) * n; }
-  function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const g = recycleValue(s, pid, n); s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }
-  function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' ginkgos.'); return { ok: n > 0, gain: g, n }; }
+  function recycleLeft(s) { const w = Math.floor(s.day / 7); if (!s.rcy || s.rcy.w !== w) s.rcy = { w, g: 0 }; return RCY_CAP - s.rcy.g; }
+  function recycleCards(s, pid, n) { const have = s.cards[pid] || 0; n = Math.min(n == null ? 1 : n, have); if (n <= 0) return { ok: false, gain: 0 }; const unit = RECYCLE[P[pid].rarete] || 1, left = recycleLeft(s); if (left < unit) return { ok: false, gain: 0, n: 0, capped: true }; n = Math.min(n, Math.floor(left / unit)); const g = recycleValue(s, pid, n); s.rcy.g += g; s.cards[pid] -= n; if (!s.cards[pid]) delete s.cards[pid]; s.feves = (s.feves || 0) + g; bump(s); return { ok: true, gain: g, n }; }
+  function recycleDoubles(s) { let g = 0, n = 0; for (const k of Object.keys(s.cards)) { const pid = +k, extra = s.cards[pid] - 1; if (extra > 0) { const r = recycleCards(s, pid, extra); g += r.gain; n += r.n; } } if (n) log(s, 'good', 'Recyclage : ' + n + ' carte' + (n > 1 ? 's' : '') + ' en double contre ' + g + ' ginkgos.'); return { ok: n > 0, gain: g, n, left: recycleLeft(s) }; }
   function skillLevel(s, k) { return (s.skills && s.skills.lv && s.skills.lv[k]) || 0; }
   function hasAdv(s, k) { return !!(s.skills && s.skills.adv && s.skills.adv[k]); }
   const XPM = 0.4;
@@ -1265,7 +1276,7 @@ function make(P) {
   function guildOf(s, i) { let best = null; const g0 = guildAt(s, i); if (g0) best = { c: i, auto: g0.auto }; for (const j of neigh(i)) { const g = guildAt(s, j); if (g && (!best || (g.auto && !best.auto))) best = { c: j, auto: g.auto }; } return best; }
   function nSpecies(s) { return new Set(s.grid.filter(c => c && !c.treille).map(c => c.pid)).size; }
   const GQ = [
-    { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters du jour : six cartes de plantes t’attendent chaque matin. Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
+    { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters : sept cartes de plantes t’attendent chaque semaine (tous les trois jours au début). Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
     { id: 'p3', t: 'Plante 6 cartes', say: 'Pose 6 plantes dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 6, have: s => s.maxPlantings, rw: { compost: 1 } },
     { id: 'eau3', t: 'Arrose 10 plantes', say: 'Elles ont soif ! Arrose 10 plantes au total, la goutte bleue te montre lesquelles.', need: 10, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
     { id: 'guilde1', t: 'Plante ta première guilde', say: 'Plante une guilde : un arbre entouré d’au moins 5 plantes d’espèces différentes couvrant 4 strates (arbuste, herbacée, racine, grimpante, couvre-sol). Je te donne un bonus de croissance !', need: 1, have: s => guilds(s).n, rw: { boost: 7, paillage: 3 } },
@@ -1327,7 +1338,7 @@ function make(P) {
   }
 
   return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    buildTasks, runTask, synergy, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+    buildTasks, runTask, synergy, gshare, boosterReady, boosterIn, recycleLeft, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;
@@ -2001,7 +2012,7 @@ function renderTray() {
   const tot = all.reduce((a, id) => a + S.cards[id], 0), ti = $('trayInfo');
   if (ti) ti.textContent = (ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' à planter' : '') + (off.length ? (ids.length ? ' · ' : '') + off.reduce((a, id) => a + S.cards[id], 0) + ' hors saison' : '') + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
   const st = $('strip'); if (!st) return;
-  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ouvre le booster du jour.</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
+  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ' + (G.boosterReady(S) ? 'ouvre ton booster.' : 'prochain booster dans ' + G.boosterIn(S) + ' jour' + (G.boosterIn(S) > 1 ? 's' : '') + '.') + '</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
 }
 
 /* ---------- tâches ---------- */
@@ -2088,8 +2099,8 @@ function modal(title, body, wide) {
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
-  if (S.boosterDay >= S.day) { toast('Le booster du jour est déjà ouvert.'); return; }
-  modal('Booster du jour', '<div class="pack"><svg width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 20h110l-6 150H26z" fill="var(--leaf)"/><path d="M20 20c18 12 36 12 55 0 19 12 37 12 55 0" fill="color-mix(in srgb,var(--leaf) 70%,#000)"/><circle cx="75" cy="92" r="34" fill="var(--surface)"/><path d="M75 115V88" stroke="var(--leaf)" stroke-width="4" stroke-linecap="round"/><path d="M75 94c-14 0-20-6-20-16 14 0 20 6 20 16zM75 88c0-12 8-18 20-18 0 12-8 18-20 18z" fill="var(--leaf-2)"/><text x="75" y="150" text-anchor="middle" font-family="var(--font-d)" font-weight="800" font-size="15" fill="var(--on-leaf)">GRAINES DE VIE</text></svg><p>Six cartes de saison : graines, noyaux et plants. Les plantes de la saison en cours sont plus fréquentes.</p><button type="button" class="btn primary" data-act="rip">Ouvrir le sachet</button></div>');
+  if (!G.boosterReady(S)) { const n = G.boosterIn(S); toast('Ton prochain booster arrive dans ' + n + ' jour' + (n > 1 ? 's' : '') + '.'); return; }
+  modal('Booster de la semaine', '<div class="pack"><svg width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 20h110l-6 150H26z" fill="var(--leaf)"/><path d="M20 20c18 12 36 12 55 0 19 12 37 12 55 0" fill="color-mix(in srgb,var(--leaf) 70%,#000)"/><circle cx="75" cy="92" r="34" fill="var(--surface)"/><path d="M75 115V88" stroke="var(--leaf)" stroke-width="4" stroke-linecap="round"/><path d="M75 94c-14 0-20-6-20-16 14 0 20 6 20 16zM75 88c0-12 8-18 20-18 0 12-8 18-20 18z" fill="var(--leaf-2)"/><text x="75" y="150" text-anchor="middle" font-family="var(--font-d)" font-weight="800" font-size="15" fill="var(--on-leaf)">GRAINES DE VIE</text></svg><p>Sept cartes, dont au moins quatre de saison : graines, noyaux et plants. Les plantes de la saison en cours sont plus fréquentes.</p><button type="button" class="btn primary" data-act="rip">Ouvrir le sachet</button></div>');
 }
 function ripBooster() {
   const cards = G.openBooster(S); if (!cards) return; save();
@@ -2174,7 +2185,7 @@ function shopCard(k) {
 }
 function openShop() {
   const byP = a => a.filter(k => G.SHOP[k]).sort((a, b) => G.SHOP[a] - G.SHOP[b]), ks = byP(Object.keys(G.SHOP).filter(k => !SOINS.includes(k) && !BASE.includes(k))), ss = byP(SOINS), bs = BASE.filter(k => G.SHOP[k]);
-  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant le booster du jour (1), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes.</p><h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
+  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant ton booster (2), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes.</p><h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
   const dup = Object.keys(S.cards).map(Number).filter(id => S.cards[id] > 1);
   if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune 1 ginkgo, peu commune 2, rare 4 par carte.</p>';
   else {
@@ -2326,7 +2337,7 @@ const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
   const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now(), tk = tasksHtml(), notif = g.ready + tk.n;
-  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster du jour t’attend : six nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
+  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster de la semaine t’attend : sept nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
   if (notif > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
   ui.gText = g.text;
   ui.gReady = notif;
@@ -2412,10 +2423,10 @@ const cam = (function initCamera() {
 })();
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
-  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster du jour, six cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster, des cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
   { t: 'Pose une plante', x: 'Touche une carte « De saison » dans le bandeau du bas, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
-  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '.endday', done: () => S.day >= 1 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain : un nouveau booster arrive tous les trois jours au début, puis chaque semaine.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
   { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },

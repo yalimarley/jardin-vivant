@@ -508,7 +508,7 @@ function make(P) {
       const c = s.grid[i]; if (!c || c.treille) continue;
       if ((c.oyaUntil || -1) >= s.day) c.water = Math.max(c.water, 80);
       if (c.mulch) { if (c.mulchDay == null) c.mulchDay = s.day; else if (s.day - c.mulchDay > 120) { c.mulch = false; c.mulchDay = null; ev.push({ t: 'warn', text: 'Le paillage de ' + P[c.pid].name.toLowerCase() + ' est décomposé : il nourrit le sol, remets-en pour garder l’eau.' }); } }
-      const p = P[c.pid], sy = synergy(s, i), gdw = guildOf(s, i), wasStage = c.stage, wasReady = c.ready;
+      const p = P[c.pid], sy = synergy(s, i), gdw = guildOf(s, i), gdok = !!gdw && ['jeune', 'mature'].includes(phase(s.grid[gdw.c]).stage), wasStage = c.stage, wasReady = c.ready;
       c.water = clamp(c.water - EVAP[m] * NEEDF[p.eau] * (c.mulch ? .35 : 1) * (gdw ? (gdw.auto ? .65 : .75) : 1) * sy.evap * (w.ev === 'canicule' ? (shadeOf(s, i, p) ? 1.25 : 1.7) : w.ev === 'secheresse' ? 1.2 : w.tmax > 25 ? 1.15 : 1) + w.rain * 5, 0, 100);
       if (c.water < 20) c.stress++; else c.stress = Math.max(0, c.stress - 2);
       if (c.stress > 7) { if (c.stress >= 44) c.health -= 3; else c.health = Math.max(1, c.health - 1.2); }
@@ -516,10 +516,10 @@ function make(P) {
       const ph0 = phase(c).stage;
       const rs = (w.ev || w.tmin < 3) ? resistance(s, i).pct / 100 : 0, voile = (c.voileUntil || -1) >= s.day;
       const gelEff = p.gel - (gsNear(s, i) ? 9 : neigh(i).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? 4 : 0) - rs * 4 - (voile ? 9 : 0) - (neigh(i).some(j => { const q = s.grid[j]; return q && !q.treille && P[q.pid].strate === 'Arbre' && phase(q).stage !== 'graine' && phase(q).stage !== 'pousse'; }) ? 2 : 0) - (gdw ? (gdw.auto ? 3 : 1.5) : 0);
-      if (w.tmin < gelEff && ph0 !== 'graine') {
+      if (w.tmin < gelEff && ph0 !== 'graine' && !gdok) {
         if (p.gel >= -3 && p.kind !== 'vivace') { if (gelEff - w.tmin <= 1.5 && c.health > 45) c.health -= 45; else c.health = 0; } else c.health -= p.gel >= -3 ? 30 : 15;
       }
-      if (w.ev && c.g >= 0) {
+      if (w.ev && c.g >= 0 && !gdok) {
         let dmg = 0, tallN = neigh(i).filter(j => s.grid[j] && !s.grid[j].treille && P[s.grid[j].pid].strate === 'Arbre').length;
         if (w.ev === 'canicule' && c.water < 10) dmg = (p.strate === 'Arbre' ? 1.5 : 7) * (1 - rs) * (shadeOf(s, i, p) ? .6 : 1);
         else if (w.ev === 'secheresse' && c.water < 5) dmg = (p.strate === 'Arbre' ? .8 : 3) * (1 - rs);
@@ -648,7 +648,7 @@ function make(P) {
     for (let k = 1; k <= 3; k++) { const g = weather(s.day + k); if (isGel(g)) { f = Object.assign({}, g, { ev: 'gel' }); dd = k; break; } if (g.ev && ['canicule', 'secheresse', 'tempete', 'orage'].includes(g.ev) && !(g.ev === 'orage' && !g.hail && k > 1)) { f = g; dd = k; break; } }
     const mo = dateOf(s.day).m;
     if (!f) { if (s.tank < s.tankMax * .25 && mo >= 5 && mo <= 9 && s.grid.some(c => c && !c.treille)) return { kind: 'secheresse', title: 'Réserve d’eau basse (' + Math.round(s.tank) + ' L)', tip: 'Pose du paillage : il garde l’humidité. Chaque cuve de récupération ajoute 150 L.', hail: false, days: 0 }; return null; }
-    const ex = { gel: ['Gel annoncé cette nuit', 'Un voile d’hivernage protège jusqu’à 9 °C de plus. Un grand arbre voisin, une guilde (surtout autonome) ou une serre aident aussi. Un gel léger ne tue plus d’un coup une plante en bonne santé.'], canicule: ['Canicule annoncée', 'Arrose avant la chaleur, pose du paillage : les plantes à l’ombre des arbres souffrent moins.'], secheresse: ['Période sèche annoncée', 'Garde de l’eau en cuve, pose des oyas et du paillage.'], tempete: ['Tempête annoncée', 'Arbres, arbustes et grimpantes sont exposés. Un grand arbre voisin coupe le vent.'], orage: ['Orage annoncé', f.hail ? 'Risque de grêle : pose un voile sur les cultures tendres.' : 'La cuve va se remplir.'] };
+    const ex = { gel: ['Gel annoncé cette nuit', 'Une guilde établie (arbre jeune ou adulte) résiste à tout : gel, canicule, sécheresse, tempête et grêle. Sinon, un voile d’hivernage protège jusqu’à 9 °C de plus. Un grand arbre voisin, une guilde (surtout autonome) ou une serre aident aussi. Un gel léger ne tue plus d’un coup une plante en bonne santé.'], canicule: ['Canicule annoncée', 'Arrose avant la chaleur, pose du paillage : les plantes à l’ombre des arbres souffrent moins.'], secheresse: ['Période sèche annoncée', 'Garde de l’eau en cuve, pose des oyas et du paillage.'], tempete: ['Tempête annoncée', 'Arbres, arbustes et grimpantes sont exposés. Un grand arbre voisin coupe le vent.'], orage: ['Orage annoncé', f.hail ? 'Risque de grêle : pose un voile sur les cultures tendres.' : 'La cuve va se remplir.'] };
     const base = f.ev === 'gel' && dd > 1 ? 'Gel annoncé' : ex[f.ev][0];
     return { kind: f.ev, title: base + (dd > 1 ? ' dans ' + dd + ' jours' : '') + (f.ev === 'gel' ? ' (' + String(f.tmin).replace('.', ',') + ' °C)' : f.ev === 'canicule' ? ' (' + String(Math.round(f.tmax)) + ' °C)' : ''), tip: ex[f.ev][1], hail: f.hail, days: dd, tmin: f.tmin };
   }

@@ -250,5 +250,15 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const d = G.demo(), i = d.grid.findIndex(c => c && !c.treille && G.P.find(p => p.id === c.pid).name === 'Carotte'), c = d.grid[i]; const yk = (care, late) => { c.care = care; c.ready = true; c.readyDay = d.day - late; return G.yieldKg(d, i); };
   T(yk(d.day, 0) > yk(-99, 0) * 1.15 && yk(d.day, 8) < yk(d.day, 0) * .85 ? 'ok  : un soin récent augmente le rendement, une récolte tardive le réduit' : 'ECHEC: soin/fraîcheur');
 }
+{ // guilde établie : insensible au gel
+  const d = G.demo(), gl = G.guilds(d), ci = gl.ids[0], nb = G.neigh(ci).find(k => { const o = d.grid[k]; if (!o || o.treille || P.find(p => p.id === o.pid).strate === 'Arbre') return false; const sv = o.pid; o.pid = P.find(p => p.name === 'Basilic').id; const okk = !!G.guildOf(d, k); o.pid = sv; return okk; });
+  const bas = P.find(p => p.name === 'Basilic').id; let day = null; for (let k = 0; k < 400 && day == null; k++) { d.day = k; const f = G.forecastInfo(d); if (f && f.kind === 'gel' && f.days === 1 && f.tmin <= -3) day = k; }
+  if (nb == null || day == null) console.log('ok  : (test guilde-gel ignoré)'); else {
+    const far = [...Array(G.NCELL).keys()].find(k => !d.grid[k] && !G.neigh(k).some(j => d.grid[j]));
+    d.day = day; for (const k of [nb, far]) { if (k == null) continue; d.grid[k] = { pid: bas, g: 40, water: 90, health: 100, stress: 0, mulch: false, compostUntil: -1, lastPick: -9999, born: day - 40, ready: false, stage: 'pousse' }; }
+    G.nextDay(d); ok(!!d.grid[nb] && d.grid[nb].health >= 99, 'une plante de guilde établie ne subit pas le gel');
+    if (far != null) ok(!d.grid[far] || d.grid[far].health < 100, 'la même plante isolée souffre du gel');
+  } }
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

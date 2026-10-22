@@ -203,7 +203,7 @@ function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
-  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
+  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + ((S.streak || 0) >= 2 && (S.lastActive || 0) >= S.day - 1 ? '<span class="pill" title="Jours de suite au jardin : 3 ginkgos tous les 7 jours.">Série ' + S.streak + ' j</span>' : '') + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
   const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
   $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
@@ -302,7 +302,7 @@ const FURN_INFO = {
   ruche: { n: 'Ruche', d: 'Les abeilles pollinisent les fleurs voisines : plus de fruits pour les vivaces et les plantes gourmandes proches. Compte aussi dans la biodiversité.' }
 };
 const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac'];
-const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer.', voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
+const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer. Les cercles orange marquent les plantes encore sans sentier.', voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
 const INSTANT = ['atelier', 'poulailler', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
 const dia = (cx, cy, k) => [(cx).toFixed(1) + ',' + (cy - TH * k).toFixed(1), (cx + TW * k).toFixed(1) + ',' + cy.toFixed(1), (cx).toFixed(1) + ',' + (cy + TH * k).toFixed(1), (cx - TW * k).toFixed(1) + ',' + cy.toFixed(1)];
 function furnTile(k, cx, cy, m, seed, cell) {
@@ -565,6 +565,11 @@ function pathsSvg() {
   }
   return h + '</g>';
 }
+function enclavedSvg() {
+  if (!(ui.mode && ui.mode.type === 'mat' && ui.mode.k === 'chemin')) return ''; let h = '<g id="gEncl" style="pointer-events:none">';
+  { const dm2 = G.dims(S); S.grid.forEach((c, i) => { if (!c || c.treille) return; const cc = i % STR, rr = (i / STR) | 0; if (cc >= dm2[0] || rr >= dm2[1]) return; if (Math.min(rr, dm2[1] - 1 - rr, cc, dm2[0] - 1 - cc) >= 2 && !G.pathAccess(S, i)) h += '<ellipse cx="' + isoX(cc + .5, rr + .5).toFixed(1) + '" cy="' + (isoY(cc + .5, rr + .5) - BH + 2).toFixed(1) + '" rx="30" ry="12" fill="none" stroke="#e0832e" stroke-width="3" stroke-dasharray="5 4" opacity=".9"/>'; }); }
+  return h + '</g>';
+}
 function renderGarden() {
   syncDims(); const [DW, DH] = dispDims(), { KS, CGx, CGy } = kview(DW, DH);
   const m = G.dateOf(S.day).m, se = SEASON(m), gc = GROUND[se], w = S.w, st = G.stats(S);
@@ -623,6 +628,7 @@ function renderGarden() {
     } else if (!qd && (picking || tre || relT || (ui.planHl && ui.planHl.includes(i)))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
     h += '<polygon class="frame" points="' + T.join(' ') + '"/><polygon points="' + [pt(c, r, lift), pt(c + 1, r, lift), pt(c + 1, r + 1, lift), pt(c, r + 1, lift)].join(' ') + '" fill="transparent"/></g>';
   }
+  h += enclavedSvg();
   h += '<g id="gFront"></g>';
   if (ui.sel >= 0 && S.grid[ui.sel] && !S.grid[ui.sel].treille) {
     const sy = G.synergy(S, ui.sel), A = centers[ui.sel];

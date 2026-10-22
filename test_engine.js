@@ -233,5 +233,22 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   r.day += 7; const b2 = G.recycleDoubles(r); T(b2.gain > 0 ? 'ok  : le plafond se renouvelle chaque semaine' : 'ECHEC: pas de renouvellement');
   T(G.gshare({ day: 0 }) < G.gshare({ day: 365 }) && G.gshare({ day: 5000 }) === .25 ? 'ok  : la part visée grandit avec le jardin' : 'ECHEC: gshare');
 }
+
+// --- eau, série de jours, soin et fraîcheur, quêtes sentiers/cuve
+{ const T = m => ok(m.startsWith('ok'), m.replace(/^(ok  : |ECHEC: )/, ''));
+  const s = G.newGame(); s.maxPlantings = 14; const q = id => G.quests(s).find(x => x.id === id);
+  T(q('cuve1') && q('cuve1').done && G.claimQuest(s, 'cuve1').ok && s.mats.cuve === 1 ? 'ok  : la quête de la pluie offre une cuve' : 'ECHEC: quête cuve');
+  s.maxPlantings = 10; T(q('sentier0').done && G.claimQuest(s, 'sentier0').ok && s.mats.chemin === 6 ? 'ok  : la quête des sentiers offre 6 tronçons' : 'ECHEC: quête sentier0');
+  for (const [x, y] of [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5]]) if (y < 5) G.addPath(s, x, y, x, y + 1);
+  T(q('sentier1').have >= 5 ? 'ok  : les tronçons tracés comptent pour la quête' : 'ECHEC: quête sentier1 ' + q('sentier1').have);
+  const w = G.newGame(); w.day = 0; while (G.dateOf(w.day).m !== 7) w.day++; w.tank = 20; w.tankMax = 500; w.grid[0] = { pid: 1, g: 10, water: 50, health: 100, stress: 0, stage: 'jeune' }; const f = G.forecastInfo(w);
+  T(f && /Réserve d’eau basse|annoncé|annoncée/.test(f.title) ? 'ok  : alerte quand la réserve d’eau est basse ou qu’un événement approche' : 'ECHEC: alerte eau ' + JSON.stringify(f));
+  const st = G.newGame(); st.mats.paillage = 9; st.grid[0] = { pid: 3, g: 5, water: 50, health: 100, stress: 0, stage: 'graine' }; const days = []; for (let d = 0; d < 9; d++) { st.day = d; if (d !== 4) G.mulch(st, 0), st.grid[0].mulch = false, st.grid[0].care = d; days.push(st.streak); }
+  T(days[0] === 1 && days[3] === 4 && days[4] === 4 && days[5] === 1 ? 'ok  : la série de jours monte, puis retombe après une pause' : 'ECHEC: série ' + days.join(','));
+  const s7 = G.newGame(); s7.mats.paillage = 20; s7.grid[0] = { pid: 3, g: 5, water: 50, health: 100, stress: 0, stage: 'graine' }; const f0 = s7.feves || 0; for (let d = 0; d < 7; d++) { s7.day = d; G.mulch(s7, 0); s7.grid[0].mulch = false; }
+  T((s7.feves || 0) === f0 + 3 ? 'ok  : 7 jours de suite : 3 ginkgos' : 'ECHEC: bonus série ' + (s7.feves - f0));
+  const d = G.demo(), i = d.grid.findIndex(c => c && !c.treille && G.P.find(p => p.id === c.pid).name === 'Carotte'), c = d.grid[i]; const yk = (care, late) => { c.care = care; c.ready = true; c.readyDay = d.day - late; return G.yieldKg(d, i); };
+  T(yk(d.day, 0) > yk(-99, 0) * 1.15 && yk(d.day, 8) < yk(d.day, 0) * .85 ? 'ok  : un soin récent augmente le rendement, une récolte tardive le réduit' : 'ECHEC: soin/fraîcheur');
+}
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

@@ -9,6 +9,8 @@ function run(profile,seed,days){
       if(G.boosterReady(s)) G.openBooster(s);
       // tâches
       for(let pass=0;pass<2;pass++){ const T=G.buildTasks(s).tasks||[]; for(const t of T){ if(t.act.type==='booster') continue; const r=G.runTask(s,t); if(t.act.type==='harvest'&&r&&r.r){log.kg+=r.r.kg||0;log.harvests++;} } }
+      if(process.env.PROT){ if((s.mats.voile||0)<3&&(s.feves||0)>=12) G.shopBuy(s,'voile'); const fc=G.forecastInfo(s); if(fc&&fc.kind==='gel') G.protectFrost(s); }
+      if(process.env.WATER){ if((s.cuves||0)+(s.mats.cuve||0)<3 && (s.feves||0)>=22) G.shopBuy(s,'cuve'); if((s.mats.cuve||0)>0) G.useCuve(s); if((s.mats.paillage||0)<4 && (s.feves||0)>=8) G.shopBuy(s,'paillage'); }
       // plantation
       const m=G.dateOf(s.day).m, un=G.unlocked(s);
       for(const pidS of Object.keys(s.cards)){ let pid=+pidS; while(s.cards[pid]>0){ const p=P[pid]; if(!G.sowable(p,m)||!un.has(p.strate)) break;

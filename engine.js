@@ -305,15 +305,16 @@ function make(P) {
   function pruneKey(s) { const d = dateOf(s.day); return d.m >= 9 ? d.y + 1 : d.y; }
   function needsPrune(s, c) { if (!c || c.treille || !WOODY.includes(P[c.pid].strate)) return false; const m = dateOf(s.day).m; if (!(m >= 10 || m <= 2)) return false; const st = phase(c).stage; if (st === 'graine' || st === 'pousse') return false; return c.pruned !== pruneKey(s); }
   function prune(s, i) { const c = s.grid[i]; if (!needsPrune(s, c)) return false; c.pruned = pruneKey(s); c.care = s.day; c.stress = Math.max(0, (c.stress || 0) - 2); bump(s, 'prune'); return true; }
-  function mulch(s, i) { const c = s.grid[i]; if (!c || c.treille || c.mulch || !(s.mats.paillage > 0)) return false; s.mats.paillage--; c.mulch = true; c.care = s.day; s.soil = clamp(s.soil + .4, 0, 100); bump(s, 'mulch'); return true; }
+  function mulch(s, i) { const c = s.grid[i]; if (!c || c.treille || c.mulch || !(s.mats.paillage > 0)) return false; s.mats.paillage--; c.mulch = true; c.mulchDay = s.day; c.care = s.day; s.soil = clamp(s.soil + .4, 0, 100); bump(s, 'mulch'); return true; }
   function compost(s, i) { const c = s.grid[i]; if (!c || c.treille || !(s.mats.compost > 0)) return false; s.mats.compost--; c.care = s.day; c.compostUntil = s.day + 30; s.soil = clamp(s.soil + 1.5, 0, 100); bump(s, 'compost'); return true; }
   function remove(s, i) { const c = s.grid[i]; if (!c) return false; if (c.supp) { s.grid[i] = { treille: true, furn: c.supp }; return true; } if (c.ducks) s.mats.canard = (s.mats.canard || 0) + 1; if (c.treille) s.mats[c.furn || 'treille'] = (s.mats[c.furn || 'treille'] || 0) + 1; s.grid[i] = null; return true; }
-  function waterCost(c) { return 2.5 * P[c.pid].eau; }
+  function waterSave(s, i) { const c = s.grid[i], g = c && !c.treille ? guildOf(s, i) : null; return (c && c.mulch ? .5 : 1) * (g ? (g.auto ? .55 : .65) : 1); }
+  function waterCost(c, s, i) { return 2.5 * P[c.pid].eau * (s && i != null ? waterSave(s, i) : 1); }
   function waterCells(s, list) {
     let n = 0, short = false;
     for (const i of list) {
       const c = s.grid[i]; if (!c || c.treille) continue;
-      const cost = waterCost(c); if (s.tank < cost) { short = true; break; }
+      const cost = waterCost(c, s, i); if (s.tank < cost) { short = true; break; }
       s.tank -= cost; c.water = 95; c.care = s.day; n++;
     }
     if (n) bump(s, 'water', n); return { n, short };
@@ -494,7 +495,7 @@ function make(P) {
   }
 
   // ----- jour suivant -----
-  function autoWater(s) { for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (c && !c.treille && c.water < 30) { const cost = waterCost(c); if (s.tank >= cost) { s.tank -= cost; c.water = 90; } } } }
+  function autoWater(s) { for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (c && !c.treille && c.water < 30) { const cost = waterCost(c, s, i); if (s.tank >= cost) { s.tank -= cost; c.water = 90; } } } }
   function nextDay(s, assist) {
     const ev = []; if (s.pq && s.pq.length) flushPlantQueue(s);
     if (assist) autoWater(s);
@@ -506,8 +507,9 @@ function make(P) {
     for (let i = 0; i < NCELL; i++) {
       const c = s.grid[i]; if (!c || c.treille) continue;
       if ((c.oyaUntil || -1) >= s.day) c.water = Math.max(c.water, 80);
-      const p = P[c.pid], sy = synergy(s, i), wasStage = c.stage, wasReady = c.ready;
-      c.water = clamp(c.water - EVAP[m] * NEEDF[p.eau] * (c.mulch ? .6 : 1) * sy.evap * (w.ev === 'canicule' ? (shadeOf(s, i, p) ? 1.25 : 1.7) : w.ev === 'secheresse' ? 1.2 : w.tmax > 25 ? 1.15 : 1) + w.rain * 5, 0, 100);
+      if (c.mulch) { if (c.mulchDay == null) c.mulchDay = s.day; else if (s.day - c.mulchDay > 120) { c.mulch = false; c.mulchDay = null; ev.push({ t: 'warn', text: 'Le paillage de ' + P[c.pid].name.toLowerCase() + ' est décomposé : il nourrit le sol, remets-en pour garder l’eau.' }); } }
+      const p = P[c.pid], sy = synergy(s, i), gdw = guildOf(s, i), wasStage = c.stage, wasReady = c.ready;
+      c.water = clamp(c.water - EVAP[m] * NEEDF[p.eau] * (c.mulch ? .35 : 1) * (gdw ? (gdw.auto ? .65 : .75) : 1) * sy.evap * (w.ev === 'canicule' ? (shadeOf(s, i, p) ? 1.25 : 1.7) : w.ev === 'secheresse' ? 1.2 : w.tmax > 25 ? 1.15 : 1) + w.rain * 5, 0, 100);
       if (c.water < 20) c.stress++; else c.stress = Math.max(0, c.stress - 2);
       if (c.stress > 7) { if (c.stress >= 44) c.health -= 3; else c.health = Math.max(1, c.health - 1.2); }
       else if (c.stress === 0) c.health = Math.min(100, c.health + 1.5);
@@ -904,7 +906,7 @@ function make(P) {
   }
 
   return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    buildTasks, runTask, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+    buildTasks, runTask, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;

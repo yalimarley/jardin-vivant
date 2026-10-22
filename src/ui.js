@@ -718,8 +718,10 @@ function renderFiche0() {
     if (G.isExo(p)) h += '<p class="note-p"><b style="color:var(--ink)">Plante exotique :</b> fragile au froid. Place-la à côté d’une grande serre pour qu’elle passe l’hiver.</p>'; }
   h += '<ul class="notes">' + (sy.notes.length ? sy.notes.map(n => '<li class="' + n.t + '"><span class="m">' + (n.t === 'good' ? '✓' : '✕') + '</span><span>' + n.text + (n.n > 1 ? ' (×' + n.n + ')' : '') + '</span></li>').join('') : '<li><span class="m" style="background:var(--surface-2);color:var(--ink-2)">·</span><span>Pas encore d’interaction avec les voisines. Une guilde se construit en associant les strates.</span></li>') + '</ul>';
   h += cal(p, m) + legend;
+  const wsv0 = G.waterSave(S, i);
+  if (wsv0 < 1) h += '<p class="note-p">' + ico('drop') + ' Besoin en eau réduit de ' + Math.round((1 - wsv0) * 100) + ' %' + (c.mulch ? ' (paillage' + (G.guildOf && G.guildOf(S, i) ? ' + guilde' : '') + ')' : ' (guilde)') + '.</p>';
   h += '<p class="note-p">' + eauT.charAt(0).toUpperCase() + eauT.slice(1) + ' · ' + p.soleil + ' h de soleil · résiste jusqu’à ' + p.gel + ' °C' + (perYear > 0 ? ' · environ ' + fmt(perYear) + ' kg par an à maturité' : '') + '.</p><p class="note-p">' + p.note + '</p>' + (phInfo(p) ? '<p class="note-p cred">Photo : ' + esc(phInfo(p).c || 'JF Lab') + '</p>' : '');
-  const cost = G.waterCost(c), acts = [];
+  const cost = Math.round(G.waterCost(c, S, i) * 10) / 10, wsv = G.waterSave(S, i), acts = [];
   if (c.sick) acts.push('<button type="button" class="btn sm primary" data-act="heal1">Soigner (' + (c.sick.k === 'limaces' ? 'ramasser les limaces' : 'retirer les parties malades') + ')</button>');
   if (c.water < 95) acts.push('<button type="button" class="btn sm" data-act="water1"' + (S.tank < cost ? ' disabled' : '') + '>' + ico('drop') + 'Arroser (' + cost + ' L)</button>');
   if (!c.mulch && S.mats.paillage > 0) acts.push('<button type="button" class="btn sm" data-act="mulch1">Pailler</button>');

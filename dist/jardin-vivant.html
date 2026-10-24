@@ -1386,7 +1386,40 @@ const fmt = (n, d) => Number(n).toFixed(d == null ? 1 : d).replace('.', ',');
 function withFamily(o) { if (!o.family) o.family = G.defaultFamily(); return G.fixSave(o); }
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }
 function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && o.grid.length === G.NCELL) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
+// ----- compte en ligne (projet Supabase « jardin-vivant », séparé de JF Lab) -----
+const CLOUD = { url: 'https://wbdduslvjqeersekxaxw.supabase.co', key: 'sb_publishable_m47WNomSZ0jqHim34mbc7A_vs6uCZVX', AK: 'jardin-vivant-auth', sess: null, timer: null, status: '', last: 0 };
+try { CLOUD.sess = JSON.parse(localStorage.getItem(CLOUD.AK) || 'null'); } catch (e) {}
+function cloudStore(s) { CLOUD.sess = s; try { if (s) localStorage.setItem(CLOUD.AK, JSON.stringify(s)); else localStorage.removeItem(CLOUD.AK); } catch (e) {} }
+async function cloudFetch(path, o) {
+  o = o || {}; const h = Object.assign({ apikey: CLOUD.key, 'Content-Type': 'application/json' }, o.headers || {});
+  if (o.auth !== false && CLOUD.sess) h.Authorization = 'Bearer ' + CLOUD.sess.access_token;
+  const r = await fetch(CLOUD.url + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined });
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+  if (!r.ok) { const er = new Error((j && (j.msg || j.message || j.error_description || j.error)) || ('Erreur ' + r.status)); er.status = r.status; throw er; }
+  return j;
+}
+async function cloudRefresh() {
+  if (!CLOUD.sess || !CLOUD.sess.refresh_token) return false;
+  if (CLOUD.sess.expires_at && Date.now() / 1000 < CLOUD.sess.expires_at - 60) return true;
+  try { const j = await cloudFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', auth: false, body: { refresh_token: CLOUD.sess.refresh_token } }); cloudStore({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Date.now() / 1000 + j.expires_in), email: (j.user && j.user.email) || CLOUD.sess.email, uid: (j.user && j.user.id) || CLOUD.sess.uid }); return true; }
+  catch (e) { if (e.status === 400 || e.status === 401) cloudStore(null); return false; }
+}
+function cloudMap(j, email) { return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Date.now() / 1000 + j.expires_in), email: (j.user && j.user.email) || email, uid: j.user && j.user.id }; }
+async function cloudSignIn(email, pw) { const j = await cloudFetch('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: pw } }); cloudStore(cloudMap(j, email)); }
+async function cloudSignUp(email, pw) { const j = await cloudFetch('/auth/v1/signup', { method: 'POST', auth: false, body: { email, password: pw } }); if (j && j.access_token) { cloudStore(cloudMap(j, email)); return 'ok'; } return 'confirm'; }
+async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) {} cloudStore(null); clearTimeout(CLOUD.timer); CLOUD.status = ''; }
+async function cloudPush() {
+  if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
+  try { await cloudFetch('/rest/v1/saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; return true; }
+  catch (e) { CLOUD.status = 'err'; return false; }
+}
+async function cloudPull() {
+  if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return null;
+  const j = await cloudFetch('/rest/v1/saves?select=data,day,updated_at&user_id=eq.' + encodeURIComponent(CLOUD.sess.uid)); return j && j[0] ? j[0] : null;
+}
+function cloudDirty() { if (!CLOUD.sess) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 20000); }
+window.addEventListener('pagehide', () => { if (CLOUD.sess && CLOUD.timer) cloudPush(); });
 
 /* ---------- icônes ---------- */
 const IC = {
@@ -2309,9 +2342,24 @@ function openSkills() {
 }
 
 function openStock() { const e = EXTRA(); modal('Matériel', '<p class="note-p">Touche un objet pour le poser dans le jardin.</p><div class="items" style="display:flex;flex-wrap:wrap;gap:8px">' + e.h + '</div>'); }
+function openAccount(msg) {
+  const m = msg ? '<p class="note-p" id="acc-msg" role="status">' + msg + '</p>' : '<p class="note-p" id="acc-msg" role="status"></p>';
+  if (CLOUD.sess) {
+    modal('Mon compte', '<p class="note-p">Connecté : <b>' + esc(CLOUD.sess.email || '') + '</b>.<br>Ta partie est sauvegardée en ligne automatiquement, et tu peux la reprendre sur un autre appareil.</p>' + m + '<div class="menu" style="gap:10px"><button type="button" class="btn primary" data-act="cloud-push">Sauvegarder maintenant</button><button type="button" class="btn" data-act="cloud-pull">Reprendre ma partie en ligne</button><button type="button" class="btn" data-act="cloud-out">Se déconnecter</button></div>');
+  } else {
+    modal('Compte en ligne', '<p class="note-p">Crée un compte pour sauvegarder ta forêt en ligne et la retrouver partout. Ce compte est propre au jeu, il est indépendant de JF Lab.</p><div class="acc-f"><label>Adresse e-mail<input id="acc-mail" type="email" autocomplete="email" inputmode="email" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label><label>Mot de passe (8 caractères minimum)<input id="acc-pw" type="password" autocomplete="current-password" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label></div>' + m + '<div class="menu" style="gap:10px;margin-top:10px"><button type="button" class="btn primary" data-act="cloud-in">Se connecter</button><button type="button" class="btn" data-act="cloud-up">Créer mon compte</button></div>');
+  }
+}
+async function accountAfterLogin() {
+  try {
+    const r = await cloudPull();
+    if (!r) { await cloudPush(); openAccount('Compte connecté. Ta partie actuelle est maintenant sauvegardée en ligne.'); return; }
+    modal('Quelle partie garder ?', '<p class="note-p">Une partie existe déjà sur ton compte (jour ' + (r.day || 0) + '). Ta partie sur cet appareil est au jour ' + (S.day || 0) + '.</p><div class="menu" style="gap:10px"><button type="button" class="btn primary" data-act="cloud-pull">Reprendre la partie en ligne</button><button type="button" class="btn" data-act="cloud-push">Garder cet appareil et l’envoyer en ligne</button></div>');
+  } catch (e) { openAccount('Connecté, mais la sauvegarde en ligne est indisponible pour le moment : ' + esc(e.message)); }
+}
 function openMenu() {
   const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
-  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
   const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
@@ -2615,6 +2663,21 @@ document.addEventListener('click', e => {
     case 'cookall': { const pids = [...document.querySelectorAll('#kit input')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); openKitchen(r); render(); break; }
     case 'herbier': openHerbier(); break;
     case 'famille': openFamily(); break;
+    case 'compte': openAccount(); break;
+    case 'cloud-in': case 'cloud-up': {
+      const mail = ($('acc-mail') || {}).value, pw = ($('acc-pw') || {}).value, msg = $('acc-msg');
+      if (!mail || !/^\S+@\S+\.\S+$/.test(mail)) { if (msg) msg.textContent = 'Entre une adresse e-mail valide.'; break; }
+      if (!pw || pw.length < 8) { if (msg) msg.textContent = 'Le mot de passe doit faire au moins 8 caractères.'; break; }
+      if (msg) msg.textContent = 'Un instant…';
+      (async () => { try {
+        if (a.dataset.act === 'cloud-up') { const r = await cloudSignUp(mail.trim(), pw); if (r === 'confirm') { openAccount('Compte créé. Ouvre l’e-mail de confirmation que tu viens de recevoir, puis reviens te connecter ici.'); return; } }
+        else await cloudSignIn(mail.trim(), pw);
+        await accountAfterLogin();
+      } catch (e) { const t = /Invalid login/i.test(e.message) ? 'E-mail ou mot de passe incorrect (ou e-mail pas encore confirmé).' : /already registered/i.test(e.message) ? 'Cette adresse a déjà un compte : choisis « Se connecter ».' : /fetch|network|Failed/i.test(e.message) ? 'Connexion impossible pour le moment. Ta partie reste sauvegardée sur cet appareil.' : e.message; const m2 = $('acc-msg'); if (m2) m2.textContent = t; } })();
+      break; }
+    case 'cloud-push': (async () => { const ok = await cloudPush(); openAccount(ok ? 'Partie sauvegardée en ligne (jour ' + (S.day || 0) + ').' : 'Sauvegarde en ligne impossible pour le moment. Ta partie reste sur cet appareil.'); })(); break;
+    case 'cloud-pull': (async () => { try { const r = await cloudPull(); if (!r) { openAccount('Aucune partie en ligne pour l’instant.'); return; } S = withFamily(r.data); S.w = G.weather(S.day); syncDims(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; save(); closeModal(); toast('Partie en ligne reprise (jour ' + (S.day || 0) + ').'); } catch (e) { openAccount('Impossible de reprendre la partie : ' + esc(e.message)); } })(); break;
+    case 'cloud-out': cloudSignOut().then(() => openAccount('Tu es déconnecté. Ta partie reste sur cet appareil.')); break;
     case 'amenager': openAmenager(); break;
     case 'expand': if (G.expand(S)) { save(); toast('Terrain agrandi : ' + COLS + ' × ' + ROWS + ' parcelles.'); render(); openAmenager(); } break;
     case 'use-furn': { closeModal(); ui.mode = { type: 'mat', k: a.dataset.k }; render(); $('garden').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); break; }

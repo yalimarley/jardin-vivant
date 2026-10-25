@@ -127,6 +127,7 @@ function make(P) {
     return { stage, prog: clamp(c.g / tot, 0, 1), total: tot, left: Math.max(0, tot - c.g) };
   }
   function inWindow(p, m) { return p.recolte.indexOf(m + 1) >= 0; }
+  const isWoody = p => !!p && (p.strate === 'Arbre' || p.strate === 'Arbuste') && p.kind !== 'annuelle';
   function sowable(p, m) { return p.semis.indexOf(m + 1) >= 0; }
 
   // ----- synergies de voisinage -----
@@ -235,12 +236,12 @@ function make(P) {
     if (!sowable(p, m)) return { ok: false, msg: 'Pas la bonne saison pour ' + p.name.toLowerCase() + ' (' + (['Arbre', 'Arbuste', 'Grimpante'].includes(p.strate) ? 'plantation' : 'semis') + ' : ' + monthRange(p.semis) + '). Garde la carte.' };
     return { ok: true };
   }
-  function queuePlant(s, i, pid) { const c = plantCheck(s, i, pid); if (!c.ok) return c; s.cards[pid]--; if (!s.cards[pid]) delete s.cards[pid]; (s.pq = s.pq || []).push({ i, pid }); return { ok: true }; }
+  function queuePlant(s, i, pid, opt) { const c = plantCheck(s, i, pid); if (!c.ok) return c; s.cards[pid]--; if (!s.cards[pid]) delete s.cards[pid]; (s.pq = s.pq || []).push({ i, pid, noyau: !!(opt && opt.noyau && isWoody(P[pid])) }); return { ok: true }; }
   function cancelPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; return { ok: true, name: P[q.pid].name }; }
-  function finishPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false, none: true }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; const r = plant(s, i, q.pid); return r; }
+  function finishPlant(s, i) { const k = (s.pq || []).findIndex(q => q.i === i); if (k < 0) return { ok: false, none: true }; const q = s.pq.splice(k, 1)[0]; s.cards[q.pid] = (s.cards[q.pid] || 0) + 1; const r = plant(s, i, q.pid, { noyau: q.noyau }); return r; }
   function flushPlantQueue(s) { (s.pq || []).slice().forEach(q => finishPlant(s, q.i)); s.pq = []; }
   function plantSpeed(s, pid) { const lv = Math.max(1, skillLevel(s, 'plantation')); const woody = ['Arbre', 'Arbuste'].includes((P[pid] || {}).strate); return { sec: [7, 6, 4.5, 3, 2][lv - 1] * (woody ? 1.5 : 1), batch: [1, 1, 2, 2, 4][lv - 1], lv }; }
-  function plant(s, i, pid) {
+  function plant(s, i, pid, opt) {
     const p = P[pid];
     if (!p) return { ok: false, msg: 'Carte inconnue.' };
     if (!(s.cards[pid] > 0)) return { ok: false, msg: 'Tu n’as plus cette carte.' };
@@ -251,8 +252,8 @@ function make(P) {
     const m = dateOf(s.day).m;
     if (!sowable(p, m)) return { ok: false, msg: 'Pas la bonne saison pour ' + p.name.toLowerCase() + ' (' + (['Arbre', 'Arbuste', 'Grimpante'].includes(p.strate) ? 'plantation' : 'semis') + ' : ' + monthRange(p.semis) + '). Garde la carte.' };
     s.cards[pid]--; if (!s.cards[pid]) delete s.cards[pid];
-    s.grid[i] = cell(pid, s.day); if (occ && occ.treille) s.grid[i].supp = occ.furn; s.plantings++; s.maxPlantings = Math.max(s.maxPlantings, s.plantings); discover(s, 'plant', pid, 30);
-    log(s, 'good', p.name + ' planté' + (p.propagation === 'Plant' ? '' : ' (' + p.propagation.toLowerCase() + ')') + '.');
+    s.grid[i] = cell(pid, s.day); { const wd = isWoody(p), ny = wd && !!(opt && opt.noyau); if (ny) s.grid[i].noyau = true; else if (wd) { s.grid[i].g = maturity(p) + Math.round(.5 * p.juv * 365); s.grid[i].young = true; } } if (occ && occ.treille) s.grid[i].supp = occ.furn; s.plantings++; s.maxPlantings = Math.max(s.maxPlantings, s.plantings); discover(s, 'plant', pid, 30);
+    log(s, 'good', s.grid[i].noyau ? p.name + ' : semis en pleine terre. Il sera long, mais il se débrouillera tout seul.' : p.name + ' planté' + (s.grid[i].young ? ' (jeune plant)' : p.propagation === 'Plant' ? '' : ' (' + p.propagation.toLowerCase() + ')') + '.');
     let reward = null; const gl = []; s.rewarded = s.rewarded || {};
     for (const [n, gift, label] of MILESTONES) if (s.maxPlantings >= n && !s.rewarded[n]) { s.rewarded[n] = true; for (const k in gift) s.mats[k] = (s.mats[k] || 0) + gift[k]; gl.push(label); }
     if (gl.length) { reward = 'Palier de plantations : tu reçois ' + gl.join(', ') + '.'; log(s, 'good', reward); }
@@ -508,8 +509,9 @@ function make(P) {
       const c = s.grid[i]; if (!c || c.treille) continue;
       if ((c.oyaUntil || -1) >= s.day) c.water = Math.max(c.water, 80);
       if (c.mulch) { if (c.mulchDay == null) c.mulchDay = s.day; else if (s.day - c.mulchDay > 120) { c.mulch = false; c.mulchDay = null; ev.push({ t: 'warn', text: 'Le paillage de ' + P[c.pid].name.toLowerCase() + ' est décomposé : il nourrit le sol, remets-en pour garder l’eau.' }); } }
-      const p = P[c.pid], sy = synergy(s, i), gdw = guildOf(s, i), gdok = !!gdw && ['jeune', 'mature'].includes(phase(s.grid[gdw.c]).stage), wasStage = c.stage, wasReady = c.ready;
+      const p = P[c.pid], sy = synergy(s, i), gdw = guildOf(s, i), gdok = !!c.noyau || !!gdw && ['jeune', 'mature'].includes(phase(s.grid[gdw.c]).stage), wasStage = c.stage, wasReady = c.ready;
       c.water = clamp(c.water - EVAP[m] * NEEDF[p.eau] * (c.mulch ? .35 : 1) * (gdw ? (gdw.auto ? .65 : .75) : 1) * sy.evap * (w.ev === 'canicule' ? (shadeOf(s, i, p) ? 1.25 : 1.7) : w.ev === 'secheresse' ? 1.2 : w.tmax > 25 ? 1.15 : 1) + w.rain * 5, 0, 100);
+      if (c.noyau) c.water = 100;
       if (c.water < 20) c.stress++; else c.stress = Math.max(0, c.stress - 2);
       if (c.stress > 7) { if (c.stress >= 44) c.health -= 3; else c.health = Math.max(1, c.health - 1.2); }
       else if (c.stress === 0) c.health = Math.min(100, c.health + 1.5);
@@ -534,7 +536,7 @@ function make(P) {
       else if (c.g < maturity(p)) { f = SEASONF[m]; f = f + (1 - f) * (1 - Math.min(1, p.croiss / 120)); if (p.gel <= -8 && p.croiss <= 130 && ['Herbacée', 'Racine'].includes(p.strate)) f = Math.max(f, .6); if (tm < 8 && p.gel >= 0 && !gsNear(s, i)) f *= .3; }
       else f = 1;
       const sf = c.stress > 7 ? .3 : c.stress > 0 ? .5 : 1;
-      c.g += f * clamp(1 + sy.growth, .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1) * (hasAdv(s, 'botaniste') ? 1.1 : 1);
+      c.g += f * (c.noyau ? .6 : 1) * clamp(1 + (c.noyau ? Math.max(0, sy.growth) : sy.growth), .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1) * (hasAdv(s, 'botaniste') ? 1.1 : 1);
       const st = phase(c).stage; c.stage = st; c.ready = ready(s, c);
       if (st === 'mature' && wasStage !== 'mature' && wasStage !== undefined) ev.push({ t: 'good', text: p.name + ' est arrivé à maturité.' });
       if (c.ready && !wasReady) { c.readyDay = s.day; ev.push({ t: 'good', text: p.name + ' est prêt à récolter.' }); }
@@ -906,7 +908,7 @@ function make(P) {
   }
 
   return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    buildTasks, runTask, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+    buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;

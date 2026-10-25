@@ -690,7 +690,7 @@ function renderGarden() {
   if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer. Touche un tronçon de sentier pour le retirer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
-  else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
+  else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + (G.isWoody(p) ? (ui.mode.noyau ? 'Semis en pleine terre : très long, mais l’arbre devient autonome (ni eau, ni guilde, il résiste à tout).' : 'Jeune plant : plus rapide, il faudra l’arroser et le protéger.') : sw(p)) + ' ' + G.monthRange(p.semis) + '.</span>' + (G.isWoody(p) ? '<button type="button" class="btn sm' + (ui.mode.noyau ? '' : ' primary') + '" data-act="seedmode" data-v="0">Jeune plant</button><button type="button" class="btn sm' + (ui.mode.noyau ? ' primary' : '') + '" data-act="seedmode" data-v="1">Semer le noyau</button>' : '') + '<button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else hint.innerHTML = '';
@@ -752,6 +752,7 @@ function renderFiche0() {
   h += '<ul class="notes">' + (sy.notes.length ? sy.notes.map(n => '<li class="' + n.t + '"><span class="m">' + (n.t === 'good' ? '✓' : '✕') + '</span><span>' + n.text + (n.n > 1 ? ' (×' + n.n + ')' : '') + '</span></li>').join('') : '<li><span class="m" style="background:var(--surface-2);color:var(--ink-2)">·</span><span>Pas encore d’interaction avec les voisines. Une guilde se construit en associant les strates.</span></li>') + '</ul>';
   h += cal(p, m) + legend;
   { const gd0 = G.guildOf(S, i); if (gd0 && ['jeune', 'mature'].includes(G.phase(S.grid[gd0.c]).stage)) h += '<p class="note-p">' + ico('leaf') + ' Guilde établie : cette plante résiste au gel, à la canicule, à la sécheresse, à la tempête et à la grêle.</p>'; }
+  if (c.noyau) h += '<p class="note-p">' + ico('leaf') + ' Arbre de semis : autonome. Il n’a besoin ni d’eau ni de guilde et résiste à toutes les intempéries, mais il pousse lentement.</p>'; else if (c.young) h += '<p class="note-p">Planté en jeune plant : il fructifie plus tôt, mais il faut l’arroser et le protéger.</p>';
   const wsv0 = G.waterSave(S, i);
   if (wsv0 < 1) h += '<p class="note-p">' + ico('drop') + ' Besoin en eau réduit de ' + Math.round((1 - wsv0) * 100) + ' %' + (c.mulch ? ' (paillage' + (G.guildOf && G.guildOf(S, i) ? ' + guilde' : '') + ')' : ' (guilde)') + '.</p>';
   h += '<p class="note-p">' + eauT.charAt(0).toUpperCase() + eauT.slice(1) + ' · ' + p.soleil + ' h de soleil · résiste jusqu’à ' + p.gel + ' °C' + (perYear > 0 ? ' · environ ' + fmt(perYear) + ' kg par an à maturité' : '') + '.</p><p class="note-p">' + p.note + '</p>' + (phInfo(p) ? '<p class="note-p cred">Photo : ' + esc(phInfo(p).c || 'JF Lab') + '</p>' : '');
@@ -1199,7 +1200,7 @@ function clickCell(i) {
   } setTimeout(() => { if (window.innerWidth <= 1040 && ui.sel === i && !ui.mode) $('fiche').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
   if (ui.mode && ui.mode.type === 'plant') {
     if (c && !(c.treille && (c.furn === 'treille' || c.furn === 'pergola') && P[ui.mode.pid].strate === 'Grimpante')) { ui.sel = i; ui.confirmDel = false; render(); return; }
-    const r = G.queuePlant(S, i, ui.mode.pid); if (!r.ok) { toast(r.msg); return; }
+    const r = G.queuePlant(S, i, ui.mode.pid, { noyau: !!ui.mode.noyau }); if (!r.ok) { toast(r.msg); return; }
     if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = -1; toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); return;
   }
   ui.planHl = null;
@@ -1290,6 +1291,7 @@ document.addEventListener('click', e => {
     case 'herbier': openHerbier(); break;
     case 'famille': openFamily(); break;
     case 'compte': openAccount(); break;
+    case 'seedmode': if (ui.mode && ui.mode.type === 'plant') { ui.mode.noyau = a.dataset.v === '1'; render(); } break;
     case 'cloud-in': case 'cloud-up': {
       const mail = ($('acc-mail') || {}).value, pw = ($('acc-pw') || {}).value, msg = $('acc-msg');
       if (!mail || !/^\S+@\S+\.\S+$/.test(mail)) { if (msg) msg.textContent = 'Entre une adresse e-mail valide.'; break; }

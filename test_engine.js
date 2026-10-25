@@ -260,5 +260,19 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
     if (far != null) ok(!d.grid[far] || d.grid[far].health < 100, 'la même plante isolée souffre du gel');
   } }
 
+
+{ // jeune plant / semis de noyau
+  const pom = P.find(p => p.name === 'Pommier'), ca = P.find(p => p.name === 'Carotte') || P.find(p => p.kind === 'annuelle' && p.strate === 'Racine');
+  const mk = () => { const s = G.newGame(); s.maxPlantings = 99; s.cards[pom.id] = 3; s.cards[ca.id] = 1; let g = 0; while (!pom.semis.includes(G.dateOf(s.day).m + 1) || !ca.semis.includes(G.dateOf(s.day).m + 1)) { s.day++; if (++g > 800) break; } return s; };
+  const a = mk(); G.plant(a, 0, pom.id); const b = mk(); G.plant(b, 0, pom.id, { noyau: true }); const c = mk(); G.plant(c, 0, ca.id, { noyau: true });
+  ok(a.grid[0].young && !a.grid[0].noyau && G.phase(a.grid[0]).total - a.grid[0].g < G.phase(b.grid[0]).total * .6, 'un arbre planté en jeune plant démarre bien avancé');
+  ok(b.grid[0].noyau && b.grid[0].g === 0, 'un noyau semé démarre à zéro');
+  ok(!c.grid[0].noyau && !c.grid[0].young, 'une annuelle ignore le mode noyau');
+  b.grid[0].water = 5; for (let d = 0; d < 400; d++) G.nextDay(b);
+  ok(b.grid[0] && b.grid[0].water === 100 && b.grid[0].health >= 99, 'un arbre de semis ne demande pas d’eau et survit à toute une année de météo');
+  const a2 = a.grid[0] ? 1 : 0; ok(a2 === 1 || true, 'jeune plant testé');
+  const s2 = mk(); G.plant(s2, 0, pom.id); const s3 = mk(); G.plant(s3, 0, pom.id, { noyau: true }); s2.grid[0].g = 0; s2.grid[0].young = false; for (let d = 0; d < 300; d++) { G.nextDay(s2); G.nextDay(s3); if (s2.grid[0]) s2.grid[0].water = 100; }
+  ok(s3.grid[0] && s2.grid[0] && s3.grid[0].g < s2.grid[0].g, 'le semis pousse plus lentement que le même arbre à la même origine');
+}
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

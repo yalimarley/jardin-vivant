@@ -495,7 +495,7 @@ const xpNeed = L => 100 + 25 * (L * (L + 1) / 2 - 1);
 function levelOf(xp) { let L = 1, r = xp || 0; while (r >= xpNeed(L)) { r -= xpNeed(L); L++; } return { lvl: L, into: r, need: xpNeed(L) }; }
 
 const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, paillage: 2, compost: 1 }, nichoir: { lvl: 2, paillage: 3 }, oya: { lvl: 2, paillage: 4, compost: 1 }, cuve: { lvl: 3, paillage: 6, compost: 3 } };
-const RECYCLE = { 'Commune': 1, 'Peu commune': 2, 'Rare': 4 };
+const RECYCLE = { 'Commune': 2, 'Peu commune': 3, 'Rare': 6 };
 const MAT_UNLOCK = { savoir: 3, voile: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
 const EGG_CAP = 30, EGG_KCAL = 86, EGG_PROT = 7.5, EGG_G = 60;
 const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac']), JAR_KG = .5, DRY_CAP = 3;
@@ -504,7 +504,7 @@ const MAT_QTY = { voile: 2, chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
 const COMPOST_RATE = .6, COMPOST_KG = 2.5;
 const NOT_EXO = new Set(['Maïs', 'Tournesol', 'Basilic vivace', 'Basilic']), EXO_EXTRA = new Set(['Curcuma', 'Poivre-cannelle', 'Thym antillais']);
 const isExo = p => !NOT_EXO.has(p.name) && p.gel >= -1 && (p.strate === "Arbre" || p.strate === "Arbuste" || EXO_EXTRA.has(p.name) || /^Bananier/.test(p.name));
-const gshare = s => Math.min(.25, .04 + .0002 * (s.day || 0)), BOOSTER_SIZE = 7, RCY_CAP = 12, KGM = { annuelle: 2.4, continue: 2, vivace: 1.4 }, NEED_KCAL = 2000, CORE = 51;
+const gshare = s => Math.min(.25, .04 + .0002 * (s.day || 0)), BOOSTER_SIZE = 5, RCY_CAP = 12, KGM = { annuelle: 2.4, continue: 2, vivace: 1.4 }, NEED_KCAL = 2000, CORE = 51;
 const SAVE_VERSION = 1;
 const LAWN_N = 8, LAWN_DAYS = 14, TREE_N = 5, TREE_DAYS = 90, LAWN_MULCH = 2, TREE_MULCH = 4;
 function defaultFamily() { return [{ n: 'Camille', role: 'Adulte', need: 2100, joy: 50, hist: [] }, { n: 'Julien', role: 'Adulte', need: 2400, joy: 50, hist: [] }, { n: 'Léa', role: '10 ans', need: 1900, joy: 50, hist: [] }, { n: 'Noé', role: '6 ans', need: 1500, joy: 50, hist: [] }]; }
@@ -823,15 +823,20 @@ function make(P) {
         if (pool.length) { const p = pool[Math.floor(rng() * pool.length)]; used.add(p.id); cards.push({ t: 'plant', pid: p.id }); }
       }
     } else {
-      const mp = s.maxPlantings, wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste';
-      for (let k = 0; k < BOOSTER_SIZE; k++) cards.push({ t: 'plant', pid: pickPlant(s, rng).id });
-      if (s.boosters < 14 && (m >= 9 || m <= 2)) for (let k = 0; k < 2; k++) { const fp = fastPool(s, m).filter(p => !cards.slice(0, 2).some(c => c.pid === p.id)); if (fp.length) cards[k] = { t: 'plant', pid: fp[Math.floor(rng() * fp.length)].id }; }
-      // garanties : au moins 4 cartes semables maintenant, et une espèce encore inconnue
-      for (let tries = 0; tries < 30 && cards.filter(c => sowable(P[c.pid], m)).length < 4; tries++) { const k = cards.findIndex((c, ix) => ix >= 0 && ix < BOOSTER_SIZE - 1 && !sowable(P[c.pid], m)); if (k < 0) break; cards[k] = { t: 'plant', pid: pickPlant(s, rng, true).id }; }
-      { const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]), u = unlocked(s);
-        if (!cards.some(c => !known.has(c.pid))) { const pool = P.filter(p => !known.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool.length) cards[3] = { t: 'plant', pid: pool[Math.floor(rng() * pool.length)].id }; } }
-      for (let tries = 0; tries < 14 && unlocked(s).has('Arbuste') && !cards.some(c => wood(P[c.pid])); tries++) cards[BOOSTER_SIZE - 1] = { t: 'plant', pid: pickPlant(s, rng, tries < 4).id };
-      for (let tries = 0; tries < 30 && cards.filter(c => sowable(P[c.pid], m)).length < 4; tries++) { const k = cards.findIndex((c, ix) => ix >= 0 && ix < BOOSTER_SIZE - 1 && !sowable(P[c.pid], m)); if (k < 0) break; cards[k] = { t: 'plant', pid: pickPlant(s, rng, true).id }; }
+      const wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste', used = new Set(), u = unlocked(s);
+      const add = p => { if (p && !used.has(p.id)) { used.add(p.id); cards.push({ t: 'plant', pid: p.id }); return true; } return false; };
+      const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]);
+      // 3 plantes de saison (au début, des cultures rapides en automne et en hiver)
+      if (s.boosters < 14 && (m >= 9 || m <= 2)) { const fp = fastPool(s, m); for (let k = 0; k < 2 && fp.length; k++) add(fp.splice(Math.floor(rng() * fp.length), 1)[0]); }
+      for (let tries = 0; tries < 60 && cards.length < 3; tries++) add(pickPlant(s, rng, true));
+      // au moins un arbre ou arbuste semable quand la strate est débloquée
+      if (u.has('Arbuste') && !cards.some(c => wood(P[c.pid]))) { for (let tries = 0; tries < 40; tries++) { const p = pickPlant(s, rng, tries < 10); if (wood(p) && !used.has(p.id)) { used.delete(P[cards[2].pid].id); cards[2] = { t: 'plant', pid: p.id }; used.add(p.id); break; } } }
+      // une espèce encore jamais vue : la découverte de la semaine
+      { const pool = P.filter(p => !known.has(p.id) && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); const pool2 = pool.length ? pool : P.filter(p => !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool2.length) add(pool2[Math.floor(rng() * pool2.length)]); }
+      // dernière carte : une plante rare (1 fois sur 4) ou du matériel
+      { let done = false; if (rng() < .25) { const rp = P.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } }
+        if (!done) cards.push({ t: 'mat', k: ['paillage', 'compost', 'chemin'][Math.min(2, Math.floor(rng() * 3))] }); }
+      while (cards.length < BOOSTER_SIZE) add(pickPlant(s, rng, true));
     }
     for (const c of cards) { if (c.t === 'plant') s.cards[c.pid] = (s.cards[c.pid] || 0) + 1; else { c.q = MAT_QTY[c.k] || 1; s.mats[c.k] = (s.mats[c.k] || 0) + c.q; } }
     s.boosterDay = s.day; s.boosters++; s.feves = (s.feves || 0) + 2; bump(s);
@@ -1299,8 +1304,11 @@ function make(P) {
   function guildOf(s, i) { let best = null; const g0 = guildAt(s, i); if (g0) best = { c: i, auto: g0.auto }; for (const j of neigh(i)) { const g = guildAt(s, j); if (g && (!best || (g.auto && !best.auto))) best = { c: j, auto: g.auto }; } return best; }
   function nSpecies(s) { return new Set(s.grid.filter(c => c && !c.treille).map(c => c.pid)).size; }
   const GQ = [
-    { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters : sept cartes de plantes t’attendent chaque semaine (tous les trois jours au début). Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
+    { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters : cinq cartes t’attendent chaque semaine (tous les trois jours au début). Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
     { id: 'hiver', t: 'Prépare l’hiver', say: 'Le froid arrive. Voici trois voiles d’hivernage : quand un gel est annoncé, touche « Protéger » et le jardinier les pose sur les plantes fragiles. Plante 8 cartes pour les recevoir.', need: 8, have: s => s.maxPlantings, rw: { voile: 3 } },
+    { id: 'herbier1', t: 'Premier herbier', say: 'Chaque espèce plantée entre dans ton herbier. Plante 12 espèces différentes : tes plantes poussent plus vite pendant quelques jours.', need: 12, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 3 } },
+    { id: 'rare1', t: 'Une plante rare', say: 'Certaines plantes sont rares ou oubliées. Plante-en une pour recevoir du compost et un peu de paillage.', need: 1, have: s => Object.keys((s.skills && s.skills.species) || {}).filter(k => P[k] && P[k].rarete === 'Rare').length, rw: { compost: 3, paillage: 3 } },
+    { id: 'herbier2', t: 'Herbier de 40 espèces', say: 'Quarante espèces différentes plantées : ton jardin devient une vraie collection. Compost et croissance accélérée à la clé.', need: 40, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 5, compost: 3 } },
     { id: 'sentier0', t: 'Découvre les sentiers', say: 'Une plante loin du bord, sans sentier, se piétine à chaque soin. Voici 6 tronçons : touche « Chemin », puis glisse depuis le bord du jardin. Plante 10 cartes pour les recevoir.', need: 10, have: s => s.maxPlantings, rw: { chemin: 6 } },
     { id: 'sentier1', t: 'Trace ton premier sentier', say: 'Trace 6 tronçons reliés au bord du jardin : les plantes qu’il longe se soignent sans piétiner le sol, et la famille aime se promener.', need: 6, have: s => pathLinkedEdges(s).length, rw: { boost: 5, compost: 2 } },
     { id: 'p3', t: 'Plante 6 cartes', say: 'Pose 6 plantes dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 6, have: s => s.maxPlantings, rw: { compost: 1 } },

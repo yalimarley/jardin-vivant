@@ -115,7 +115,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
 
 { const fail = m => { console.log('ÉCHEC ' + m); process.exit(1); };
   const s = G.demo(); s.day += 0; s.maxPlantings = 25; s.boosterDay = -1; s.boosters = 3; const bc = G.openBooster(s);
-  if (!bc || bc.length !== 7 || bc.filter(c => c.t === 'plant').length !== 7) fail('booster 7 plantes');
+  if (!bc || bc.length !== 5 || bc.filter(c => c.t === 'plant').length < 4 || new Set(bc.filter(c => c.t === 'plant').map(c => c.pid)).size !== bc.filter(c => c.t === 'plant').length) fail('booster 5 cartes sans doublon');
   if (!bc.some(c => c.t === 'plant' && ['Arbre', 'Arbuste'].includes(G.P[c.pid].strate))) fail('booster sans ligneux');
   const t = s.grid.findIndex(c => c && !c.treille && G.P[c.pid].strate === 'Arbre'), h = s.grid.findIndex(c => c && !c.treille && c !== s.grid[t]);
   delete s.grid[t].nichoir; s.mats.nichoir = 1; if (!G.placeNichoir(s, t).ok || G.placeNichoir(s, h).ok === true && G.P[s.grid[h].pid].strate !== 'Arbre') fail('nichoir');
@@ -150,7 +150,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   d.skills.lv.trogne = 2; const lt = d.mats.paillage; d.trees[1] = { formed: true, last: d.day - 200 }; G.cutTrogne(d, 1); ok(d.mats.paillage - lt >= 6, 'trogne niveau 2 : +6 paillage');
   const n = G.takeNotes(d); ok(Array.isArray(n), 'notifications de compétence'); }
 { const s = G.newGame(); s.maxPlantings = 30; let bad = null, n = 0; for (let k = 0; k < 80; k++) { s.boosterDay = -1; s.day++; s.boosters = 2 + k; const b = G.openBooster(s); n += b.length; b.forEach(c => { if (c.t === 'mat' && !['paillage', 'compost', 'chemin'].includes(c.k)) bad = c.k; }); }
-  ok(!bad && n === 560, 'boosters : sept plantes, rien d’autre' + (bad ? ' (' + bad + ')' : ''));
+  ok(!bad && n === 400, 'boosters : cinq cartes (plantes, une carte de matériel au plus)' + (bad ? ' (' + bad + ')' : ''));
   s.maxPlantings = 30; s.feves = 500; s.atelier = true; const out = ['ortie', 'prele', 'nichoir', 'oya', 'cuve', 'bocaux', 'mycor', 'plan', 'savoir'].map(k => [k, G.shopBuy(s, k).ok]); ok(out.every(x => x[1]) && s.mats.bocaux >= 6, 'boutique : soins, eau, savoir en vente ' + JSON.stringify(out.filter(x => !x[1]).map(x => x[0])));
   const s2 = G.newGame(); s2.feves = 100; ok(!G.shopBuy(s2, 'mycor').ok && !G.shopBuy(s2, 'bocaux').ok, 'boutique : paliers et atelier requis'); }
 // ---- poulailler
@@ -225,8 +225,8 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
 { const T = m => ok(m.startsWith('ok'), m.replace(/^(ok  : |ECHEC: )/, ''));
   const s = G.newGame(); const days = []; for (let d = 0; d < 40; d++) { if (G.boosterReady(s)) { G.openBooster(s); days.push(s.day); } G.nextDay(s, false); }
   T(JSON.stringify(days.slice(0, 5)) === '[0,3,6,13,20]' ? 'ok  : booster : jours 0, 3, 6 puis chaque semaine' : 'ECHEC: rythme ' + days.join(','));
-  let low = 0, noNew = 0, tot = 0; for (let k = 0; k < 60; k++) { const u = G.newGame(); u.maxPlantings = 25; u.boosters = 5; u.boosterDay = -1; u.day = k * 6; const m = G.dateOf(u.day).m, before = new Set(Object.keys(u.cards).map(Number)); const b = G.openBooster(u); tot++; if (b.filter(c => G.sowable(G.P[c.pid], m)).length < 4) low++; if (!b.some(c => !before.has(c.pid))) noNew++; }
-  T(low === 0 ? 'ok  : au moins 4 cartes semables par booster' : 'ECHEC: boosters trop peu semables ' + low + '/' + tot);
+  let low = 0, noNew = 0, tot = 0; for (let k = 0; k < 60; k++) { const u = G.newGame(); u.maxPlantings = 25; u.boosters = 5; u.boosterDay = -1; u.day = k * 6; const m = G.dateOf(u.day).m, before = new Set(Object.keys(u.cards).map(Number)); const b = G.openBooster(u); tot++; if (b.filter(c => c.t === 'plant' && G.sowable(G.P[c.pid], m)).length < 3) low++; if (!b.some(c => c.t === 'plant' && !before.has(c.pid))) noNew++; }
+  T(low === 0 ? 'ok  : au moins 3 plantes semables par booster' : 'ECHEC: boosters trop peu semables ' + low + '/' + tot);
   T(noNew === 0 ? 'ok  : au moins une espèce nouvelle par booster' : 'ECHEC: pas de nouveauté ' + noNew + '/' + tot);
   const r = G.newGame(); r.feves = 0; for (let k = 0; k < 40; k++) r.cards[k] = 5; const a = G.recycleDoubles(r);
   T(a.gain <= 12 && r.feves <= 12 ? 'ok  : recyclage plafonné à 12 ginkgos par semaine (' + r.feves + ')' : 'ECHEC: plafond ' + r.feves);

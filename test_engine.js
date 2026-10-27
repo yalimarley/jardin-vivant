@@ -214,7 +214,7 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   T(G.addPath(s, 4, 1, 4, 2).ok && G.addPath(s, 4, 2, 5, 2).ok && s.paths.length === 3 ? 'ok  : sentier prolongé' : 'ECHEC: prolongement');
   T(G.addPath(s, 4, 2, 5, 2).exists && s.mats.chemin === 2 ? 'ok  : tronçon déjà posé : rien de consommé' : 'ECHEC: doublon');
   T(!G.addPath(s, 7, 7, 7, 8).ok ? 'ok  : tronçon sans lien refusé' : 'ECHEC: tronçon flottant');
-  T(G.pathAccess(s, 3 * 12 + 4) === false && G.pathAccess(s, 1 * 12 + 4) === true && G.pathAccess(s, 1 * 12 + 3) === true ? 'ok  : parcelles longées accessibles' : 'ECHEC: accès ' + [3 * 12 + 4, 12 + 4, 12 + 3].map(i => G.pathAccess(s, i)));
+  T(G.pathAccess(s, 3 * G.COLS + 4) === false && G.pathAccess(s, 1 * G.COLS + 4) === true && G.pathAccess(s, 1 * G.COLS + 3) === true ? 'ok  : parcelles longées accessibles' : 'ECHEC: accès ' + [3 * G.COLS + 4, G.COLS + 4, G.COLS + 3].map(i => G.pathAccess(s, i)));
   T(G.removePath(s, G.pk(4, 1, 4, 2)) && s.mats.chemin === 3 ? 'ok  : tronçon retiré, gravier rendu' : 'ECHEC: retrait');
   T(G.pathLinkedEdges(s).length === 1 && G.pathAccess(s, 2 * 12 + 4) === false ? 'ok  : un tronçon coupé du bord ne sert plus' : 'ECHEC: tronçon orphelin ' + G.pathLinkedEdges(s).length);
   const old = G.newGame(); old.grid[30] = { treille: true, furn: 'chemin' }; delete old.paths; G.fixSave(old);

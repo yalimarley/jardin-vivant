@@ -3,9 +3,9 @@
 'use strict';
 const START = Date.UTC(2026, 9, 19), DAYMS = 86400000;
 const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-const COLS = 12, ROWS = 10, NCELL = COLS * ROWS;
-const SIZES = [[8, 6], [10, 8], [12, 10]];
-const SIZE_REQ = [null, { plant: 10, species: 6 }, { plant: 25, species: 14 }];
+const COLS = 16, ROWS = 14, NCELL = COLS * ROWS, OLD_COLS = 12;
+const SIZES = [[8, 6], [10, 8], [12, 10], [14, 12], [16, 14]];
+const SIZE_REQ = [null, { plant: 10, species: 6 }, { plant: 25, species: 14 }, { plant: 60, species: 30 }, { plant: 120, species: 45 }];
 const MILESTONES = [[4, { paillage: 4 }, '4 paillage pour tes premières trognes']];
 const CLIM = [[1,9],[2,11],[4,14],[6,17],[10,21],[13,25],[15,28],[15,28],[12,24],[9,19],[5,13],[2,9]];
 const RAINP = [.3,.27,.28,.32,.3,.24,.17,.2,.24,.3,.32,.32];
@@ -267,7 +267,8 @@ function make(P) {
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
   function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
-  function fixSave(s) { gqInit(s); if (!s.skillNotes) s.skillNotes = []; if (!Array.isArray(s.paths)) s.paths = []; if (!s.disc) s.disc = { plant: {}, harvest: {} };
+  function migrateGrid(s) { if (!s.grid || s.grid.length === NCELL) return s; const oc = s.grid.length === 120 ? OLD_COLS : s.grid.length === 48 ? 8 : 0; if (!oc) return s; const mv = i => ((i / oc) | 0) * COLS + (i % oc), g = Array(NCELL).fill(null); s.grid.forEach((c, i) => { if (c) g[mv(i)] = c; }); s.grid = g; if (Array.isArray(s.pq)) s.pq.forEach(q => { q.i = mv(q.i); }); return s; }
+  function fixSave(s) { migrateGrid(s); gqInit(s); if (!s.skillNotes) s.skillNotes = []; if (!Array.isArray(s.paths)) s.paths = []; if (!s.disc) s.disc = { plant: {}, harvest: {} };
     s.grid.forEach((c, i) => { if (c && c.treille && c.furn === 'chemin') { s.grid[i] = null; s.mats.chemin = (s.mats.chemin || 0) + 2; s.pathMigrated = (s.pathMigrated || 0) + 1; } });
     if (!s.skills || !s.skills.lv) { const o = s.skills || { pts: {}, seen: {} }, op = o.pts || {}, lv = {}, use = {}; let tot = 0;
       const OLD = { tonte: [0, 15, 45], trogne: [4, 12, 30], bouture: [6, 12, 36], fabrication: [8, 14, 40], sechage: [10, 10, 30], transformation: [8, 10, 30], cuisine: [0, 12, 36], greffe: [14, 12, 32] };
@@ -368,8 +369,8 @@ function make(P) {
       const wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste', used = new Set(), u = unlocked(s);
       const add = p => { if (p && !used.has(p.id)) { used.add(p.id); cards.push({ t: 'plant', pid: p.id }); return true; } return false; };
       const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]);
-      // 3 plantes de saison (au début, des cultures rapides en automne et en hiver)
-      if (s.boosters < 14 && (m >= 9 || m <= 2)) { const fp = fastPool(s, m); for (let k = 0; k < 2 && fp.length; k++) add(fp.splice(Math.floor(rng() * fp.length), 1)[0]); }
+      // 3 plantes de saison (au début, 2 cultures rapides : premières récoltes en quelques semaines)
+      if (s.boosters < 14) { const fp = fastPool(s, m); for (let k = 0; k < 2 && fp.length; k++) add(fp.splice(Math.floor(rng() * fp.length), 1)[0]); }
       for (let tries = 0; tries < 60 && cards.length < 3; tries++) add(pickPlant(s, rng, true));
       // au moins un arbre ou arbuste semable quand la strate est débloquée
       if (u.has('Arbuste') && !cards.some(c => wood(P[c.pid]))) { for (let tries = 0; tries < 40; tries++) { const p = pickPlant(s, rng, tries < 10); if (wood(p) && !used.has(p.id)) { used.delete(P[cards[2].pid].id); cards[2] = { t: 'plant', pid: p.id }; used.add(p.id); break; } } }
@@ -916,7 +917,7 @@ function make(P) {
   }
 
   return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+    migrateGrid, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;

@@ -369,18 +369,18 @@ function make(P) {
     } else {
       const wood = p => p.strate === 'Arbre' || p.strate === 'Arbuste', used = new Set(), u = unlocked(s);
       const add = p => { if (p && !used.has(p.id)) { used.add(p.id); cards.push({ t: 'plant', pid: p.id }); return true; } return false; };
-      const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]);
+      const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid), ...Object.keys((s.disc && s.disc.plant) || {}).map(Number)]);
+      const fresh = () => { for (let t = 0; t < 50; t++) { const p = pickPlant(s, rng, true); if (!known.has(p.id) && !used.has(p.id)) return p; } for (let t = 0; t < 120; t++) { const p = pickPlant(s, rng, false); if (!known.has(p.id) && !used.has(p.id)) return p; } return pickPlant(s, rng, true); };
       // 3 plantes de saison (au début, 2 cultures rapides : premières récoltes en quelques semaines)
-      if (s.boosters < 14) { const fp = fastPool(s, m); for (let k = 0; k < 2 && fp.length; k++) add(fp.splice(Math.floor(rng() * fp.length), 1)[0]); }
-      for (let tries = 0; tries < 60 && cards.length < 3; tries++) add(pickPlant(s, rng, true));
+      if (s.boosters < 14) { const fp = fastPool(s, m).filter(p => !known.has(p.id)); for (let k = 0; k < 2 && fp.length; k++) add(fp.splice(Math.floor(rng() * fp.length), 1)[0]); }
+      for (let tries = 0; tries < 60 && cards.length < 3; tries++) add(fresh());
       // au moins un arbre ou arbuste semable quand la strate est débloquée
-      if (u.has('Arbuste') && !cards.some(c => wood(P[c.pid]))) { for (let tries = 0; tries < 40; tries++) { const p = pickPlant(s, rng, tries < 10); if (wood(p) && !used.has(p.id)) { used.delete(P[cards[2].pid].id); cards[2] = { t: 'plant', pid: p.id }; used.add(p.id); break; } } }
+      if (u.has('Arbuste') && !cards.some(c => wood(P[c.pid]))) { for (let tries = 0; tries < 40; tries++) { const p = pickPlant(s, rng, tries < 10); if (wood(p) && !used.has(p.id) && (tries >= 30 || !known.has(p.id))) { used.delete(P[cards[2].pid].id); cards[2] = { t: 'plant', pid: p.id }; used.add(p.id); break; } } }
       // une espèce encore jamais vue : la découverte de la semaine
       { const pool = P.filter(p => !known.has(p.id) && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); const pool2 = pool.length ? pool : P.filter(p => !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool2.length) { const fq = pool2.filter(p => p.fc), src = fq.length && rng() < .5 ? fq : pool2; add(src[Math.floor(rng() * src.length)]); } }
-      // dernière carte : une plante rare (1 fois sur 4) ou du matériel
-      { let done = false; if (rng() < .25) { let rp = P.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); { const fr = rp.filter(p => p.fc); if (fr.length && rng() < .5) rp = fr; } if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } }
-        if (!done) cards.push({ t: 'mat', k: ['paillage', 'compost', 'chemin'][Math.min(2, Math.floor(rng() * 3))] }); }
-      while (cards.length < BOOSTER_SIZE) add(pickPlant(s, rng, true));
+      // dernière carte : une plante rare (1 fois sur 4) ou une nouvelle plante. Les boosters ne contiennent que des plantes : tout le reste s'achète en boutique.
+      { let done = false; if (rng() < .25) { let rp = P.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); { const nr = rp.filter(p => !known.has(p.id)); if (nr.length) rp = nr; } { const fr = rp.filter(p => p.fc); if (fr.length && rng() < .5) rp = fr; } if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } } }
+      while (cards.length < BOOSTER_SIZE) add(fresh());
     }
     for (const c of cards) { if (c.t === 'plant') s.cards[c.pid] = (s.cards[c.pid] || 0) + 1; else { c.q = MAT_QTY[c.k] || 1; s.mats[c.k] = (s.mats[c.k] || 0) + c.q; } }
     s.boosterDay = s.day; s.boosters++; s.feves = (s.feves || 0) + 2; bump(s);

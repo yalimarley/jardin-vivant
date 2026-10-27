@@ -338,7 +338,7 @@ function make(P) {
     const el2 = el.filter(p => p.strate === st);
     const roll = rng(), rar = roll < .72 ? 'Commune' : roll < .93 ? 'Peu commune' : 'Rare';
     let pool = el2.filter(p => p.rarete === rar); if (!pool.length) pool = el2;
-    const w = pool.map(p => (sowable(p, m) ? 3 : 1) * (p.id < CORE ? 5 : 1) * ((st === 'Arbre' || st === 'Arbuste') && p.kg > 0 ? 2.5 : 1)), tot = w.reduce((a, b) => a + b, 0); let x = rng() * tot;
+    const w = pool.map(p => (sowable(p, m) ? 3 : 1) * (p.id < CORE ? 5 : 1) * (p.fc ? 2.5 : 1) * ((st === 'Arbre' || st === 'Arbuste') && p.kg > 0 ? 2.5 : 1)), tot = w.reduce((a, b) => a + b, 0); let x = rng() * tot;
     for (let k = 0; k < pool.length; k++) { x -= w[k]; if (x <= 0) return pool[k]; }
     return pool[pool.length - 1];
   }
@@ -374,9 +374,9 @@ function make(P) {
       // au moins un arbre ou arbuste semable quand la strate est débloquée
       if (u.has('Arbuste') && !cards.some(c => wood(P[c.pid]))) { for (let tries = 0; tries < 40; tries++) { const p = pickPlant(s, rng, tries < 10); if (wood(p) && !used.has(p.id)) { used.delete(P[cards[2].pid].id); cards[2] = { t: 'plant', pid: p.id }; used.add(p.id); break; } } }
       // une espèce encore jamais vue : la découverte de la semaine
-      { const pool = P.filter(p => !known.has(p.id) && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); const pool2 = pool.length ? pool : P.filter(p => !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool2.length) add(pool2[Math.floor(rng() * pool2.length)]); }
+      { const pool = P.filter(p => !known.has(p.id) && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); const pool2 = pool.length ? pool : P.filter(p => !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool2.length) { const fq = pool2.filter(p => p.fc), src = fq.length && rng() < .5 ? fq : pool2; add(src[Math.floor(rng() * src.length)]); } }
       // dernière carte : une plante rare (1 fois sur 4) ou du matériel
-      { let done = false; if (rng() < .25) { const rp = P.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } }
+      { let done = false; if (rng() < .25) { let rp = P.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); { const fr = rp.filter(p => p.fc); if (fr.length && rng() < .5) rp = fr; } if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } }
         if (!done) cards.push({ t: 'mat', k: ['paillage', 'compost', 'chemin'][Math.min(2, Math.floor(rng() * 3))] }); }
       while (cards.length < BOOSTER_SIZE) add(pickPlant(s, rng, true));
     }

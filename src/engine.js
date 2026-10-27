@@ -346,6 +346,7 @@ function make(P) {
   function matPick(s, r) {
     const w = [['paillage', 30], ['compost', 24], ['chemin', 22]]; const mp = s.maxPlantings;
     for (const k of ['treille', 'pergola', 'serre', 'mare', 'ruche', 'trogne', 'canard']) if (mp >= FURN_UNLOCK[k]) w.push([k, k === 'treille' ? 8 : k === 'pergola' ? 7 : k === 'canard' ? 4 : 5]);
+    for (const e of w) if (['paillage', 'compost', 'chemin'].includes(e[0]) && (s.mats[e[0]] || 0) >= 12) e[1] = Math.max(1, e[1] * .15);
     const tot = w.reduce((a, b) => a + b[1], 0); let x = r * tot;
     for (const [k, v] of w) { x -= v; if (x <= 0) return k; }
     return 'paillage';
@@ -739,6 +740,25 @@ function make(P) {
     if (!why && k === 'bocaux' && !s.atelier) why = 'Il faut d’abord un atelier';
     return { price, qty: MAT_QTY[k] || 1, unlock: un, why, owned: s.mats[k] || 0, can: !why && (s.feves || 0) >= price };
   }
+  const POCHETTE = 25, POCHETTE_UNLOCK = 8;
+  function pochetteInfo(s) {
+    const w = Math.floor(s.day / 7); let why = null;
+    if (s.maxPlantings < POCHETTE_UNLOCK) why = 'Débloquée après ' + POCHETTE_UNLOCK + ' plantations'; else if (s.pochW === w) why = 'Une seule pochette par semaine : la prochaine arrive en ' + ((w + 1) * 7 - s.day) + ' jour' + (((w + 1) * 7 - s.day) > 1 ? 's' : '') + '.';
+    return { price: POCHETTE, why, can: !why && (s.feves || 0) >= POCHETTE };
+  }
+  function pochetteBuy(s) {
+    const f = pochetteInfo(s); if (f.why) return { ok: false, msg: f.why }; if ((s.feves || 0) < POCHETTE) return { ok: false, msg: 'Il te manque ' + (POCHETTE - (s.feves || 0)) + ' ginkgos.' };
+    const rng = mulberry(s.day * 977 + (s.boosters || 0) * 31 + 5), u = unlocked(s), m = dateOf(s.day).m, used = new Set();
+    const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]);
+    const ok = p => u.has(p.strate) && (!isExo(p) || hasGS(s)) && !used.has(p.id), pick = pool => pool[Math.floor(rng() * pool.length)];
+    const out = [];
+    { let rp = P.filter(p => p.rarete === 'Rare' && ok(p)); const nw = rp.filter(p => !known.has(p.id)); if (nw.length) rp = nw; const fc = rp.filter(p => p.fc); if (fc.length && rng() < .5) rp = fc; const sw = rp.filter(p => sowable(p, m)); if (sw.length) rp = sw; if (rp.length) { const p = pick(rp); used.add(p.id); out.push(p); } }
+    for (let k = 0; k < 2; k++) { let np = P.filter(p => p.rarete !== 'Rare' && ok(p) && !known.has(p.id)); const sw = np.filter(p => sowable(p, m)); if (sw.length) np = sw; if (!np.length) np = P.filter(p => p.rarete !== 'Rare' && ok(p) && sowable(p, m)); if (np.length) { const p = pick(np); used.add(p.id); out.push(p); } }
+    if (!out.length) return { ok: false, msg: 'Aucune carte à tirer pour l’instant.' };
+    s.feves -= POCHETTE; s.pochW = Math.floor(s.day / 7); out.forEach(p => { s.cards[p.id] = (s.cards[p.id] || 0) + 1; });
+    log(s, 'good', 'Pochette découverte : ' + out.map(p => p.name).join(', ') + '.'); gainXp(s, 15); bump(s, 'shop');
+    return { ok: true, pids: out.map(p => p.id), names: out.map(p => p.name) };
+  }
   function shopBuy(s, k) {
     if (!SHOP[k]) return { ok: false, msg: 'Cet article n’est pas en vente.' }; const f = shopInfo(s, k);
     if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' ginkgos.' };
@@ -916,7 +936,7 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     migrateGrid, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

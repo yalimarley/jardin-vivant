@@ -805,6 +805,7 @@ function make(P) {
   function matPick(s, r) {
     const w = [['paillage', 30], ['compost', 24], ['chemin', 22]]; const mp = s.maxPlantings;
     for (const k of ['treille', 'pergola', 'serre', 'mare', 'ruche', 'trogne', 'canard']) if (mp >= FURN_UNLOCK[k]) w.push([k, k === 'treille' ? 8 : k === 'pergola' ? 7 : k === 'canard' ? 4 : 5]);
+    for (const e of w) if (['paillage', 'compost', 'chemin'].includes(e[0]) && (s.mats[e[0]] || 0) >= 12) e[1] = Math.max(1, e[1] * .15);
     const tot = w.reduce((a, b) => a + b[1], 0); let x = r * tot;
     for (const [k, v] of w) { x -= v; if (x <= 0) return k; }
     return 'paillage';
@@ -1198,6 +1199,25 @@ function make(P) {
     if (!why && k === 'bocaux' && !s.atelier) why = 'Il faut d’abord un atelier';
     return { price, qty: MAT_QTY[k] || 1, unlock: un, why, owned: s.mats[k] || 0, can: !why && (s.feves || 0) >= price };
   }
+  const POCHETTE = 25, POCHETTE_UNLOCK = 8;
+  function pochetteInfo(s) {
+    const w = Math.floor(s.day / 7); let why = null;
+    if (s.maxPlantings < POCHETTE_UNLOCK) why = 'Débloquée après ' + POCHETTE_UNLOCK + ' plantations'; else if (s.pochW === w) why = 'Une seule pochette par semaine : la prochaine arrive en ' + ((w + 1) * 7 - s.day) + ' jour' + (((w + 1) * 7 - s.day) > 1 ? 's' : '') + '.';
+    return { price: POCHETTE, why, can: !why && (s.feves || 0) >= POCHETTE };
+  }
+  function pochetteBuy(s) {
+    const f = pochetteInfo(s); if (f.why) return { ok: false, msg: f.why }; if ((s.feves || 0) < POCHETTE) return { ok: false, msg: 'Il te manque ' + (POCHETTE - (s.feves || 0)) + ' ginkgos.' };
+    const rng = mulberry(s.day * 977 + (s.boosters || 0) * 31 + 5), u = unlocked(s), m = dateOf(s.day).m, used = new Set();
+    const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]);
+    const ok = p => u.has(p.strate) && (!isExo(p) || hasGS(s)) && !used.has(p.id), pick = pool => pool[Math.floor(rng() * pool.length)];
+    const out = [];
+    { let rp = P.filter(p => p.rarete === 'Rare' && ok(p)); const nw = rp.filter(p => !known.has(p.id)); if (nw.length) rp = nw; const fc = rp.filter(p => p.fc); if (fc.length && rng() < .5) rp = fc; const sw = rp.filter(p => sowable(p, m)); if (sw.length) rp = sw; if (rp.length) { const p = pick(rp); used.add(p.id); out.push(p); } }
+    for (let k = 0; k < 2; k++) { let np = P.filter(p => p.rarete !== 'Rare' && ok(p) && !known.has(p.id)); const sw = np.filter(p => sowable(p, m)); if (sw.length) np = sw; if (!np.length) np = P.filter(p => p.rarete !== 'Rare' && ok(p) && sowable(p, m)); if (np.length) { const p = pick(np); used.add(p.id); out.push(p); } }
+    if (!out.length) return { ok: false, msg: 'Aucune carte à tirer pour l’instant.' };
+    s.feves -= POCHETTE; s.pochW = Math.floor(s.day / 7); out.forEach(p => { s.cards[p.id] = (s.cards[p.id] || 0) + 1; });
+    log(s, 'good', 'Pochette découverte : ' + out.map(p => p.name).join(', ') + '.'); gainXp(s, 15); bump(s, 'shop');
+    return { ok: true, pids: out.map(p => p.id), names: out.map(p => p.name) };
+  }
   function shopBuy(s, k) {
     if (!SHOP[k]) return { ok: false, msg: 'Cet article n’est pas en vente.' }; const f = shopInfo(s, k);
     if (f.why) return { ok: false, msg: f.why + '.' }; if ((s.feves || 0) < f.price) return { ok: false, msg: 'Il te manque ' + (f.price - s.feves) + ' ginkgos.' };
@@ -1375,7 +1395,7 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     migrateGrid, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -2266,12 +2286,12 @@ function shopCard(k) {
 }
 function openShop() {
   const byP = a => a.filter(k => G.SHOP[k]).sort((a, b) => G.SHOP[a] - G.SHOP[b]), ks = byP(Object.keys(G.SHOP).filter(k => !SOINS.includes(k) && !BASE.includes(k))), ss = byP(SOINS), bs = BASE.filter(k => G.SHOP[k]);
-  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant ton booster (2), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes.</p><h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
+  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant ton booster (2), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters contiennent surtout des plantes, parfois du matériel.</p><h3 style="margin:10px 0 6px">Pochette découverte</h3><p class="note-p">Trois cartes : une plante rare ou oubliée que tu n’as pas encore, et deux autres espèces nouvelles. Une pochette par semaine.</p>' + (() => { const pf = G.pochetteInfo(S); return (pf.why ? '<p class="note-p"><small>' + pf.why + '</small></p>' : '') + '<div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="pochette"' + (pf.can ? '' : ' disabled') + '>Ouvrir une pochette · ' + pf.price + ' ginkgos</button></div>'; })() + '<h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
   const dup = Object.keys(S.cards).map(Number).filter(id => S.cards[id] > 1);
-  if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune 1 ginkgo, peu commune 2, rare 4 par carte.</p>';
+  if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune ' + G.RECYCLE['Commune'] + ' ginkgos, peu commune ' + G.RECYCLE['Peu commune'] + ', rare ' + G.RECYCLE['Rare'] + ' par carte.</p>';
   else {
     const tot = dup.reduce((a, id) => a + G.recycleValue(S, id, S.cards[id] - 1), 0);
-    h += '<p class="note-p">Commune 1 ginkgo, peu commune 2, rare 4 par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
+    h += '<p class="note-p">Commune ' + G.RECYCLE['Commune'] + ' ginkgos, peu commune ' + G.RECYCLE['Peu commune'] + ', rare ' + G.RECYCLE['Rare'] + ' par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
   }
   modal('Boutique · ' + (S.feves || 0) + ' ginkgos', h, true);
 }
@@ -2664,6 +2684,7 @@ document.addEventListener('click', e => {
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;
     case 'craft': { const r = G.craft(S, a.dataset.k); toast(r.ok ? 'Fabriqué : ' + RECIPE_N[a.dataset.k].toLowerCase() + '.' : r.msg); save(); render(); openSkills(); break; }
     case 'shop': openShop(); break;
+    case 'pochette': { const r = G.pochetteBuy(S); toast(r.ok ? 'Pochette : ' + r.names.join(', ') + '.' : r.msg); save(); render(); openShop(); break; }
     case 'shop-buy': { const r = G.shopBuy(S, a.dataset.k); toast(r.ok ? 'Acheté ! Retrouve-le dans la barre du haut.' : r.msg); save(); render(); openShop(); break; }
     case 'recycle1': { const r = G.recycleCards(S, +a.dataset.pid, 1); if (r.ok) toast('+' + r.gain + ' ginkgo' + (r.gain > 1 ? 's' : '') + '.'); save(); render(); openShop(); break; }
     case 'recycle-all': { const r = G.recycleDoubles(S); toast(r.ok ? '+' + r.gain + ' ginkgos : ' + r.n + ' carte' + (r.n > 1 ? 's' : '') + ' recyclée' + (r.n > 1 ? 's' : '') + '.' : 'Rien à recycler.'); save(); render(); openShop(); break; }

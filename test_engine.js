@@ -274,5 +274,21 @@ const lr = G.learn(d); ok(lr && lr.pid >= 0, 'savoir du jour : ' + G.P[lr.pid].n
   const s2 = mk(); G.plant(s2, 0, pom.id); const s3 = mk(); G.plant(s3, 0, pom.id, { noyau: true }); s2.grid[0].g = 0; s2.grid[0].young = false; for (let d = 0; d < 300; d++) { G.nextDay(s2); G.nextDay(s3); if (s2.grid[0]) s2.grid[0].water = 100; }
   ok(s3.grid[0] && s2.grid[0] && s3.grid[0].g < s2.grid[0].g, 'le semis pousse plus lentement que le même arbre à la même origine');
 }
+// --- grimpantes : support obligatoire (treille, pergola ou arbre voisin)
+{ const s = G.newGame(); s.maxPlantings = 30; s.size = 2; const gp = P.find(p => p.strate === 'Grimpante' && (p.semis || []).length), tree = P.find(p => p.strate === 'Arbre'), shrub = P.find(p => p.strate === 'Arbuste');
+  const mm = gp.semis[0]; s.day = (() => { for (let d = 0; d < 400; d++) { if (G.dateOf(d).m === mm) return d; } return 0; })();
+  s.cards[gp.id] = 5; const C = G.COLS, a = 3 * C + 3, b = 3 * C + 7;
+  ok(!G.plantCheck(s, a, gp.id).ok, 'grimpante seule : plantation refusée');
+  s.grid[a + 1] = { pid: shrub.id, g: 100, water: 80, health: 100, stress: 0, stage: 'jeune' };
+  ok(!G.plantCheck(s, a, gp.id).ok, 'grimpante contre un arbuste : refusée');
+  s.grid[a + 1] = { pid: tree.id, g: 100, water: 80, health: 100, stress: 0, stage: 'jeune' };
+  ok(G.plantCheck(s, a, gp.id).ok, 'grimpante contre un arbre : acceptée');
+  s.grid[b + 1] = { treille: true, furn: 'treille' };
+  ok(G.plantCheck(s, b, gp.id).ok, 'grimpante à côté d’une treille : acceptée');
+  ok(G.plantCheck(s, b + 1, gp.id).ok, 'grimpante sur la treille : acceptée');
+  const mv = G.moveCheck(Object.assign(G.newGame(), { grid: Object.assign(Array(G.NCELL).fill(null), { [a]: { pid: gp.id, g: 50, water: 80, health: 100, stress: 0, stage: 'pousse' } }), size: 2 }), a, 9 * C + 9);
+  ok(!mv.ok, 'déplacer une grimpante loin de tout support : refusé');
+}
+
 console.log(fails ? '\n' + fails + ' ÉCHEC(S)' : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

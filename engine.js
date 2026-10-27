@@ -157,7 +157,7 @@ function make(P) {
       }
       const q = P[n.pid], st = phase(n).stage;
       if (n.nichoir) add('good', 'Un nichoir à mésanges voisin : les mésanges mangent chenilles et pucerons.', j, 0, .04);
-      if (p.strate === 'Grimpante' && (q.strate === 'Arbre' || q.strate === 'Arbuste')) support = true;
+      if (p.strate === 'Grimpante' && q.strate === 'Arbre') support = true;
       if (st === 'graine') continue;
       if (q.tags.includes('azote') && p.tags.includes('gourmand') && azote < 2) { azote++; add('good', q.name + ' fixe l’azote de l’air : ' + p.name + ' en profite.', j, .12, .12); }
       if (q.tags.includes('mellifere') && (p.kind === 'vivace' || (p.tags.includes('gourmand') && p.kg >= 1)) && q.pid !== c.pid && mell < 2) { mell++; add('good', q.name + ' attire les pollinisateurs : plus de fruits pour ' + p.name + '.', j, 0, .1); }
@@ -171,7 +171,7 @@ function make(P) {
     if (c.supp) support = true;
     if (p.strate === 'Grimpante') {
       if (support) add('good', p.name + (c.supp ? ' grimpe sur ' + (c.supp === 'pergola' ? 'la pergola' : 'la treille') + '.' : ' grimpe sur le support voisin.'), -1, c.supp ? .06 : 0, c.supp ? .06 : 0);
-      else add('bad', p.name + ' n’a rien pour grimper : pose une treille ou une pergola, ou plante-la près d’un arbuste.', -1, -.4, -.2);
+      else add('bad', p.name + ' n’a rien pour grimper : sans treille, pergola ou arbre voisin, elle ne pousse presque pas.', -1, -.4, -.2);
     }
     // accès : une plante à plus de deux parcelles du bord et sans chemin voisin est piétinée à chaque soin
     { const dm = dims(s), r = (i / COLS) | 0, cc = i % COLS, edge = Math.min(r, dm[1] - 1 - r, cc, dm[0] - 1 - cc);
@@ -223,6 +223,12 @@ function make(P) {
   function bump(s, k, n) { if (s.doneToday.day !== s.day) { s.doneToday = { day: s.day, n: 0 }; s.streak = s.lastActive === s.day - 1 ? (s.streak || 0) + 1 : 1; s.lastActive = s.day; if (s.streak % 7 === 0) { s.feves = (s.feves || 0) + 3; log(s, 'good', 'Série de ' + s.streak + ' jours au jardin : 3 ginkgos offerts.'); } } s.doneToday.n++; if (k) { const g = gqInit(s), a = n == null ? 1 : n; g.cnt[k] = (g.cnt[k] || 0) + a; if (g.dc.day !== s.day) g.dc = { day: s.day }; g.dc[k] = (g.dc[k] || 0) + a; }  if (k && XPB[k]) gainXp(s, XPB[k] * (n == null ? 1 : n)); }
 
   // ----- actions -----
+  function climbSupport(s, i) {
+    const o = s.grid[i]; if (o && o.treille && (o.furn === 'treille' || o.furn === 'pergola')) return true;
+    const pq = s.pq || [];
+    return neigh(i).some(j => { const n = s.grid[j]; if (n) { if (n.treille) return n.furn === 'treille' || n.furn === 'pergola'; return P[n.pid].strate === 'Arbre'; } return pq.some(q => q.i === j && P[q.pid].strate === 'Arbre'); });
+  }
+  const CLIMB_MSG = 'Une plante grimpante a besoin d’un support : pose-la sur une treille ou une pergola, ou juste à côté, ou plante-la contre un arbre.';
   function plantCheck(s, i, pid) {
     const p = P[pid];
     if (!p) return { ok: false, msg: 'Carte inconnue.' };
@@ -232,6 +238,7 @@ function make(P) {
     const occ = s.grid[i];
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
+    if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
     if (!sowable(p, m)) return { ok: false, msg: 'Pas la bonne saison pour ' + p.name.toLowerCase() + ' (' + (['Arbre', 'Arbuste', 'Grimpante'].includes(p.strate) ? 'plantation' : 'semis') + ' : ' + monthRange(p.semis) + '). Garde la carte.' };
     return { ok: true };
@@ -249,6 +256,7 @@ function make(P) {
     const occ = s.grid[i];
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
+    if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
     if (!sowable(p, m)) return { ok: false, msg: 'Pas la bonne saison pour ' + p.name.toLowerCase() + ' (' + (['Arbre', 'Arbuste', 'Grimpante'].includes(p.strate) ? 'plantation' : 'semis') + ' : ' + monthRange(p.semis) + '). Garde la carte.' };
     s.cards[pid]--; if (!s.cards[pid]) delete s.cards[pid];
@@ -433,7 +441,7 @@ function make(P) {
     if (p.tags.includes('mulch')) t.push('Faucher ses feuilles et les laisser au pied des voisines fabrique du paillage gratuit.');
     if (p.strate === 'Couvre-sol') t.push('Un sol couvert perd moins d’eau et reste vivant : moins d’arrosage, moins d’herbes indésirables.');
     if (p.strate === 'Arbre') t.push('Un arbre met des années à fructifier mais structure toute la guilde : ombre, abri, feuilles pour le sol.');
-    if (p.strate === 'Grimpante') t.push('Une grimpante gagne de la place en hauteur : elle a besoin d’un support (treille, arbuste ou arbre).');
+    if (p.strate === 'Grimpante') t.push('Une grimpante gagne de la place en hauteur : elle a besoin d’un support : une treille, une pergola ou un arbre à côté. Sans support, impossible de la planter.');
     return t;
   }
   function learn(s) {
@@ -628,6 +636,7 @@ function make(P) {
     if (!isActive(s, to)) return { ok: false, msg: 'Cette parcelle n’est pas encore à toi.' };
     const t = s.grid[to], p = P[c.pid];
     if (t && !(t.treille && (t.furn === 'treille' || t.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
+    if (p.strate === 'Grimpante' && !climbSupport(s, to)) return { ok: false, msg: CLIMB_MSG };
     return { ok: true, support: t && t.treille ? t.furn : null, p };
   }
   function movePlant(s, from, to) {
@@ -937,7 +946,7 @@ function make(P) {
   }
 
   return { XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    migrateGrid, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+    migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;

@@ -543,6 +543,8 @@ function tap(cx, cy) {
   const pk = o.userData.pick, svg = A.svg();
   if (A.ui().tool === 'spade') { A.spadeTap(hit.point.x, hit.point.z, -cam.az, [HW, HH]); return; }
   if (pk.t === 'ground') return;
+  { const ui0 = A.ui(), S0 = A.S(), plain = (!ui0.tool || ui0.tool === 'select') && !ui0.mode, sp0 = pk.t === 'spot' ? (S0.spots || []).find(q => q.id === pk.id) : pk.t === 'cell' ? A.G.spotOf(S0, pk.i) : null, c0 = pk.t === 'cell' ? S0.grid[pk.i] : null;
+    if (plain && sp0 && !(c0 && c0.treille)) { A.openSpot(sp0.id); return; } }
   if (pk.t === 'cell') fire(svg.querySelector('.cell[data-i="' + pk.i + '"]'));
   else if (pk.t === 'spot') { const sp = (A.S().spots || []).find(q => q.id === pk.id); if (sp) { const els = sp.cells.map(i => svg.querySelector('.cell[data-i="' + i + '"]')).filter(Boolean), el = els.find(x => x.classList.contains('pick')) || els.find(x => !A.S().grid[+x.dataset.i]) || els[0]; fire(el); } }
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
@@ -717,7 +719,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche un emplacement libre pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
+  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
 }

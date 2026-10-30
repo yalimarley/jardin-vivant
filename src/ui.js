@@ -819,22 +819,27 @@ function spotPickSlot(sp, p) {
 function openSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
   const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
-  const rows = sp.cells.map((i, k) => {
-    const c = S.grid[i], q = (S.pq || []).find(o => o.i === i), pr = sl[k][2], lb = pr ? (sp.t === 'hedge' ? 'Plante de haie' : LB[pr[0]]) : 'Plante';
-    if (c && c.treille) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + (FURN_INFO[c.furn || 'treille'] || {}).n + '</span></li>';
-    if (c && P[c.pid]) return '<li class="good"><span class="m">✓</span><span><b>' + (LB[P[c.pid].strate] || P[c.pid].strate) + '</b> : ' + P[c.pid].name + '</span></li>';
-    if (q) return '<li class="good"><span class="m">…</span><span><b>' + (LB[P[q.pid].strate] || P[q.pid].strate) + '</b> : ' + P[q.pid].name + ' (plantation en cours)</span></li>';
-    return '<li class="bad"><span class="m">✕</span><span><b>' + lb + '</b> : libre</span></li>';
-  }).join('');
-  const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille).length, nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
-  const have = new Set(sp.cells.map(i => S.grid[i] && S.grid[i].pid != null && P[S.grid[i].pid] ? P[S.grid[i].pid].strate : null).filter(Boolean)), nStr = have.size;
-  let h = '<p class="note-p">' + filled + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + nStr + ' strate' + (nStr > 1 ? 's' : '') + ' présente' + (nStr > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p><ul class="notes">' + rows + '</ul>';
-  const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0), need = new Set(); sp.cells.forEach((i, k) => { if (!S.grid[i] && sl[k][2]) sl[k][2].forEach(s => need.add(s)); });
+  const prLb = pr => !pr ? 'Plante' : pr.map(x => LB[x]).join(' ou ');
+  const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille && P[S.grid[i].pid]), nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
+  const have = new Set(filled.map(i => P[S.grid[i].pid].strate)), mine = [];
+  // plantothèque de la guilde : les cartes de ses plantes, avec leur état
+  let h = '<p class="note-p">' + filled.length + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + have.size + ' strate' + (have.size > 1 ? 's' : '') + ' présente' + (have.size > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p><div class="gcards">';
+  sp.cells.forEach((i, k) => {
+    const c = S.grid[i], q = (S.pq || []).find(o => o.i === i);
+    if (c && c.treille) { h += '<div class="gslot"><b>' + ((FURN_INFO[c.furn || 'treille'] || {}).n || 'Meuble') + '</b><span>Aménagement</span></div>'; return; }
+    if (c && P[c.pid]) { const ph = G.phase(c); h += '<div class="gone">' + cardHtml(P[c.pid], {}) + '<p class="gst">' + (c.ready ? 'Prête à récolter' : ph.stage === 'graine' ? 'Graine en terre' : 'Croissance ' + Math.round(ph.prog * 100) + ' %') + ' · eau ' + Math.round(c.water) + ' %</p></div>'; return; }
+    if (q) { h += '<div class="gslot on"><b>' + P[q.pid].name + '</b><span>Plantation en cours…</span></div>'; return; }
+    h += '<div class="gslot"><b>Libre</b><span>' + prLb(sl[k][2]) + '</span></div>';
+  });
+  h += '</div>';
+  const need = new Set(), miss = []; sp.cells.forEach((i, k) => { if (!S.grid[i] && !(S.pq || []).some(q => q.i === i) && sl[k][2]) { sl[k][2].forEach(s => need.add(s)); miss.push(prLb(sl[k][2]).toLowerCase()); } });
+  if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Strates manquantes : <b>' + miss.join(', ') + '</b>.</p>';
+  const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0);
   const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
-  if (nFree) h += '<h3 class="gh">Tes plantes disponibles</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte : elle est plantée à l’emplacement qui lui convient. Les cartes cerclées de vert comblent une strate manquante ; les cartes grisées ne sont pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
-  if (!filled && !(S.pq || []).some(q => sp.cells.includes(q.i))) h += '<div class="acts"><button type="button" class="btn sm" data-act="spot-del" data-sp="' + sp.id + '">Retirer cet emplacement</button></div>';
-  modal(nm + ' · ' + filled + '/' + sp.cells.length, h, true);
+  if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
+  if (!filled.length && !(S.pq || []).some(q => sp.cells.includes(q.i)) && !sp.cells.some(i => S.grid[i])) h += '<div class="acts"><button type="button" class="btn sm" data-act="spot-del" data-sp="' + sp.id + '">Retirer cet emplacement</button></div>';
+  modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {

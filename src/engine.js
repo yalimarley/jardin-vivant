@@ -980,9 +980,12 @@ function make(P) {
     for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of discsOf(sp)) if (Math.hypot(d1[0] - d2[0], d1[1] - d2[1]) < d1[2] + d2[2] - .15) return { ok: false, msg: 'Pas la place ici : choisis un endroit plus dégagé.' };
     s.spots.push(sp); bump(s); return { ok: true, spot: sp };
   }
-  function removeSpot(s, id) {
+  function removeSpot(s, id, force) {
     const k = (s.spots || []).findIndex(o => o.id === id); if (k < 0) return { ok: false }; const sp = s.spots[k];
-    if (sp.cells.some(i => s.grid[i] || (s.pq || []).some(q => q.i === i))) return { ok: false, msg: 'Retire d’abord les plantes de cet emplacement.' };
+    if (sp.cells.some(i => s.grid[i] || (s.pq || []).some(q => q.i === i))) {
+      if (!force) return { ok: false, msg: 'Retire d’abord les plantes de cet emplacement.' };
+      sp.cells.forEach(i => { cancelPlant(s, i); let g = 0; while (s.grid[i] && g++ < 4) remove(s, i); s.grid[i] = null; });
+    }
     s.spots.splice(k, 1); bump(s); return { ok: true };
   }
   function adoptLegacy(s) {

@@ -518,15 +518,16 @@ function scatter() {
 
 /* ---------- caméra ---------- */
 function bindCamera() {
-  const ptrs = new Map(); let down = null, pinchD = 0, pc = null;
+  const ptrs = new Map(); let down = null, pinchD = 0, pc = null, twA = null;
   canvas.style.touchAction = 'none';
   canvas.addEventListener('contextmenu', e => e.preventDefault());
   canvas.addEventListener('pointerdown', e => { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, btn: e.button }); cam.auto = false; cam.taz = cam.tdist = null;
-    if (ptrs.size === 1) down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, btn: e.button }; else { down = null; const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); pc = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; } });
+    if (ptrs.size === 1) down = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, btn: e.button }; else { down = null; twA = null; const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); pc = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; } });
   canvas.addEventListener('pointermove', e => { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
     if (ptrs.size === 1) { if (down) down.moved += Math.abs(dx) + Math.abs(dy); if (p.btn === 2 || p.btn === 1) pan(dx, dy); else { cam.az -= dx * .006; cam.pol = Math.min(1.35, Math.max(.2, cam.pol - dy * .005)); } }
+    else if (ptrs.size === 2 && A.ui().hedgeSel) { const [a, b] = [...ptrs.values()], ang = Math.atan2(b.y - a.y, b.x - a.x); if (twA !== null) { let dd = ang - twA; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); A.rotSpot(A.ui().hedgeSel, dd, false); } twA = ang; }
     else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; if (pinchD) cam.dist = Math.min(80, Math.max(8, cam.dist * pinchD / d)); pinchD = d; if (pc) pan(c.x - pc.x, c.y - pc.y); pc = c; } });
-  const end = e => { const had = ptrs.delete(e.pointerId); if (had && down && ptrs.size === 0 && down.moved < 10 && performance.now() - down.t < 600 && down.btn === 0) tap(e.clientX, e.clientY); if (ptrs.size < 2) { pinchD = 0; pc = null; } if (ptrs.size === 0) down = null; };
+  const end = e => { const had = ptrs.delete(e.pointerId); if (twA !== null && ptrs.size < 2) { twA = null; if (A.ui().hedgeSel) A.rotSpot(A.ui().hedgeSel, 0, true); } if (had && down && ptrs.size === 0 && down.moved < 10 && performance.now() - down.t < 600 && down.btn === 0) tap(e.clientX, e.clientY); if (ptrs.size < 2) { pinchD = 0; pc = null; } if (ptrs.size === 0) down = null; };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('wheel', e => { e.preventDefault(); cam.auto = false; cam.dist = Math.min(80, Math.max(8, cam.dist * Math.exp(e.deltaY * .001))); }, { passive: false });
 }

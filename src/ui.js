@@ -688,7 +688,9 @@ function renderGarden() {
   h += '<rect x="-400" y="-300" width="1560" height="1140" style="fill:var(--dim);pointer-events:none"/>';
   $('garden').innerHTML = h;
   const hint = $('hint');
-  if (ui.tool === 'spade') hint.innerHTML = ui.spade ? '<span><b>Pelle :</b> touche le jardin pour poser <b>' + ui.spade.nm.toLowerCase() + '</b>. Tu peux en poser plusieurs.</span><button type="button" class="btn sm" data-act="spade-menu">Changer</button><button type="button" class="btn sm" data-act="tool-select">Terminer</button>' : '<span><b>Pelle :</b> choisis ce que tu veux planter.</span><button type="button" class="btn sm primary" data-act="spade-menu">Choisir</button><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  const HR = ui.hedgeSel ? '<button type="button" class="btn sm" data-act="hedge-rot" data-d="-15" aria-label="Tourner à gauche">↺</button><button type="button" class="btn sm" data-act="hedge-rot" data-d="15" aria-label="Tourner à droite">↻</button>' : '';
+  if (ui.tool === 'orient') hint.innerHTML = '<span><b>Orienter la haie :</b> tourne-la avec deux doigts, ou avec les flèches.</span>' + HR + '<button type="button" class="btn sm primary" data-act="tool-select">Terminer</button>';
+  else if (ui.tool === 'spade') hint.innerHTML = ui.spade ? '<span><b>Pelle :</b> touche le jardin pour poser <b>' + ui.spade.nm.toLowerCase() + '</b>. Tu peux en poser plusieurs.' + (ui.hedgeSel ? ' <b>Haie posée : tourne-la avec deux doigts</b> ou avec les flèches.' : '') + '</span>' + HR + '<button type="button" class="btn sm" data-act="spade-menu">Changer</button><button type="button" class="btn sm" data-act="tool-select">Terminer</button>' : '<span><b>Pelle :</b> choisis ce que tu veux planter.</span><button type="button" class="btn sm primary" data-act="spade-menu">Choisir</button><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer. Touche un tronçon de sentier pour le retirer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
@@ -810,8 +812,9 @@ function openSpade() {
 function spadeTap(x, z, a, bounds) {
   if (!ui.spade) { openSpade(); return; }
   const r = G.addSpot(S, ui.spade.t, ui.spade.n, x, z, a, bounds); if (!r.ok) { toast(r.msg); return; }
-  toast(spadeName(r.spot) + ' posée : touche son « + » pour choisir les plantes.'); ui.sel = -1; save(); render();
+  ui.hedgeSel = r.spot.t === 'hedge' ? r.spot.id : null; toast(spadeName(r.spot) + ' posée : touche-la pour choisir les plantes.' + (r.spot.t === 'hedge' ? ' Tourne-la avec deux doigts.' : '')); ui.sel = -1; save(); render();
 }
+function rotSpot(id, da, fin) { const sp = (S.spots || []).find(o => o.id === id); if (!sp) return; sp.a = (sp.a || 0) + da; if (fin) { save(); render(); } else if (window.V3D && V3D.sync) V3D.sync(); }
 function spotPickSlot(sp, p) {
   const free = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)), sl = G.slotsOf(sp);
   return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return !pr || pr.includes(p.strate); });
@@ -822,8 +825,10 @@ function openSpot(id) {
   const prLb = pr => !pr ? 'Plante' : pr.map(x => LB[x]).join(' ou ');
   const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille && P[S.grid[i].pid]), nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
   const have = new Set(filled.map(i => P[S.grid[i].pid].strate)), mine = [];
+  const hasAny = sp.cells.some(i => S.grid[i]) || (S.pq || []).some(q => sp.cells.includes(q.i));
+  const actsH = '<div class="acts" style="margin:8px 0">' + (sp.t === 'hedge' ? '<button type="button" class="btn sm" data-act="hedge-orient" data-sp="' + sp.id + '">Tourner la haie</button> ' : '') + (ui.spotDel === sp.id ? '<span class="note-p">Tu perds ' + (hasAny ? 'toutes les plantes de ' : '') + 'cet emplacement. Sûr ?</span> <button type="button" class="btn sm danger" data-act="spot-del" data-sp="' + sp.id + '">Oui, supprimer</button> <button type="button" class="btn sm" data-act="spot-del-ask" data-sp="0">Non</button>' : '<button type="button" class="btn sm" data-act="spot-del-ask" data-sp="' + sp.id + '">Supprimer ' + (sp.t === 'hedge' ? 'la haie' : sp.t === 'single' ? 'la plante' : 'la guilde') + (hasAny ? ' et ses plantes' : '') + '</button>') + '</div>';
   // plantothèque de la guilde : les cartes de ses plantes, avec leur état
-  let h = '<p class="note-p">' + filled.length + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + have.size + ' strate' + (have.size > 1 ? 's' : '') + ' présente' + (have.size > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p><div class="gcards">';
+  let h = '<p class="note-p">' + filled.length + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + have.size + ' strate' + (have.size > 1 ? 's' : '') + ' présente' + (have.size > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p>' + actsH + '<div class="gcards">';
   sp.cells.forEach((i, k) => {
     const c = S.grid[i], q = (S.pq || []).find(o => o.i === i);
     if (c && c.treille) { h += '<div class="gslot"><b>' + ((FURN_INFO[c.furn || 'treille'] || {}).n || 'Meuble') + '</b><span>Aménagement</span></div>'; return; }
@@ -838,7 +843,6 @@ function openSpot(id) {
   const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
   if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
-  if (!filled.length && !(S.pq || []).some(q => sp.cells.includes(q.i)) && !sp.cells.some(i => S.grid[i])) h += '<div class="acts"><button type="button" class="btn sm" data-act="spot-del" data-sp="' + sp.id + '">Retirer cet emplacement</button></div>';
   modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
@@ -1231,7 +1235,7 @@ function doTask(id) {
   render(); if (firstCell != null) if (a.type !== 'lawn' && a.type !== 'trogne' && a.type !== 'honey') sendGardener(firstCell, a.type === 'mow' || a.type === 'prune' || a.type === 'heal' ? 'mulch' : a.type);
 }
 function clickCell(i) {
-  if (ui.tool === 'spade') return;
+  if (ui.tool === 'spade' || ui.tool === 'orient') return;
   const c = S.grid[i];
   if (!ui.mode && (!ui.tool || ui.tool === 'select') && S.pq && S.pq.some(q => q.i === i)) { const r = G.cancelPlant(S, i); if (r.ok) { if (PQ.job && PQ.job.items.includes(i)) PQ.job.items = PQ.job.items.filter(x => x !== i); toast('Plantation annulée : la carte de ' + r.name.toLowerCase() + ' est rendue.'); save(); render(); } return; }
   if (ui.tool === 'reloc') {
@@ -1308,10 +1312,13 @@ document.addEventListener('click', e => {
     case 'tool-reloc': ui.tool = ui.tool === 'reloc' ? 'select' : 'reloc'; ui.mode = null; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
     case 'spade-menu': openSpade(); break;
-    case 'spade-pick': ui.spade = SPADE[+a.dataset.k]; ui.tool = 'spade'; ui.mode = null; $('layer').innerHTML = ''; render(); break;
+    case 'hedge-rot': rotSpot(ui.hedgeSel, +a.dataset.d * Math.PI / 180, true); break;
+    case 'hedge-orient': ui.hedgeSel = +a.dataset.sp; ui.tool = 'orient'; ui.spade = null; ui.mode = null; $('layer').innerHTML = ''; render(); break;
+    case 'spot-del-ask': ui.spotDel = +a.dataset.sp; openSpot(ui.spotDel); break;
+    case 'spade-pick': ui.hedgeSel = null; ui.spade = SPADE[+a.dataset.k]; ui.tool = 'spade'; ui.mode = null; $('layer').innerHTML = ''; render(); break;
     case 'spot-plant': { const sp = (S.spots || []).find(o => o.id === +a.dataset.sp), p = P[+a.dataset.pid]; if (!sp || !p) break; const ci = spotPickSlot(sp, p); if (ci === undefined) { toast('Aucun emplacement libre pour la strate ' + p.strate.toLowerCase() + ' dans cette ' + (sp.t === 'hedge' ? 'haie (arbustes, arbres et lianes)' : 'guilde') + '.'); break; } const r = G.queuePlant(S, ci, p.id, {}); if (!r.ok) { toast(r.msg); break; } toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); openSpot(sp.id); break; }
-    case 'spot-del': { const r = G.removeSpot(S, +a.dataset.sp); if (!r.ok) { toast(r.msg || 'Impossible.'); break; } $('layer').innerHTML = ''; save(); render(); break; }
-    case 'tool-select': ui.spade = null; ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
+    case 'spot-del': { ui.spotDel = null; const r = G.removeSpot(S, +a.dataset.sp, true); if (!r.ok) { toast(r.msg || 'Impossible.'); break; } $('layer').innerHTML = ''; save(); render(); break; }
+    case 'tool-select': ui.spade = null; ui.hedgeSel = null; ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'tool-delete': ui.tool = ui.tool === 'delete' ? 'select' : 'delete'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'zoom-in': zoomBy(1.3); break;
@@ -1457,6 +1464,6 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();

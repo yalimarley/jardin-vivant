@@ -236,7 +236,7 @@ function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
-  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span><button type="button" class="pill" data-act="shop" title="Tes ginkgos : ouvre la boutique">' + GK(16) + (S.feves || 0) + '<span class="lb"> ginkgos</span></button><button type="button" class="pill' + (S.pts > 0 ? ' on' : '') + '" data-act="skills" title="Points de compétence à dépenser : ouvre les compétences">' + ico('leaf') + (S.pts || 0) + '<span class="lb"> point' + ((S.pts || 0) > 1 ? 's' : '') + ' de compétence</span><span class="sh"> pt</span></button>' + ((S.streak || 0) >= 2 && (S.lastActive || 0) >= S.day - 1 ? '<span class="pill" title="Jours de suite au jardin : 3 ginkgos tous les 7 jours.">Série ' + S.streak + ' j</span>' : '') + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
+  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span><button type="button" class="pill" data-act="shop" title="Tes ginkgos : ouvre la boutique">' + GK(16) + (S.feves || 0) + '<span class="lb"> ginkgos</span></button><button type="button" class="pill' + (S.pts > 0 ? ' on' : '') + '" data-act="skills" title="Points de compétence à dépenser : ouvre les compétences">' + ico('leaf') + (S.pts || 0) + '<span class="lb"> point' + ((S.pts || 0) > 1 ? 's' : '') + ' de compétence</span><span class="sh"> pt</span></button>' + ((S.streak || 0) >= 2 && (S.lastActive || 0) >= S.day - 1 ? '<span class="pill" title="Jours de suite au jardin : 3 ginkgos tous les 7 jours.">Série ' + S.streak + ' j</span>' : '') + mat('paillage') + mat('compost') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
   const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
   $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
@@ -793,6 +793,22 @@ function modal(title, body, wide) {
   $('layer').innerHTML = '<div class="veil" data-act="veil"><div class="modal" role="dialog" aria-modal="true" aria-label="' + title + '"' + (wide ? ' style="width:min(880px,100%)"' : '') + '><header><h2>' + title + '</h2><button type="button" class="x" data-act="close" aria-label="Fermer">×</button></header>' + body + '</div></div>';
   const f = $('layer').querySelector('.x'); if (f) f.focus(); if (typeof renderTuto === 'function') renderTuto();
 }
+/* ---------- fiche d'une guilde (bouton + en vue 3D) ---------- */
+const GL = [['Arbre', ['Arbre']], ['Arbuste', ['Arbuste']], ['Liane', ['Grimpante']], ['Herbacée / racine', ['Herbacée', 'Racine']], ['Couvre-sol', ['Couvre-sol']]];
+function openGuild(k) {
+  const cs = G.gcells(k), pl = cs.map(i => S.grid[i]).filter(c => c && !c.treille && P[c.pid]);
+  const free = cs.filter(i => !S.grid[i] && G.isActive(S, i)).length, have = new Set(pl.map(c => P[c.pid].strate));
+  const rows = GL.map(([lb, ss]) => {
+    const ok = ss.some(s => have.has(s));
+    if (ok) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + pl.filter(c => ss.includes(P[c.pid].strate)).map(c => P[c.pid].name).join(', ') + '</span></li>';
+    const mine = Object.keys(S.cards || {}).map(Number).filter(id => S.cards[id] > 0 && P[id] && ss.includes(P[id].strate)).slice(0, 2).map(id => P[id].name);
+    return '<li class="bad"><span class="m">✕</span><span><b>' + lb + '</b> manque' + (mine.length ? ' · dans ta réserve : ' + mine.join(', ') : '') + '</span></li>';
+  }).join('');
+  const nOk = GL.filter(([, ss]) => ss.some(s => have.has(s))).length;
+  let h = '<p class="note-p"><b>' + nOk + '/5</b> strates présentes' + (nOk >= 4 ? ' : la guilde est bien étagée.' : ' (4 suffisent pour une guilde équilibrée).') + (free ? ' ' + free + ' emplacement' + (free > 1 ? 's' : '') + ' libre' + (free > 1 ? 's' : '') + ' : choisis une carte, puis touche la guilde.' : '') + '</p><ul class="notes">' + rows + '</ul>';
+  h += pl.length ? '<div class="gcards">' + pl.map(c => cardHtml(P[c.pid], {})).join('') + '</div>' : '<p class="note-p">Cette guilde est encore vide.</p>';
+  modal('Guilde · ' + (pl.length ? pl.length + ' plante' + (pl.length > 1 ? 's' : '') : 'vide'), h, true);
+}
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
   if (!G.boosterReady(S)) { const n = G.boosterIn(S); toast('Ton prochain booster arrive dans ' + n + ' jour' + (n > 1 ? 's' : '') + '.'); return; }
@@ -873,7 +889,7 @@ function decorAtelier(x, y, sech, jars) {
   return s + '<ellipse cx="' + x + '" cy="' + (y - 4) + '" rx="' + (a + 20) + '" ry="' + (b + 24) + '" fill="transparent"/></g>';
 }
 
-const BASE = ['paillage', 'compost', 'chemin'];
+const BASE = ['paillage', 'compost'];
 const SOINS = ['voile', 'ortie', 'prele', 'nichoir', 'oya', 'cuve', 'bocaux', 'mycor', 'plan', 'savoir'];
 function shopCard(k) {
   const f = G.shopInfo(S, k), inf = FURN_INFO[k], nm = inf ? inf.n : MATS[k].n, extra = { atelier: ' Tu pourras y mettre en bocaux et, avec un séchoir, sécher la récolte.', sechoir: ' À installer dans l’atelier : 3 kg par jour (plus avec la compétence Séchage).', bocaux: ' Six bocaux par achat, à remplir à l’atelier.', cuve: ' 4 cuves au maximum.', poulailler: ' Trois poules : œufs, fiente pour le composteur, moins de limaces. Elles mangent les restes du jardin.' }[k] || '', d = inf ? inf.d : MATS[k].d + extra;
@@ -1403,6 +1419,6 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ openGuild: k => openGuild(k), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();

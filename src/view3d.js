@@ -690,10 +690,21 @@ function syncBadges() {
   });
   for (const id in btns) if (!seen[id]) { btns[id].remove(); delete btns[id]; }
 }
+const gbtn = {};
+function syncPlus() {
+  const S = A.S(), GWd = A.G.GW, seen = {};
+  for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) {
+    const k = by * GWd + bx; if (A.G.guildEmpty(S, k)) continue; seen[k] = [bx, by];
+    if (!gbtn[k]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3plus'; b.setAttribute('aria-label', 'Voir la guilde et ses strates'); b.title = 'Voir la guilde'; b.innerHTML = '<i>+</i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); A.openGuild(+b.dataset.k); }); b.dataset.k = k; gbtn[k] = b; }
+    gbtn[k]._b = seen[k];
+  }
+  for (const k in gbtn) if (!seen[k]) { gbtn[k].remove(); delete gbtn[k]; }
+}
 const topH = { 'Arbre': 3.7, 'Grimpante': 2.6, 'Arbuste': 2.2, 'Racine': 1.3, 'Herbacée': 1.6, 'Couvre-sol': .9 };
 const vtmp = new T.Vector3();
 function placeBadges() {
   const S = A.S(), w = canvas.clientWidth, h = canvas.clientHeight, bs = Math.min(1, Math.max(.52, 30 / cam.dist));
+  for (const k in gbtn) { const b = gbtn[k], q = bcenter(b._b[0], b._b[1]); vtmp.set(q[0] + RG * .78, .5, q[1] + RG * .78).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
   for (const id in btns) {
     const b = btns[id]; let x, y, z, ox = 0, oy = 0;
     if (b._kind === 'lawn') { const q = deco['L' + b._k]; if (!q) { b.style.display = 'none'; continue; } x = q[0]; z = q[1]; y = 1.3; }
@@ -719,7 +730,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche le sol (nouvelle guilde) ou une guilde').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges();
+  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
 }

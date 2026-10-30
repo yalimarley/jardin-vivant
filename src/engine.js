@@ -15,7 +15,7 @@ const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
 const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac'];
 const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8 };
-const SHOP = { paillage: 3, compost: 4, chemin: 5, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 15, cuve: 20, mycor: 25, treille: 15, hamac: 30, pergola: 40, serre: 40, canard: 30, sechoir: 35, mare: 50, ruche: 60, atelier: 60, poulailler: 50, voile: 6, grandeserre: 150 };
+const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 15, cuve: 20, mycor: 25, treille: 15, hamac: 30, pergola: 40, serre: 40, canard: 30, sechoir: 35, mare: 50, ruche: 60, atelier: 60, poulailler: 50, voile: 6, grandeserre: 150 };
 const SKILLS = {
   plantation: { n: 'Plantation', cat: 'culture', max: 5, req: 0, use: [10, 30, 60, 120], unit: 'plantes plantées', xpk: 5, d: ['Le jardinier plante une plante à la fois, environ 7 secondes (un peu plus pour un arbre).', 'Plantation plus rapide : 6 secondes par plante.', 'Il plante deux plantes à la fois, en 4,5 secondes.', 'Deux plantes à la fois, en 3 secondes.', 'Plantation experte : quatre plantes à la fois, en 2 secondes.'], how: 'Plante une carte.' },
   tonte: { n: 'Tonte', cat: 'entretien', max: 5, req: 0, use: [8, 25, 50, 90], unit: 'zones tondues', xpk: 8, d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone.', '+5 paillage par zone, et l’herbe repousse 3 jours plus vite.', '+6 paillage par zone.'], how: 'Tonds les zones d’herbe autour du jardin.' },
@@ -357,7 +357,7 @@ function make(P) {
     return pool[pool.length - 1];
   }
   function matPick(s, r) {
-    const w = [['paillage', 30], ['compost', 24], ['chemin', 22]]; const mp = s.maxPlantings;
+    const w = [['paillage', 30], ['compost', 24]]; const mp = s.maxPlantings;
     for (const k of ['treille', 'pergola', 'serre', 'mare', 'ruche', 'trogne', 'canard']) if (mp >= FURN_UNLOCK[k]) w.push([k, k === 'treille' ? 8 : k === 'pergola' ? 7 : k === 'canard' ? 4 : 5]);
     for (const e of w) if (['paillage', 'compost', 'chemin'].includes(e[0]) && (s.mats[e[0]] || 0) >= 12) e[1] = Math.max(1, e[1] * .15);
     const tot = w.reduce((a, b) => a + b[1], 0); let x = r * tot;
@@ -886,8 +886,6 @@ function make(P) {
     { id: 'herbier1', t: 'Premier herbier', say: 'Chaque espèce plantée entre dans ton herbier. Plante 12 espèces différentes : tes plantes poussent plus vite pendant quelques jours.', need: 12, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 3 } },
     { id: 'rare1', t: 'Une plante rare', say: 'Certaines plantes sont rares ou oubliées. Plante-en une pour recevoir du compost et un peu de paillage.', need: 1, have: s => Object.keys((s.skills && s.skills.species) || {}).filter(k => P[k] && P[k].rarete === 'Rare').length, rw: { compost: 3, paillage: 3 } },
     { id: 'herbier2', t: 'Herbier de 40 espèces', say: 'Quarante espèces différentes plantées : ton jardin devient une vraie collection. Compost et croissance accélérée à la clé.', need: 40, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 5, compost: 3 } },
-    { id: 'sentier0', t: 'Découvre les sentiers', say: 'Une plante loin du bord, sans sentier, se piétine à chaque soin. Voici 6 tronçons : touche « Chemin », puis glisse depuis le bord du jardin. Plante 10 cartes pour les recevoir.', need: 10, have: s => s.maxPlantings, rw: { chemin: 6 } },
-    { id: 'sentier1', t: 'Trace ton premier sentier', say: 'Trace 6 tronçons reliés au bord du jardin : les plantes qu’il longe se soignent sans piétiner le sol, et la famille aime se promener.', need: 6, have: s => pathLinkedEdges(s).length, rw: { boost: 5, compost: 2 } },
     { id: 'p3', t: 'Plante 6 cartes', say: 'Pose 6 plantes dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 6, have: s => s.maxPlantings, rw: { compost: 1 } },
     { id: 'eau3', t: 'Arrose 10 plantes', say: 'Elles ont soif ! Arrose 10 plantes au total, la goutte bleue te montre lesquelles.', need: 10, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
     { id: 'cuve1', t: 'Récupère la pluie', say: 'L’été, la réserve d’eau se vide vite. Voici une cuve de récupération : joue-la depuis ton matériel pour agrandir ta réserve de 150 L. Atteins 14 plantations pour la recevoir.', need: 14, have: s => s.maxPlantings, rw: { cuve: 1 } },

@@ -799,11 +799,11 @@ function modal(title, body, wide) {
 }
 /* ---------- pelle et fiches d'emplacements ---------- */
 const SPADE = [
-  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : arbre, arbuste, couvre-sol.' },
-  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol. Idéale pour démarrer.' },
-  { t: 'guild', n: 7, nm: 'Grande guilde', d: '7 plantes : deux arbres et deux arbustes en plus des autres strates.' },
-  { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 plantes, dans le sens de ta vue. Tourne la vue avant de poser.' },
-  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, n’importe où.' }
+  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : 1 arbre, 1 arbuste et 3 petites plantes (herbacées, racines ou couvre-sol).' },
+  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : 1 arbre, 1 arbuste, 1 liane, 3 herbacées ou racines et 2 couvre-sols. Idéale pour démarrer.' },
+  { t: 'guild', n: 7, nm: 'Grande guilde', d: 'La forêt dense : 1 arbre, 2 arbustes, 1 liane, 5 herbacées ou racines et 3 couvre-sols.' },
+  { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 arbustes, arbres ou lianes. Tu peux la tourner avec deux doigts.' },
+  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, mais la plante pousse plus lentement et résiste moins aux aléas : une guilde la protège bien mieux.' }
 ];
 const spadeName = sp => sp.t === 'guild' ? (sp.n === 3 ? 'Petite guilde' : sp.n === 5 ? 'Guilde moyenne' : 'Grande guilde') : sp.t === 'hedge' ? 'Haie comestible' : 'Plante isolée';
 function openSpade() {
@@ -815,6 +815,12 @@ function spadeTap(x, z, a, bounds) {
   ui.hedgeSel = r.spot.t === 'hedge' ? r.spot.id : null; toast(spadeName(r.spot) + ' posée : touche-la pour choisir les plantes.' + (r.spot.t === 'hedge' ? ' Tourne-la avec deux doigts.' : '')); ui.sel = -1; save(); render();
 }
 function rotSpot(id, da, fin) { const sp = (S.spots || []).find(o => o.id === id); if (!sp) return; sp.a = (sp.a || 0) + da; if (fin) { save(); render(); } else if (window.V3D && V3D.sync) V3D.sync(); }
+function furnTap(x, z, bounds) {
+  if (!(ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k))) return false; const k = ui.mode.k;
+  const r = G.addSpot(S, 'single', 1, x, z, 0, { f: 1, b: bounds }); if (!r.ok) { toast(r.msg); return true; }
+  const ci = r.spot.cells[0]; if (!G.placeFurn(S, ci, k)) { G.removeSpot(S, r.spot.id); toast('Impossible de poser cet aménagement ici.'); return true; }
+  if (!(S.mats[k] > 0)) ui.mode = null; ui.sel = ci; save(); render(); return true;
+}
 function spotPickSlot(sp, p) {
   const free = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)), sl = G.slotsOf(sp);
   return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return !pr || pr.includes(p.strate); });
@@ -822,7 +828,7 @@ function spotPickSlot(sp, p) {
 function openSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
   const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
-  const prLb = pr => !pr ? 'Plante' : pr.map(x => LB[x]).join(' ou ');
+  const prLb = pr => !pr ? 'Plante' : pr.length >= 3 ? 'Petite plante' : pr.map(x => LB[x]).join(' ou ');
   const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille && P[S.grid[i].pid]), nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
   const have = new Set(filled.map(i => P[S.grid[i].pid].strate)), mine = [];
   const hasAny = sp.cells.some(i => S.grid[i]) || (S.pq || []).some(q => sp.cells.includes(q.i));
@@ -837,8 +843,10 @@ function openSpot(id) {
     h += '<div class="gslot"><b>Libre</b><span>' + prLb(sl[k][2]) + '</span></div>';
   });
   h += '</div>';
+  const fx = G.spotFx(S, sp.cells[0]); h += '<p class="note-p">' + (sp.t === 'single' ? 'Plante isolée : croissance ' + Math.round((fx.g - 1) * 100) + ' %, plus fragile face au gel, à la chaleur et aux tempêtes. Une guilde la protégerait.' : (sp.t === 'hedge' ? 'Haie' : 'Guilde') + ' : croissance ' + (fx.g >= 1 ? '+' : '') + Math.round((fx.g - 1) * 100) + ' %, résistance aux aléas ' + (fx.r >= 0 ? '+' : '') + Math.round(fx.r * 100) + ' %' + (sp.t === 'guild' ? ' (plus la guilde est complète et variée, plus c’est fort).' : '.')) + '</p>';
   const need = new Set(), miss = []; sp.cells.forEach((i, k) => { if (!S.grid[i] && !(S.pq || []).some(q => q.i === i) && sl[k][2]) { sl[k][2].forEach(s => need.add(s)); miss.push(prLb(sl[k][2]).toLowerCase()); } });
-  if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Strates manquantes : <b>' + miss.join(', ') + '</b>.</p>';
+  const mc = {}; miss.forEach(x => { mc[x] = (mc[x] || 0) + 1; });
+  if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Il manque : <b>' + Object.keys(mc).map(x => (mc[x] > 1 ? mc[x] + ' ' : '') + x + (mc[x] > 1 ? 's' : '')).join(', ') + '</b>.</p>';
   const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0);
   const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
@@ -1207,7 +1215,7 @@ function renderTuto() {
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); if (window.V3D && V3D.on) V3D.sync(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); G.cleanFurnSpots(S); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); if (window.V3D && V3D.on) V3D.sync(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -1464,6 +1472,6 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();

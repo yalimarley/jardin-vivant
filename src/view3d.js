@@ -543,6 +543,7 @@ function tap(cx, cy) {
   let o = hit.object; while (o && o.userData.pick === undefined && o.parent) o = o.parent; if (!o || o.userData.pick === undefined) return;
   const pk = o.userData.pick, svg = A.svg();
   if (A.ui().tool === 'spade') { A.spadeTap(hit.point.x, hit.point.z, -cam.az, [HW, HH]); return; }
+  if (pk.t === 'ground') { if (A.furnTap(hit.point.x, hit.point.z, [HW, HH])) return; }
   if (pk.t === 'ground') return;
   { const ui0 = A.ui(), S0 = A.S(), plain = (!ui0.tool || ui0.tool === 'select') && !ui0.mode, sp0 = pk.t === 'spot' ? (S0.spots || []).find(q => q.id === pk.id) : pk.t === 'cell' ? A.G.spotOf(S0, pk.i) : null, c0 = pk.t === 'cell' ? S0.grid[pk.i] : null;
     if (plain && sp0 && !(c0 && c0.treille)) { A.openSpot(sp0.id); return; } }
@@ -568,6 +569,8 @@ function buildSpot(sp, S, m, sk) {
     const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, .06, 1.9), L(0x8a6a48), 0, .03, 0, false), bed = mesh(new T.BoxGeometry(len, .18, 1.45), soilMat, 0, .1, 0, false);
     ring.rotation.y = bed.rotation.y = -(sp.a || 0); g.add(ring, bed);
     const hit = new T.Mesh(new T.BoxGeometry(len, .6, 1.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .3; hit.rotation.y = -(sp.a || 0); g.add(hit);
+  } else if (sp.f) {
+    /* aménagement : pas de butte */
   } else if (sp.t === 'single') {
     g.add(mesh(new T.CylinderGeometry(R * .86, R * .95, .05, 12), L(0x8a6a48), 0, .025, 0, false));
     g.add(mesh(jitter(new T.CylinderGeometry(R * .7, R * .8, .13, 10), .04), soilMat, 0, .08, 0, false));
@@ -581,7 +584,7 @@ function buildSpot(sp, S, m, sk) {
     const cell = S.grid[i], sl = SL[k]; const w = new T.Group();
     if (!cell) { const em = mesh(new T.CylinderGeometry(.42, .5, .09, 10), emptyM, sl[0], .12, sl[1], false); g.add(em); const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
     w.position.set(sl[0], .15, sl[1]); w.userData.pick = { t: 'cell', i }; rng = rngMaker(i * 977 + (cell.pid || 0) * 13 + 1);
-    if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(.72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); }
+    if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(sp.f ? 1 : .72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); }
     else {
       const p = A.P[cell.pid], ph = A.G.phase(cell), dry = cell.water < 25, st = { stage: ph.stage, prog: ph.prog, ready: !!cell.ready, dry, sk, mo: m };
       if (ph.stage === 'graine') { const s2 = mesh(geo.ico(.09, 0), mat.dark, 0, .08, 0, false); s2.scale.y = .6; w.add(s2); }
@@ -719,7 +722,7 @@ function sync() {
   const w = S.w || {}; const rn = (w.rain || 0) >= 1, fr = (w.tmin !== undefined && w.tmin < 0) ? 1 : 0; let sk2 = false;
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
-  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche un emplacement libre pour poser'); }
+  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
   syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;

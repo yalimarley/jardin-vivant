@@ -1027,6 +1027,7 @@ function tap(cx, cy) {
   let o = hit.object; while (o && o.userData.pick === undefined && o.parent) o = o.parent; if (!o || o.userData.pick === undefined) return;
   const pk = o.userData.pick, svg = A.svg();
   if (A.ui().tool === 'spade') { A.spadeTap(hit.point.x, hit.point.z, -cam.az, [HW, HH]); return; }
+  if (pk.t === 'ground') { if (A.furnTap(hit.point.x, hit.point.z, [HW, HH])) return; }
   if (pk.t === 'ground') return;
   { const ui0 = A.ui(), S0 = A.S(), plain = (!ui0.tool || ui0.tool === 'select') && !ui0.mode, sp0 = pk.t === 'spot' ? (S0.spots || []).find(q => q.id === pk.id) : pk.t === 'cell' ? A.G.spotOf(S0, pk.i) : null, c0 = pk.t === 'cell' ? S0.grid[pk.i] : null;
     if (plain && sp0 && !(c0 && c0.treille)) { A.openSpot(sp0.id); return; } }
@@ -1052,6 +1053,8 @@ function buildSpot(sp, S, m, sk) {
     const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, .06, 1.9), L(0x8a6a48), 0, .03, 0, false), bed = mesh(new T.BoxGeometry(len, .18, 1.45), soilMat, 0, .1, 0, false);
     ring.rotation.y = bed.rotation.y = -(sp.a || 0); g.add(ring, bed);
     const hit = new T.Mesh(new T.BoxGeometry(len, .6, 1.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .3; hit.rotation.y = -(sp.a || 0); g.add(hit);
+  } else if (sp.f) {
+    /* aménagement : pas de butte */
   } else if (sp.t === 'single') {
     g.add(mesh(new T.CylinderGeometry(R * .86, R * .95, .05, 12), L(0x8a6a48), 0, .025, 0, false));
     g.add(mesh(jitter(new T.CylinderGeometry(R * .7, R * .8, .13, 10), .04), soilMat, 0, .08, 0, false));
@@ -1065,7 +1068,7 @@ function buildSpot(sp, S, m, sk) {
     const cell = S.grid[i], sl = SL[k]; const w = new T.Group();
     if (!cell) { const em = mesh(new T.CylinderGeometry(.42, .5, .09, 10), emptyM, sl[0], .12, sl[1], false); g.add(em); const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
     w.position.set(sl[0], .15, sl[1]); w.userData.pick = { t: 'cell', i }; rng = rngMaker(i * 977 + (cell.pid || 0) * 13 + 1);
-    if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(.72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); }
+    if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(sp.f ? 1 : .72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); }
     else {
       const p = A.P[cell.pid], ph = A.G.phase(cell), dry = cell.water < 25, st = { stage: ph.stage, prog: ph.prog, ready: !!cell.ready, dry, sk, mo: m };
       if (ph.stage === 'graine') { const s2 = mesh(geo.ico(.09, 0), mat.dark, 0, .08, 0, false); s2.scale.y = .6; w.add(s2); }
@@ -1203,7 +1206,7 @@ function sync() {
   const w = S.w || {}; const rn = (w.rain || 0) >= 1, fr = (w.tmin !== undefined && w.tmin < 0) ? 1 : 0; let sk2 = false;
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
-  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche un emplacement libre pour poser'); }
+  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
   syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
@@ -1370,12 +1373,18 @@ const GW = COLS >> 1, NR = 5.2;
 const gkOf = i => (((i / COLS) | 0) >> 1) * GW + ((i % COLS) >> 1);
 function gcells(k) { const gx = k % GW, gy = (k / GW) | 0, o = []; for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const c = gx * 2 + dx, r = gy * 2 + dy; if (r < ROWS) o.push(r * COLS + c); } return o; }
 /* ---------- emplacements : guilde (3/5/7), haie (6), plante isolée (1) ---------- */
-const GSL = {
-  3: [[0, -.1, ['Arbre']], [-.85, .8, ['Arbuste']], [.9, .6, ['Couvre-sol']]],
-  5: [[0, -.2, ['Arbre']], [-1.2, .55, ['Arbuste']], [.65, -.7, ['Grimpante']], [.15, 1.2, ['Herbacée', 'Racine']], [1.3, .55, ['Couvre-sol']]],
-  7: [[0, -.25, ['Arbre']], [-1.6, -.9, ['Arbre']], [-1.5, .8, ['Arbuste']], [1.6, .9, ['Arbuste']], [.8, -.6, ['Grimpante']], [.1, 1.6, ['Herbacée', 'Racine']], [1.7, -.4, ['Couvre-sol']]]
-};
-const SPOT_R = { 3: 1.75, 5: 2.25, 7: 2.8 }, HSP = 1.15;
+const LOW = ['Herbacée', 'Racine', 'Couvre-sol'];
+function genSlots(arbustes, liane, herb, sol, mixed, rA, rB) {
+  const out = [[0, -.15, ['Arbre']]], ring = [];
+  for (let k = 0; k < arbustes; k++) ring.push(['Arbuste']);
+  if (liane) ring.push(['Grimpante']);
+  ring.forEach((pr, k) => { const a = -2.2 + k * (Math.PI * 2 / Math.max(ring.length, 1)) * .98; out.push([Math.cos(a) * rA, Math.sin(a) * rA + .1, pr]); });
+  const low = []; for (let k = 0; k < herb; k++) low.push(['Herbacée', 'Racine']); for (let k = 0; k < sol; k++) low.push(['Couvre-sol']); for (let k = 0; k < mixed; k++) low.push(LOW);
+  low.forEach((pr, k) => { const a = .55 + k * (Math.PI * 2 / low.length); out.push([Math.cos(a) * rB, Math.sin(a) * rB, pr]); });
+  return out.map(q => [+q[0].toFixed(2), +q[1].toFixed(2), q[2]]);
+}
+const GSL = { 3: genSlots(1, 0, 0, 0, 3, 1.15, 1.75), 5: genSlots(1, 1, 3, 2, 0, 1.4, 2.2), 7: genSlots(2, 1, 5, 3, 0, 1.6, 2.75) };
+const SPOT_R = { 3: 2.1, 5: 2.7, 7: 3.3 }, HSP = 1.15;
 function slotsOf(sp) {
   if (sp.t === 'single') return [[0, 0, null]];
   if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, ['Arbuste', 'Arbre', 'Grimpante']]; }); }
@@ -1383,8 +1392,8 @@ function slotsOf(sp) {
 }
 function spotOf(s, i) { return ((s && s.spots) || []).find(o => o.cells.includes(i)) || null; }
 function cellPos(s, i) { const sp = spotOf(s, i); if (!sp) return null; const sl = slotsOf(sp)[sp.cells.indexOf(i)]; return [sp.x + sl[0], sp.z + sl[1]]; }
-function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? 1 : SPOT_R[sp.n]]]; }
-function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? 1 : SPOT_R[sp.n]; }
+function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? (sp.f ? 1.7 : 1) : SPOT_R[sp.n]]]; }
+function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? (sp.f ? 1.7 : 1) : SPOT_R[sp.n]; }
 function neigh(i, s) {
   if (s && s.spots) {
     const sp = spotOf(s, i); if (!sp) return []; const pi = cellPos(s, i), out = [];
@@ -1834,14 +1843,15 @@ function make(P) {
       if ((c.oyaUntil || -1) >= s.day) c.water = Math.max(c.water, 80);
       if (c.mulch) { if (c.mulchDay == null) c.mulchDay = s.day; else if (s.day - c.mulchDay > 120) { c.mulch = false; c.mulchDay = null; ev.push({ t: 'warn', text: 'Le paillage de ' + P[c.pid].name.toLowerCase() + ' est décomposé : il nourrit le sol, remets-en pour garder l’eau.' }); } }
       const p = P[c.pid], sy = synergy(s, i), gdw = guildOf(s, i), gdok = !!c.noyau || !!gdw && ['jeune', 'mature'].includes(phase(s.grid[gdw.c]).stage), wasStage = c.stage, wasReady = c.ready;
-      c.water = clamp(c.water - EVAP[m] * NEEDF[p.eau] * (c.mulch ? .35 : 1) * (gdw ? (gdw.auto ? .65 : .75) : 1) * sy.evap * (w.ev === 'canicule' ? (shadeOf(s, i, p) ? 1.25 : 1.7) : w.ev === 'secheresse' ? 1.2 : w.tmax > 25 ? 1.15 : 1) + w.rain * 5, 0, 100);
+      const fx = spotFx(s, i);
+      c.water = clamp(c.water - EVAP[m] * NEEDF[p.eau] * fx.ev * (c.mulch ? .35 : 1) * (gdw ? (gdw.auto ? .65 : .75) : 1) * sy.evap * (w.ev === 'canicule' ? (shadeOf(s, i, p) ? 1.25 : 1.7) : w.ev === 'secheresse' ? 1.2 : w.tmax > 25 ? 1.15 : 1) + w.rain * 5, 0, 100);
       if (c.noyau) c.water = 100;
       if (c.water < 20) c.stress++; else c.stress = Math.max(0, c.stress - 2);
       if (c.stress > 7) { if (c.stress >= 44) c.health -= 3; else c.health = Math.max(1, c.health - 1.2); }
       else if (c.stress === 0) c.health = Math.min(100, c.health + 1.5);
       const ph0 = phase(c).stage;
-      const rs = (w.ev || w.tmin < 3) ? resistance(s, i).pct / 100 : 0, voile = (c.voileUntil || -1) >= s.day;
-      const gelEff = p.gel - (gsNear(s, i) ? 9 : neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? 4 : 0) - rs * 4 - (voile ? 9 : 0) - (neigh(i, s).some(j => { const q = s.grid[j]; return q && !q.treille && P[q.pid].strate === 'Arbre' && phase(q).stage !== 'graine' && phase(q).stage !== 'pousse'; }) ? 2 : 0) - (gdw ? (gdw.auto ? 3 : 1.5) : 0);
+      const rs = (w.ev || w.tmin < 3) ? Math.max(-.4, Math.min(.92, resistance(s, i).pct / 100 + fx.r)) : 0, voile = (c.voileUntil || -1) >= s.day;
+      const gelEff = p.gel - (gsNear(s, i) ? 9 : neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? 4 : 0) - rs * 4 - (voile ? 9 : 0) - (neigh(i, s).some(j => { const q = s.grid[j]; return q && !q.treille && P[q.pid].strate === 'Arbre' && phase(q).stage !== 'graine' && phase(q).stage !== 'pousse'; }) ? 2 : 0) - (gdw ? (gdw.auto ? 3 : 1.5) : 0) - fx.gel;
       if (w.tmin < gelEff && ph0 !== 'graine' && !gdok) {
         if (p.gel >= -3 && p.kind !== 'vivace') { if (gelEff - w.tmin <= 1.5 && c.health > 45) c.health -= 45; else c.health = 0; } else c.health -= p.gel >= -3 ? 30 : 15;
       }
@@ -1860,7 +1870,7 @@ function make(P) {
       else if (c.g < maturity(p)) { f = SEASONF[m]; f = f + (1 - f) * (1 - Math.min(1, p.croiss / 120)); if (p.gel <= -8 && p.croiss <= 130 && ['Herbacée', 'Racine'].includes(p.strate)) f = Math.max(f, .6); if (tm < 8 && p.gel >= 0 && !gsNear(s, i)) f *= .3; }
       else f = 1;
       const sf = c.stress > 7 ? .3 : c.stress > 0 ? .5 : 1;
-      c.g += f * (c.noyau ? .6 : 1) * clamp(1 + (c.noyau ? Math.max(0, sy.growth) : sy.growth), .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1) * (hasAdv(s, 'botaniste') ? 1.1 : 1);
+      c.g += f * (c.noyau ? .6 : 1) * clamp(1 + (c.noyau ? Math.max(0, sy.growth) : sy.growth), .3, 1.5) * (.7 + s.soil / 100 * .6) * sf * (s.day <= c.compostUntil ? 1.2 : 1) * ((c.ortieUntil || -1) >= s.day ? 1.2 : 1) * ((c.mycoUntil || -1) >= s.day ? 1.25 : 1) * (s.day <= s.boostUntil ? 1.6 : 1) * (c.sick ? .5 : 1) * (hasAdv(s, 'botaniste') ? 1.1 : 1) * fx.g;
       const st = phase(c).stage; c.stage = st; c.ready = ready(s, c);
       if (st === 'mature' && wasStage !== 'mature' && wasStage !== undefined) ev.push({ t: 'good', text: p.name + ' est arrivé à maturité.' });
       if (c.ready && !wasReady) { c.readyDay = s.day; ev.push({ t: 'good', text: p.name + ' est prêt à récolter.' }); }
@@ -2252,12 +2262,20 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
+  function spotFx(s, i) {
+    if (!s.spots) return { g: 1, r: 0, gel: 0, ev: 1 }; const sp = spotOf(s, i); if (!sp) return { g: 1, r: 0, gel: 0, ev: 1 };
+    if (sp.t === 'single') return sp.f ? { g: 1, r: 0, gel: 0, ev: 1 } : { g: .6, r: -.35, gel: -3, ev: 1.25 };
+    const pl = sp.cells.filter(j => s.grid[j] && !s.grid[j].treille && P[s.grid[j].pid]), n = sp.cells.length, gr = new Set(pl.map(j => { const st = P[s.grid[j].pid].strate; return st === 'Herbacée' || st === 'Racine' || st === 'Couvre-sol' ? 'bas' : st; }));
+    if (sp.t === 'hedge') { const q = Math.min(1, pl.length / n); return { g: 1.05 + .25 * q, r: .1 + .3 * q, gel: .5 + 1.5 * q, ev: .95 - .1 * q }; }
+    const q = Math.min(1, .55 * pl.length / Math.max(3, n * .75) + .45 * gr.size / 4); return { g: 1.3 + .7 * q, r: .3 + .4 * q, gel: 2 + 3 * q, ev: .9 - .2 * q };
+  }
+  function cleanFurnSpots(s) { if (!s.spots) return; s.spots = s.spots.filter(o => !o.f || s.grid[o.cells[0]] || (s.pq || []).some(q => q.i === o.cells[0])); }
   function addSpot(s, t, n, x, z, a, bounds) {
-    s.spots = s.spots || []; const want = t === 'guild' ? n : t === 'hedge' ? 6 : 1;
+    s.spots = s.spots || []; const want = t === 'guild' ? (GSL[n] || GSL[3]).length : t === 'hedge' ? 6 : 1;
     const used = new Set(); s.spots.forEach(o => o.cells.forEach(j => used.add(j))); (s.pq || []).forEach(q => used.add(q.i));
     const cells = []; for (let i = 0; i < NCELL && cells.length < want; i++) if (isActive(s, i) && !s.grid[i] && !used.has(i)) cells.push(i);
     if (cells.length < want) return { ok: false, msg: 'Plus assez de terrain libre : agrandis le jardin.' };
-    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells };
+    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
     for (let it = 0; it < 8; it++) {
       let moved = false; const mine = discsOf(sp);
       for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + .5; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
@@ -2278,10 +2296,10 @@ function make(P) {
   function adoptLegacy(s) {
     if (s.spots) return; s.spots = []; const byK = {}, used = new Set();
     s.grid.forEach((c, i) => { if (c) { used.add(i); (byK[gkOf(i)] = byK[gkOf(i)] || []).push(i); } });
-    Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5; for (let i = 0; i < NCELL && cs.length < want; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
+    Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -3091,11 +3109,11 @@ function modal(title, body, wide) {
 }
 /* ---------- pelle et fiches d'emplacements ---------- */
 const SPADE = [
-  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : arbre, arbuste, couvre-sol.' },
-  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol. Idéale pour démarrer.' },
-  { t: 'guild', n: 7, nm: 'Grande guilde', d: '7 plantes : deux arbres et deux arbustes en plus des autres strates.' },
-  { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 plantes, dans le sens de ta vue. Tourne la vue avant de poser.' },
-  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, n’importe où.' }
+  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : 1 arbre, 1 arbuste et 3 petites plantes (herbacées, racines ou couvre-sol).' },
+  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : 1 arbre, 1 arbuste, 1 liane, 3 herbacées ou racines et 2 couvre-sols. Idéale pour démarrer.' },
+  { t: 'guild', n: 7, nm: 'Grande guilde', d: 'La forêt dense : 1 arbre, 2 arbustes, 1 liane, 5 herbacées ou racines et 3 couvre-sols.' },
+  { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 arbustes, arbres ou lianes. Tu peux la tourner avec deux doigts.' },
+  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, mais la plante pousse plus lentement et résiste moins aux aléas : une guilde la protège bien mieux.' }
 ];
 const spadeName = sp => sp.t === 'guild' ? (sp.n === 3 ? 'Petite guilde' : sp.n === 5 ? 'Guilde moyenne' : 'Grande guilde') : sp.t === 'hedge' ? 'Haie comestible' : 'Plante isolée';
 function openSpade() {
@@ -3107,6 +3125,12 @@ function spadeTap(x, z, a, bounds) {
   ui.hedgeSel = r.spot.t === 'hedge' ? r.spot.id : null; toast(spadeName(r.spot) + ' posée : touche-la pour choisir les plantes.' + (r.spot.t === 'hedge' ? ' Tourne-la avec deux doigts.' : '')); ui.sel = -1; save(); render();
 }
 function rotSpot(id, da, fin) { const sp = (S.spots || []).find(o => o.id === id); if (!sp) return; sp.a = (sp.a || 0) + da; if (fin) { save(); render(); } else if (window.V3D && V3D.sync) V3D.sync(); }
+function furnTap(x, z, bounds) {
+  if (!(ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k))) return false; const k = ui.mode.k;
+  const r = G.addSpot(S, 'single', 1, x, z, 0, { f: 1, b: bounds }); if (!r.ok) { toast(r.msg); return true; }
+  const ci = r.spot.cells[0]; if (!G.placeFurn(S, ci, k)) { G.removeSpot(S, r.spot.id); toast('Impossible de poser cet aménagement ici.'); return true; }
+  if (!(S.mats[k] > 0)) ui.mode = null; ui.sel = ci; save(); render(); return true;
+}
 function spotPickSlot(sp, p) {
   const free = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)), sl = G.slotsOf(sp);
   return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return !pr || pr.includes(p.strate); });
@@ -3114,7 +3138,7 @@ function spotPickSlot(sp, p) {
 function openSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
   const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
-  const prLb = pr => !pr ? 'Plante' : pr.map(x => LB[x]).join(' ou ');
+  const prLb = pr => !pr ? 'Plante' : pr.length >= 3 ? 'Petite plante' : pr.map(x => LB[x]).join(' ou ');
   const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille && P[S.grid[i].pid]), nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
   const have = new Set(filled.map(i => P[S.grid[i].pid].strate)), mine = [];
   const hasAny = sp.cells.some(i => S.grid[i]) || (S.pq || []).some(q => sp.cells.includes(q.i));
@@ -3129,8 +3153,10 @@ function openSpot(id) {
     h += '<div class="gslot"><b>Libre</b><span>' + prLb(sl[k][2]) + '</span></div>';
   });
   h += '</div>';
+  const fx = G.spotFx(S, sp.cells[0]); h += '<p class="note-p">' + (sp.t === 'single' ? 'Plante isolée : croissance ' + Math.round((fx.g - 1) * 100) + ' %, plus fragile face au gel, à la chaleur et aux tempêtes. Une guilde la protégerait.' : (sp.t === 'hedge' ? 'Haie' : 'Guilde') + ' : croissance ' + (fx.g >= 1 ? '+' : '') + Math.round((fx.g - 1) * 100) + ' %, résistance aux aléas ' + (fx.r >= 0 ? '+' : '') + Math.round(fx.r * 100) + ' %' + (sp.t === 'guild' ? ' (plus la guilde est complète et variée, plus c’est fort).' : '.')) + '</p>';
   const need = new Set(), miss = []; sp.cells.forEach((i, k) => { if (!S.grid[i] && !(S.pq || []).some(q => q.i === i) && sl[k][2]) { sl[k][2].forEach(s => need.add(s)); miss.push(prLb(sl[k][2]).toLowerCase()); } });
-  if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Strates manquantes : <b>' + miss.join(', ') + '</b>.</p>';
+  const mc = {}; miss.forEach(x => { mc[x] = (mc[x] || 0) + 1; });
+  if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Il manque : <b>' + Object.keys(mc).map(x => (mc[x] > 1 ? mc[x] + ' ' : '') + x + (mc[x] > 1 ? 's' : '')).join(', ') + '</b>.</p>';
   const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0);
   const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
@@ -3499,7 +3525,7 @@ function renderTuto() {
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); if (window.V3D && V3D.on) V3D.sync(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); G.cleanFurnSpots(S); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); if (window.V3D && V3D.on) V3D.sync(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -3756,7 +3782,7 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();
 

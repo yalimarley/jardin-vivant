@@ -799,11 +799,11 @@ function modal(title, body, wide) {
 }
 /* ---------- pelle et fiches d'emplacements ---------- */
 const SPADE = [
-  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : 1 arbre, 1 arbuste et 3 petites plantes (herbacées, racines ou couvre-sol).' },
-  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : 1 arbre, 1 arbuste, 1 liane, 3 herbacées ou racines et 2 couvre-sols. Idéale pour démarrer.' },
-  { t: 'guild', n: 7, nm: 'Grande guilde', d: 'La forêt dense : 1 arbre, 2 arbustes, 1 liane, 5 herbacées ou racines et 3 couvre-sols.' },
+  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : 1 arbre, 1 arbuste et 3 petites plantes (herbacées, racines ou couvre-sol). 5 plantes sur environ 10 m².' },
+  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : 1 arbre, 1 arbuste, 1 liane, 3 herbacées ou racines et 2 couvre-sols. 8 plantes sur environ 16 m². Idéale pour démarrer.' },
+  { t: 'guild', n: 7, nm: 'Grande guilde', d: 'La forêt dense : 1 arbre, 2 arbustes, 1 liane, 5 herbacées ou racines et 3 couvre-sols. 12 plantes sur environ 22 m² : la densité d’un jardin-forêt.' },
   { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 arbustes, arbres ou lianes. Tu peux la tourner avec deux doigts.' },
-  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, mais la plante pousse plus lentement et résiste moins aux aléas : une guilde la protège bien mieux.' }
+  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Une seule plante sur environ 11 m² : elle prend beaucoup de place, pousse plus lentement, demande plus d’arrosage et résiste moins aux aléas.' }
 ];
 const spadeName = sp => sp.t === 'guild' ? (sp.n === 3 ? 'Petite guilde' : sp.n === 5 ? 'Guilde moyenne' : 'Grande guilde') : sp.t === 'hedge' ? 'Haie comestible' : 'Plante isolée';
 function openSpade() {
@@ -843,7 +843,7 @@ function openSpot(id) {
     h += '<div class="gslot"><b>Libre</b><span>' + prLb(sl[k][2]) + '</span></div>';
   });
   h += '</div>';
-  const fx = G.spotFx(S, sp.cells[0]); h += '<p class="note-p">' + (sp.t === 'single' ? 'Plante isolée : croissance ' + Math.round((fx.g - 1) * 100) + ' %, plus fragile face au gel, à la chaleur et aux tempêtes. Une guilde la protégerait.' : (sp.t === 'hedge' ? 'Haie' : 'Guilde') + ' : croissance ' + (fx.g >= 1 ? '+' : '') + Math.round((fx.g - 1) * 100) + ' %, résistance aux aléas ' + (fx.r >= 0 ? '+' : '') + Math.round(fx.r * 100) + ' %' + (sp.t === 'guild' ? ' (plus la guilde est complète et variée, plus c’est fort).' : '.')) + '</p>';
+  const fx = G.spotFx(S, sp.cells[0]); h += '<p class="note-p">' + (sp.t === 'single' ? 'Plante isolée : elle occupe environ 11 m² pour une seule plante, croît ' + Math.abs(Math.round((fx.g - 1) * 100)) + ' % moins vite, demande plus d’arrosage et craint davantage le gel, la chaleur et les tempêtes. Une guilde fait mieux sur moins de place.' : (sp.t === 'hedge' ? 'Haie' : 'Guilde') + ' : croissance ' + (fx.g >= 1 ? '+' : '') + Math.round((fx.g - 1) * 100) + ' %, résistance aux aléas ' + (fx.r >= 0 ? '+' : '') + Math.round(fx.r * 100) + ' %' + (sp.t === 'guild' ? ' (plus la guilde est complète et variée, plus c’est fort).' : '.')) + '</p>';
   const need = new Set(), miss = []; sp.cells.forEach((i, k) => { if (!S.grid[i] && !(S.pq || []).some(q => q.i === i) && sl[k][2]) { sl[k][2].forEach(s => need.add(s)); miss.push(prLb(sl[k][2]).toLowerCase()); } });
   const mc = {}; miss.forEach(x => { mc[x] = (mc[x] || 0) + 1; });
   if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Il manque : <b>' + Object.keys(mc).map(x => (mc[x] > 1 ? mc[x] + ' ' : '') + x + (mc[x] > 1 ? 's' : '')).join(', ') + '</b>.</p>';

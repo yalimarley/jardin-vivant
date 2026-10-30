@@ -94,8 +94,8 @@ function genSlots(arbustes, liane, herb, sol, mixed, rA, rB) {
   low.forEach((pr, k) => { const a = .55 + k * (Math.PI * 2 / low.length); out.push([Math.cos(a) * rB, Math.sin(a) * rB, pr]); });
   return out.map(q => [+q[0].toFixed(2), +q[1].toFixed(2), q[2]]);
 }
-const GSL = { 3: genSlots(1, 0, 0, 0, 3, 1.15, 1.75), 5: genSlots(1, 1, 3, 2, 0, 1.4, 2.2), 7: genSlots(2, 1, 5, 3, 0, 1.6, 2.75) };
-const SPOT_R = { 3: 2.1, 5: 2.7, 7: 3.3 }, HSP = 1.15;
+const GSL = { 3: genSlots(1, 0, 0, 0, 3, 1.0, 1.35), 5: genSlots(1, 1, 3, 2, 0, 1.15, 1.75), 7: genSlots(2, 1, 5, 3, 0, 1.3, 2.05) };
+const SPOT_R = { 3: 1.75, 5: 2.25, 7: 2.65 }, HSP = 1.15;
 function slotsOf(sp) {
   if (sp.t === 'single') return [[0, 0, null]];
   if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, ['Arbuste', 'Arbre', 'Grimpante']]; }); }
@@ -103,8 +103,8 @@ function slotsOf(sp) {
 }
 function spotOf(s, i) { return ((s && s.spots) || []).find(o => o.cells.includes(i)) || null; }
 function cellPos(s, i) { const sp = spotOf(s, i); if (!sp) return null; const sl = slotsOf(sp)[sp.cells.indexOf(i)]; return [sp.x + sl[0], sp.z + sl[1]]; }
-function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? (sp.f ? 1.7 : 1) : SPOT_R[sp.n]]]; }
-function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? (sp.f ? 1.7 : 1) : SPOT_R[sp.n]; }
+function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? (sp.f ? 1.7 : 1.9) : SPOT_R[sp.n]]]; }
+function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? (sp.f ? 1.7 : 1.9) : SPOT_R[sp.n]; }
 function neigh(i, s) {
   if (s && s.spots) {
     const sp = spotOf(s, i); if (!sp) return []; const pi = cellPos(s, i), out = [];

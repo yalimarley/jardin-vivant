@@ -511,7 +511,7 @@ function scatter() {
   const out = (x, z) => Math.abs(x) < HW + 1.4 && Math.abs(z) < HH + 1.4;
   for (let i = 0; i < NT; i++) { let x, z, n = 0; do { x = (rng() - .5) * 90; z = (rng() - .5) * 90; n++; } while (n < 14 && out(x, z)); dm.position.set(x, hAt(x, z), z); dm.rotation.set((rng() - .5) * .4, rng() * 6, (rng() - .5) * .4); const sc = .45 + rng() * .6; dm.scale.set(sc, sc * (.8 + rng() * .7), sc); dm.updateMatrix(); tufts.setMatrixAt(i, dm.matrix); }
   tufts.receiveShadow = true; gTerr.add(tufts);
-  meadow = new T.InstancedMesh(geo.ico(.1, 0), new T.MeshLambertMaterial({ flatShading: true }), 360); const pal = [0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xb48be0, 0xf08a5a].map(c => new T.Color(c));
+  meadow = new T.InstancedMesh(geo.ico(.1, 0), new T.MeshLambertMaterial(), 360); const pal = [0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xb48be0, 0xf08a5a].map(c => new T.Color(c));
   for (let i = 0; i < 360; i++) { let x, z, n = 0; do { x = (rng() - .5) * 70; z = (rng() - .5) * 70; n++; } while (n < 14 && (out(x, z) || Math.hypot(x, z) > 32)); dm.position.set(x, hAt(x, z) + .3, z); dm.rotation.set(0, 0, 0); dm.scale.setScalar(.7 + rng() * .7); dm.updateMatrix(); meadow.setMatrixAt(i, dm.matrix); meadow.setColorAt(i, pal[Math.floor(rng() * pal.length)]); }
   meadow.instanceColor.needsUpdate = true; meadow.visible = curS.flow; gTerr.add(meadow); rng = r0;
 }

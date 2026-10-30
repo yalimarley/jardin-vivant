@@ -800,7 +800,7 @@ function modal(title, body, wide) {
 /* ---------- pelle et fiches d'emplacements ---------- */
 const SPADE = [
   { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : arbre, arbuste, couvre-sol.' },
-  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol.' },
+  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol. Idéale pour démarrer.' },
   { t: 'guild', n: 7, nm: 'Grande guilde', d: '7 plantes : deux arbres et deux arbustes en plus des autres strates.' },
   { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 plantes, dans le sens de ta vue. Tourne la vue avant de poser.' },
   { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, n’importe où.' }
@@ -1187,7 +1187,7 @@ const cam = (function initCamera() {
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
   { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster, des cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Prends la pelle (outil à gauche du jardin), choisis une petite guilde et touche le sol. Touche ensuite le « + » de la guilde et choisis une plante : le jardinier viendra la planter.', target: '#tools', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Pose une plante', x: 'Prends la pelle (outil à gauche du jardin), choisis une guilde moyenne et touche le sol. Touche ensuite le « + » de la guilde et choisis une plante : le jardinier viendra la planter.', target: '#tools', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain : un nouveau booster arrive tous les trois jours au début, puis chaque semaine.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
@@ -1464,6 +1464,6 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();

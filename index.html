@@ -995,7 +995,7 @@ function scatter() {
   const out = (x, z) => Math.abs(x) < HW + 1.4 && Math.abs(z) < HH + 1.4;
   for (let i = 0; i < NT; i++) { let x, z, n = 0; do { x = (rng() - .5) * 90; z = (rng() - .5) * 90; n++; } while (n < 14 && out(x, z)); dm.position.set(x, hAt(x, z), z); dm.rotation.set((rng() - .5) * .4, rng() * 6, (rng() - .5) * .4); const sc = .45 + rng() * .6; dm.scale.set(sc, sc * (.8 + rng() * .7), sc); dm.updateMatrix(); tufts.setMatrixAt(i, dm.matrix); }
   tufts.receiveShadow = true; gTerr.add(tufts);
-  meadow = new T.InstancedMesh(geo.ico(.1, 0), new T.MeshLambertMaterial({ flatShading: true }), 360); const pal = [0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xb48be0, 0xf08a5a].map(c => new T.Color(c));
+  meadow = new T.InstancedMesh(geo.ico(.1, 0), new T.MeshLambertMaterial(), 360); const pal = [0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xb48be0, 0xf08a5a].map(c => new T.Color(c));
   for (let i = 0; i < 360; i++) { let x, z, n = 0; do { x = (rng() - .5) * 70; z = (rng() - .5) * 70; n++; } while (n < 14 && (out(x, z) || Math.hypot(x, z) > 32)); dm.position.set(x, hAt(x, z) + .3, z); dm.rotation.set(0, 0, 0); dm.scale.setScalar(.7 + rng() * .7); dm.updateMatrix(); meadow.setMatrixAt(i, dm.matrix); meadow.setColorAt(i, pal[Math.floor(rng() * pal.length)]); }
   meadow.instanceColor.needsUpdate = true; meadow.visible = curS.flow; gTerr.add(meadow); rng = r0;
 }
@@ -1545,6 +1545,7 @@ function make(P) {
     const occ = s.grid[i];
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
+    if (s.spots && !spotOf(s, i)) return { ok: false, msg: 'Pose d’abord un emplacement avec la pelle (guilde, haie ou plante isolée).' };
     if (s.spots && !occ) { const sp = spotOf(s, i); if (sp) { const pr = slotsOf(sp)[sp.cells.indexOf(i)][2]; if (pr && !pr.includes(p.strate)) return { ok: false, msg: 'Cet emplacement accueille : ' + pr.map(x => x === 'Grimpante' ? 'liane' : x.toLowerCase()).join(' ou ') + '. ' + p.name + ' est ' + (p.strate === 'Grimpante' ? 'une liane' : 'de strate ' + p.strate.toLowerCase()) + '.' }; } }
     if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
@@ -1581,7 +1582,7 @@ function make(P) {
     return { ok: pl >= rq.plant && sp >= rq.species, plant: [Math.min(pl, rq.plant), rq.plant], species: [Math.min(sp, rq.species), rq.species], to: SIZES[n] };
   }
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
-  function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
+  function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0) || (s.spots && !spotOf(s, i))) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
   function migrateGrid(s) { if (!s.grid || s.grid.length === NCELL) return s; const oc = s.grid.length === 120 ? OLD_COLS : s.grid.length === 48 ? 8 : 0; if (!oc) return s; const mv = i => ((i / oc) | 0) * COLS + (i % oc), g = Array(NCELL).fill(null); s.grid.forEach((c, i) => { if (c) g[mv(i)] = c; }); s.grid = g; if (Array.isArray(s.pq)) s.pq.forEach(q => { q.i = mv(q.i); }); return s; }
   function fixSave(s) { migrateGrid(s); gqInit(s); if (!s.skillNotes) s.skillNotes = []; if (!Array.isArray(s.paths)) s.paths = []; if (!s.disc) s.disc = { plant: {}, harvest: {} };
@@ -3091,7 +3092,7 @@ function modal(title, body, wide) {
 /* ---------- pelle et fiches d'emplacements ---------- */
 const SPADE = [
   { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : arbre, arbuste, couvre-sol.' },
-  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol.' },
+  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol. Idéale pour démarrer.' },
   { t: 'guild', n: 7, nm: 'Grande guilde', d: '7 plantes : deux arbres et deux arbustes en plus des autres strates.' },
   { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 plantes, dans le sens de ta vue. Tourne la vue avant de poser.' },
   { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, n’importe où.' }
@@ -3478,7 +3479,7 @@ const cam = (function initCamera() {
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
   { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster, des cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Prends la pelle (outil à gauche du jardin), choisis une petite guilde et touche le sol. Touche ensuite le « + » de la guilde et choisis une plante : le jardinier viendra la planter.', target: '#tools', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Pose une plante', x: 'Prends la pelle (outil à gauche du jardin), choisis une guilde moyenne et touche le sol. Touche ensuite le « + » de la guilde et choisis une plante : le jardinier viendra la planter.', target: '#tools', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain : un nouveau booster arrive tous les trois jours au début, puis chaque semaine.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
@@ -3755,7 +3756,7 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();
 

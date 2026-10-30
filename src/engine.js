@@ -259,6 +259,7 @@ function make(P) {
     const occ = s.grid[i];
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
+    if (s.spots && !spotOf(s, i)) return { ok: false, msg: 'Pose d’abord un emplacement avec la pelle (guilde, haie ou plante isolée).' };
     if (s.spots && !occ) { const sp = spotOf(s, i); if (sp) { const pr = slotsOf(sp)[sp.cells.indexOf(i)][2]; if (pr && !pr.includes(p.strate)) return { ok: false, msg: 'Cet emplacement accueille : ' + pr.map(x => x === 'Grimpante' ? 'liane' : x.toLowerCase()).join(' ou ') + '. ' + p.name + ' est ' + (p.strate === 'Grimpante' ? 'une liane' : 'de strate ' + p.strate.toLowerCase()) + '.' }; } }
     if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
@@ -295,7 +296,7 @@ function make(P) {
     return { ok: pl >= rq.plant && sp >= rq.species, plant: [Math.min(pl, rq.plant), rq.plant], species: [Math.min(sp, rq.species), rq.species], to: SIZES[n] };
   }
   function expand(s) { const c = canExpand(s); if (!c.ok) return false; s.size = (s.size || 0) + 1; log(s, 'good', 'Terrain agrandi : ' + SIZES[s.size][0] + ' × ' + SIZES[s.size][1] + ' parcelles.'); bump(s); return true; }
-  function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0)) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
+  function placeFurn(s, i, k) { if (!FURN.includes(k) || !isActive(s, i) || s.grid[i] || !(s.mats[k] > 0) || (s.spots && !spotOf(s, i))) return false; s.mats[k]--; s.grid[i] = { treille: true, furn: k }; if (k === 'ruche') s.grid[i].honeyDay = s.day; bump(s); return true; }
   function placeTreille(s, i) { return placeFurn(s, i, 'treille'); }
   function migrateGrid(s) { if (!s.grid || s.grid.length === NCELL) return s; const oc = s.grid.length === 120 ? OLD_COLS : s.grid.length === 48 ? 8 : 0; if (!oc) return s; const mv = i => ((i / oc) | 0) * COLS + (i % oc), g = Array(NCELL).fill(null); s.grid.forEach((c, i) => { if (c) g[mv(i)] = c; }); s.grid = g; if (Array.isArray(s.pq)) s.pq.forEach(q => { q.i = mv(q.i); }); return s; }
   function fixSave(s) { migrateGrid(s); gqInit(s); if (!s.skillNotes) s.skillNotes = []; if (!Array.isArray(s.paths)) s.paths = []; if (!s.disc) s.disc = { plant: {}, harvest: {} };

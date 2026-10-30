@@ -611,12 +611,24 @@ function ribbon(a, b, seed, w0, obst) {
     pos.push(x + px * w, .04, z + pz * w, x - px * w, .04, z - pz * w); if (k < N) { const q = k * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, trackM); m.receiveShadow = true; return m;
 }
+let net = null, netVer = 0;
+function routeTo(from, to) {
+  if (!net) return [to]; const { nn, adj } = net, dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  if (dist(from, to) < 2.6) return [to];
+  const near = pt => { let b = 0, bd = 1e9; nn.forEach((n, k) => { const d = Math.hypot(n.x - pt[0], n.z - pt[1]) - (n.sp ? 0 : 0); if (d < bd) { bd = d; b = k; } }); return b; };
+  const inSp = pt => { for (let k = 1; k < nn.length; k++) { const sp = nn[k].sp; if (!sp) continue; if (A.G.discsOf(sp).some(q => Math.hypot(q[0] - pt[0], q[1] - pt[1]) < q[2] + .4)) return k; } return -1; };
+  const sa = inSp(from), sb = inSp(to); if (sa > 0 && sa === sb) return [to];
+  const s = sa > 0 ? sa : near(from), g = sb > 0 ? sb : near(to); if (s === g) return [to];
+  const D = nn.map(() => 1e9), prev = nn.map(() => -1), done = nn.map(() => false); D[s] = 0;
+  for (let it = 0; it < nn.length; it++) { let u = -1; for (let k = 0; k < nn.length; k++) if (!done[k] && (u < 0 || D[k] < D[u])) u = k; if (u < 0 || D[u] >= 1e9) break; done[u] = true; adj[u].forEach(([w, d]) => { if (D[u] + d < D[w]) { D[w] = D[u] + d; prev[w] = u; } }); }
+  if (D[g] >= 1e9) return [to]; const pts = []; for (let k = g; k >= 0; k = prev[k]) { pts.unshift([nn[k].x, nn[k].z]); if (k === s) break; } pts.push(to); return pts;
+}
 function plate(x, z, r) { const m = new T.Mesh(new T.CylinderGeometry(r, r, .03, 14), trackM); m.position.set(x, .045, z); m.receiveShadow = true; return m; }
 function syncTracks(S) {
   const sps = S.spots || [], y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2];
   const sg = sps.map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1)).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
   while (gPaths.children.length) gPaths.remove(gPaths.children[0]);
-  if (!sps.length) return;
+  if (!sps.length) { net = null; netVer++; return; }
   const nodes = [{ d: [[root[0], root[1], 0]] }].concat(sps.map(o => ({ d: A.G.discsOf(o) })));
   const link = (i, j) => { let best = null; for (const da of nodes[i].d) for (const db of nodes[j].d) { const dx = db[0] - da[0], dz = db[1] - da[1], dd = Math.hypot(dx, dz) || .01, rim = dd - da[2] - db[2]; if (!best || rim < best.rim) best = { rim, da, db, ux: dx / dd, uz: dz / dd }; }
     const pa = i ? .22 : 0, pb = .22; return { i, j, rim: best.rim, a: [best.da[0] + best.ux * (best.da[2] + pa), best.da[1] + best.uz * (best.da[2] + pa)], b: [best.db[0] - best.ux * (best.db[2] + pb), best.db[1] - best.uz * (best.db[2] + pb)] }; };
@@ -625,6 +637,11 @@ function syncTracks(S) {
   // boucles de promenade : un second lien pour les voisins proches
   const has = (i, j) => edges.some(e => (e.i === i && e.j === j) || (e.i === j && e.j === i));
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { if (has(i, j) || deg[i] >= 3 || deg[j] >= 3) continue; const l = link(i, j); if (l.rim < 4.2) { edges.push(l); deg[i]++; deg[j]++; } }
+  { const nn = [{ x: root[0], z: root[1] }], adj = [[]]; sps.forEach(o => { nn.push({ x: o.x, z: o.z, sp: o }); adj.push([]); });
+    const lk = (p, q) => { const d = Math.hypot(nn[p].x - nn[q].x, nn[p].z - nn[q].z); adj[p].push([q, d]); adj[q].push([p, d]); };
+    const add = pt => { nn.push({ x: pt[0], z: pt[1] }); adj.push([]); return nn.length - 1; };
+    edges.forEach(e => { const ia = e.i === 0 ? 0 : add(e.a), ib = add(e.b); lk(ia, ib); if (e.i) lk(ia, e.i); lk(ib, e.j); });
+    net = { nn, adj }; netVer++; }
   const allD = nodes.map((n, k) => n.d.map(q => [q[0], q[1], q[2], k]));
   edges.forEach((e, n) => {
     const obst = []; allD.forEach((ds, k) => { if (k !== e.i && k !== e.j) ds.forEach(q => obst.push(q)); });
@@ -760,9 +777,18 @@ const dropGeo = new T.IcosahedronGeometry(.045, 0), dropMat = new T.MeshLambertM
 function spawn(geom, m, pos, v, life) { const o = new T.Mesh(geom, m); o.position.copy(pos); gAmb.add(o); fx.push({ m: o, v, life }); }
 function moveChar(obj, a, dt, t, kind) {
   const xz0 = cr2xz(a.c, a.r), x = xz0[0], z = xz0[1], u = obj.userData; obj.visible = !a.inside;
-  const moving = !!a.path.length && a.pause <= 0, dx = x - obj.position.x, dz = z - obj.position.z;
-  if (Math.hypot(dx, dz) > .004 && moving) { const want = Math.atan2(dx, dz); let df = want - u.heading; df = Math.atan2(Math.sin(df), Math.cos(df)); u.heading += df * Math.min(1, dt * 10); }
-  { let px = obj.position.x, pz = obj.position.z; if (!u.init) { px = x; pz = z; u.init = 1; } else { const d = Math.hypot(x - px, z - pz); if (d > .0005) { const st = Math.min(d, Math.min(9 * dt, Math.max(d * Math.min(1, dt * 10), 1.5 * dt))); px += (x - px) / d * st; pz += (z - pz) / d * st; } } obj.position.set(px, hAt(px, pz) + .06, pz); } obj.rotation.y = u.heading;
+  let px = obj.position.x, pz = obj.position.z, hx = x, hz = z;
+  if (!u.init) { px = x; pz = z; u.init = 1; }
+  else if (kind === 'd' || !net) { const d = Math.hypot(x - px, z - pz); if (d > .0005) { const st = Math.min(d, Math.min(9 * dt, Math.max(d * Math.min(1, dt * 10), 1.5 * dt))); px += (x - px) / d * st; pz += (z - pz) / d * st; } }
+  else {
+    if (!u.rt || u.rt.v !== netVer || Math.hypot(u.rt.tx - x, u.rt.tz - z) > .8) u.rt = { tx: x, tz: z, v: netVer, pts: routeTo([px, pz], [x, z]), k: 0 };
+    else if (u.rt.pts.length) { u.rt.pts[u.rt.pts.length - 1] = [x, z]; }
+    let rem = Math.min(10, Math.max(3.6, Math.hypot(x - px, z - pz) * 1.2)) * dt;
+    while (rem > 0 && u.rt.k < u.rt.pts.length) { const w = u.rt.pts[u.rt.k], dx0 = w[0] - px, dz0 = w[1] - pz, d = Math.hypot(dx0, dz0); if (d <= rem) { px = w[0]; pz = w[1]; rem -= d; u.rt.k++; } else { px += dx0 / d * rem; pz += dz0 / d * rem; hx = w[0]; hz = w[1]; rem = 0; } }
+  }
+  const mvd = Math.hypot(px - obj.position.x, pz - obj.position.z), moving = (!!a.path.length && a.pause <= 0) || mvd / Math.max(dt, .001) > .35;
+  if (mvd > .0004) { const want = Math.atan2(px - obj.position.x, pz - obj.position.z); let df = want - u.heading; df = Math.atan2(Math.sin(df), Math.cos(df)); u.heading += df * Math.min(1, dt * 10); }
+  obj.position.set(px, hAt(px, pz) + .06, pz); obj.rotation.y = u.heading;
   const sw = moving ? Math.sin(t * (kind === 'd' ? 16 : 10)) : 0;
   if (kind === 'd') { u.legs.forEach((l, i) => { l.rotation.z = (i % 3 ? -1 : 1) * sw * .8; }); u.tail.rotation.y = Math.sin(t * 9) * (moving ? .6 : .9); u.body.position.y = moving ? Math.abs(Math.sin(t * 8)) * .04 : 0; u.head.rotation.z = moving ? 0 : Math.sin(t * 1.3) * .12; return; }
   u.legL.rotation.x = sw * .7; u.legR.rotation.x = -sw * .7; u.armL.rotation.x = -sw * .6; u.armR.rotation.x = sw * .6; u.body.position.y = moving ? Math.abs(Math.sin(t * 10)) * .06 : 0; u.body.rotation.x = 0;
@@ -805,7 +831,7 @@ function setOn(on) {
 V.mount = function (api) {
   A = api;
   try { setup(); applySeason('summer', true); } catch (e) { try { console.warn('Vue 3D indisponible', e); } catch (_) {} document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); if (canvas && canvas.parentNode) canvas.remove(); if (bdiv && bdiv.parentNode) bdiv.remove(); R = null; return false; }
-  V.ok = true; V.sync = sync; V.setOn = setOn; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
+  V.ok = true; V.gardenerPos = () => [gardener.position.x, gardener.position.z]; V.netInfo = () => net && { n: net.nn.length, nodes: net.nn.map(q => [q.x, q.z]) }; V.sync = sync; V.setOn = setOn; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
   window.addEventListener('click', e => {
     const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
     if (a === 'view3d') { e.stopPropagation(); e.preventDefault(); setOn(!V.on); A.rerender(); return; }

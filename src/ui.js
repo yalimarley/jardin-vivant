@@ -688,9 +688,11 @@ function renderGarden() {
   h += '<rect x="-400" y="-300" width="1560" height="1140" style="fill:var(--dim);pointer-events:none"/>';
   $('garden').innerHTML = h;
   const hint = $('hint');
-  if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  if (ui.tool === 'spade') hint.innerHTML = ui.spade ? '<span><b>Pelle :</b> touche le jardin pour poser <b>' + ui.spade.nm.toLowerCase() + '</b>. Tu peux en poser plusieurs.</span><button type="button" class="btn sm" data-act="spade-menu">Changer</button><button type="button" class="btn sm" data-act="tool-select">Terminer</button>' : '<span><b>Pelle :</b> choisis ce que tu veux planter.</span><button type="button" class="btn sm primary" data-act="spade-menu">Choisir</button><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  else if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer. Touche un tronçon de sentier pour le retirer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  else if (ui.mode && ui.mode.type === 'plant' && S.spots && !S.spots.some(sp => sp.cells.some(i => !S.grid[i]))) hint.innerHTML = '<span>Pas d’emplacement libre : prends la <b>pelle</b> (outil à gauche) pour poser une guilde, une haie ou une plante isolée.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>';
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' à côté d’un <b>arbre</b>, ou sur / contre une <b>treille ou pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + (G.isWoody(p) ? (ui.mode.noyau ? 'Semis en pleine terre : très long, mais l’arbre devient autonome (ni eau, ni guilde, il résiste à tout).' : 'Jeune plant : plus rapide, il faudra l’arroser et le protéger.') : sw(p)) + ' ' + G.monthRange(p.semis) + '.</span>' + (G.isWoody(p) ? '<button type="button" class="btn sm' + (ui.mode.noyau ? '' : ' primary') + '" data-act="seedmode" data-v="0">Jeune plant</button><button type="button" class="btn sm' + (ui.mode.noyau ? ' primary' : '') + '" data-act="seedmode" data-v="1">Semer le noyau</button>' : '') + '<button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
@@ -793,21 +795,46 @@ function modal(title, body, wide) {
   $('layer').innerHTML = '<div class="veil" data-act="veil"><div class="modal" role="dialog" aria-modal="true" aria-label="' + title + '"' + (wide ? ' style="width:min(880px,100%)"' : '') + '><header><h2>' + title + '</h2><button type="button" class="x" data-act="close" aria-label="Fermer">×</button></header>' + body + '</div></div>';
   const f = $('layer').querySelector('.x'); if (f) f.focus(); if (typeof renderTuto === 'function') renderTuto();
 }
-/* ---------- fiche d'une guilde (bouton + en vue 3D) ---------- */
-const GL = [['Arbre', ['Arbre']], ['Arbuste', ['Arbuste']], ['Liane', ['Grimpante']], ['Herbacée / racine', ['Herbacée', 'Racine']], ['Couvre-sol', ['Couvre-sol']]];
-function openGuild(k) {
-  const cs = G.gcells(k), pl = cs.map(i => S.grid[i]).filter(c => c && !c.treille && P[c.pid]);
-  const free = cs.filter(i => !S.grid[i] && G.isActive(S, i)).length, have = new Set(pl.map(c => P[c.pid].strate));
-  const rows = GL.map(([lb, ss]) => {
-    const ok = ss.some(s => have.has(s));
-    if (ok) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + pl.filter(c => ss.includes(P[c.pid].strate)).map(c => P[c.pid].name).join(', ') + '</span></li>';
-    const mine = Object.keys(S.cards || {}).map(Number).filter(id => S.cards[id] > 0 && P[id] && ss.includes(P[id].strate)).slice(0, 2).map(id => P[id].name);
-    return '<li class="bad"><span class="m">✕</span><span><b>' + lb + '</b> manque' + (mine.length ? ' · dans ta réserve : ' + mine.join(', ') : '') + '</span></li>';
+/* ---------- pelle et fiches d'emplacements ---------- */
+const SPADE = [
+  { t: 'guild', n: 3, nm: 'Petite guilde', d: '3 strates : arbre, arbuste, couvre-sol.' },
+  { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : arbre, arbuste, liane, herbacée ou racine, couvre-sol.' },
+  { t: 'guild', n: 7, nm: 'Grande guilde', d: '7 plantes : deux arbres et deux arbustes en plus des autres strates.' },
+  { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 plantes, dans le sens de ta vue. Tourne la vue avant de poser.' },
+  { t: 'single', n: 1, nm: 'Plante isolée', d: 'Un seul emplacement, n’importe où.' }
+];
+const spadeName = sp => sp.t === 'guild' ? (sp.n === 3 ? 'Petite guilde' : sp.n === 5 ? 'Guilde moyenne' : 'Grande guilde') : sp.t === 'hedge' ? 'Haie comestible' : 'Plante isolée';
+function openSpade() {
+  modal('La pelle : que veux-tu planter ?', '<div class="spadelist">' + SPADE.map((o, k) => '<button type="button" class="spadeopt" data-act="spade-pick" data-k="' + k + '"><b>' + o.nm + '</b><span>' + o.d + '</span></button>').join('') + '</div>');
+}
+function spadeTap(x, z, a, bounds) {
+  if (!ui.spade) { openSpade(); return; }
+  const r = G.addSpot(S, ui.spade.t, ui.spade.n, x, z, a, bounds); if (!r.ok) { toast(r.msg); return; }
+  toast(spadeName(r.spot) + ' posée : touche son « + » pour choisir les plantes.'); ui.sel = -1; save(); render();
+}
+function spotPickSlot(sp, p) {
+  const free = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)), sl = G.slotsOf(sp);
+  return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return pr && pr.includes(p.strate); }) ?? free[0];
+}
+function openSpot(id) {
+  const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
+  const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée ou racine', 'Couvre-sol': 'Couvre-sol' };
+  const rows = sp.cells.map((i, k) => {
+    const c = S.grid[i], q = (S.pq || []).find(o => o.i === i), pr = sl[k][2], lb = pr ? (sp.t === 'hedge' ? 'Plante de haie' : LB[pr[0]]) : 'Plante';
+    if (c && c.treille) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + (FURN_INFO[c.furn || 'treille'] || {}).n + '</span></li>';
+    if (c && P[c.pid]) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + P[c.pid].name + '</span></li>';
+    if (q) return '<li class="good"><span class="m">…</span><span><b>' + lb + '</b> : ' + P[q.pid].name + ' (plantation en cours)</span></li>';
+    return '<li class="bad"><span class="m">✕</span><span><b>' + lb + '</b> : libre</span></li>';
   }).join('');
-  const nOk = GL.filter(([, ss]) => ss.some(s => have.has(s))).length;
-  let h = '<p class="note-p"><b>' + nOk + '/5</b> strates présentes' + (nOk >= 4 ? ' : la guilde est bien étagée.' : ' (4 suffisent pour une guilde équilibrée).') + (free ? ' ' + free + ' emplacement' + (free > 1 ? 's' : '') + ' libre' + (free > 1 ? 's' : '') + ' : choisis une carte, puis touche la guilde.' : '') + '</p><ul class="notes">' + rows + '</ul>';
-  h += pl.length ? '<div class="gcards">' + pl.map(c => cardHtml(P[c.pid], {})).join('') + '</div>' : '<p class="note-p">Cette guilde est encore vide.</p>';
-  modal('Guilde · ' + (pl.length ? pl.length + ' plante' + (pl.length > 1 ? 's' : '') : 'vide'), h, true);
+  const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille).length, nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
+  const have = new Set(sp.cells.map(i => S.grid[i] && S.grid[i].pid != null && P[S.grid[i].pid] ? P[S.grid[i].pid].strate : null).filter(Boolean)), nStr = have.size;
+  let h = '<p class="note-p">' + filled + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + nStr + ' strate' + (nStr > 1 ? 's' : '') + ' présente' + (nStr > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p><ul class="notes">' + rows + '</ul>';
+  const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0), need = new Set(); sp.cells.forEach((i, k) => { if (!S.grid[i] && sl[k][2]) sl[k][2].forEach(s => need.add(s)); });
+  const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Plus de place.' } : G.plantCheck(S, ci, id); });
+  ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
+  if (nFree) h += '<h3 class="gh">Tes plantes disponibles</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte : elle est plantée à l’emplacement qui lui convient. Les cartes cerclées de vert comblent une strate manquante ; les cartes grisées ne sont pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
+  if (!filled && !(S.pq || []).some(q => sp.cells.includes(q.i))) h += '<div class="acts"><button type="button" class="btn sm" data-act="spot-del" data-sp="' + sp.id + '">Retirer cet emplacement</button></div>';
+  modal(nm + ' · ' + filled + '/' + sp.cells.length, h, true);
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
@@ -1151,7 +1178,7 @@ const cam = (function initCamera() {
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
   { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster, des cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans le bandeau du bas, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Pose une plante', x: 'Prends la pelle (outil à gauche du jardin), choisis une petite guilde et touche le sol. Touche ensuite le « + » de la guilde et choisis une plante : le jardinier viendra la planter.', target: '#tools', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain : un nouveau booster arrive tous les trois jours au début, puis chaque semaine.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
@@ -1199,6 +1226,7 @@ function doTask(id) {
   render(); if (firstCell != null) if (a.type !== 'lawn' && a.type !== 'trogne' && a.type !== 'honey') sendGardener(firstCell, a.type === 'mow' || a.type === 'prune' || a.type === 'heal' ? 'mulch' : a.type);
 }
 function clickCell(i) {
+  if (ui.tool === 'spade') return;
   const c = S.grid[i];
   if (!ui.mode && (!ui.tool || ui.tool === 'select') && S.pq && S.pq.some(q => q.i === i)) { const r = G.cancelPlant(S, i); if (r.ok) { if (PQ.job && PQ.job.items.includes(i)) PQ.job.items = PQ.job.items.filter(x => x !== i); toast('Plantation annulée : la carte de ' + r.name.toLowerCase() + ' est rendue.'); save(); render(); } return; }
   if (ui.tool === 'reloc') {
@@ -1273,7 +1301,12 @@ document.addEventListener('click', e => {
     case 'guil-toggle': ui.gOpen = !ui.gOpen; ui.gUntil = 0; render(); break;
     case 'guil-claim': { const r = G.claimQuest(S, a.dataset.id); if (r.ok) { toast('Bonus de Guildéon : ' + r.label + '.'); ui.gUntil = 0; render(); } break; }
     case 'tool-reloc': ui.tool = ui.tool === 'reloc' ? 'select' : 'reloc'; ui.mode = null; ui.delPending = -1; ui.mvFrom = -1; render(); break;
-    case 'tool-select': ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
+    case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
+    case 'spade-menu': openSpade(); break;
+    case 'spade-pick': ui.spade = SPADE[+a.dataset.k]; ui.tool = 'spade'; ui.mode = null; $('layer').innerHTML = ''; render(); break;
+    case 'spot-plant': { const sp = (S.spots || []).find(o => o.id === +a.dataset.sp), p = P[+a.dataset.pid]; if (!sp || !p) break; const ci = spotPickSlot(sp, p); if (ci === undefined) { toast('Tous les emplacements sont pris.'); break; } const r = G.queuePlant(S, ci, p.id, {}); if (!r.ok) { toast(r.msg); break; } toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); openSpot(sp.id); break; }
+    case 'spot-del': { const r = G.removeSpot(S, +a.dataset.sp); if (!r.ok) { toast(r.msg || 'Impossible.'); break; } $('layer').innerHTML = ''; save(); render(); break; }
+    case 'tool-select': ui.spade = null; ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'tool-delete': ui.tool = ui.tool === 'delete' ? 'select' : 'delete'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'zoom-in': zoomBy(1.3); break;
@@ -1419,6 +1452,6 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ openGuild: k => openGuild(k), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();

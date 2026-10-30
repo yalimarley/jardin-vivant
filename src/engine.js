@@ -83,11 +83,27 @@ function weather(day) {
 const GW = COLS >> 1, NR = 5.2;
 const gkOf = i => (((i / COLS) | 0) >> 1) * GW + ((i % COLS) >> 1);
 function gcells(k) { const gx = k % GW, gy = (k / GW) | 0, o = []; for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const c = gx * 2 + dx, r = gy * 2 + dy; if (r < ROWS) o.push(r * COLS + c); } return o; }
+/* ---------- emplacements : guilde (3/5/7), haie (6), plante isolée (1) ---------- */
+const GSL = {
+  3: [[0, -.1, ['Arbre']], [-.85, .8, ['Arbuste']], [.9, .6, ['Couvre-sol']]],
+  5: [[0, -.2, ['Arbre']], [-1.2, .55, ['Arbuste']], [.65, -.7, ['Grimpante']], [.15, 1.2, ['Herbacée', 'Racine']], [1.3, .55, ['Couvre-sol']]],
+  7: [[0, -.25, ['Arbre']], [-1.6, -.9, ['Arbre']], [-1.5, .8, ['Arbuste']], [1.6, .9, ['Arbuste']], [.8, -.6, ['Grimpante']], [.1, 1.6, ['Herbacée', 'Racine']], [1.7, -.4, ['Couvre-sol']]]
+};
+const SPOT_R = { 3: 1.75, 5: 2.25, 7: 2.8 }, HSP = 1.15;
+function slotsOf(sp) {
+  if (sp.t === 'single') return [[0, 0, null]];
+  if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, ['Arbuste', 'Arbre', 'Grimpante']]; }); }
+  return GSL[sp.n] || GSL[3];
+}
+function spotOf(s, i) { return ((s && s.spots) || []).find(o => o.cells.includes(i)) || null; }
+function cellPos(s, i) { const sp = spotOf(s, i); if (!sp) return null; const sl = slotsOf(sp)[sp.cells.indexOf(i)]; return [sp.x + sl[0], sp.z + sl[1]]; }
+function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? 1 : SPOT_R[sp.n]]]; }
+function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? 1 : SPOT_R[sp.n]; }
 function neigh(i, s) {
-  if (s && s.free && s.gpos) {
-    const k = gkOf(i), cs = s.gpos[k], out = [];
-    if (cs) { for (const kk in s.gpos) { const c2 = s.gpos[kk]; if (+kk === k || Math.hypot(c2[0] - cs[0], c2[1] - cs[1]) <= NR) for (const j of gcells(+kk)) if (j !== i) out.push(j); } return out; }
-    return gcells(k).filter(j => j !== i);
+  if (s && s.spots) {
+    const sp = spotOf(s, i); if (!sp) return []; const pi = cellPos(s, i), out = [];
+    for (const o of s.spots) for (const j of o.cells) { if (j === i) continue; const pj = cellPos(s, j), d = Math.hypot(pj[0] - pi[0], pj[1] - pi[1]); if (o === sp ? (sp.t !== 'hedge' || d <= 2.4) : d <= 3.4) out.push(j); }
+    return out;
   }
   const c = i % COLS, r = (i / COLS) | 0, out = [];
   for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
@@ -948,7 +964,33 @@ function make(P) {
     return { text, mood, ready: ready.length, qs, guilds: guilds(s).n, boost: Math.max(0, s.boostUntil - s.day) };
   }
 
-  return { gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  function addSpot(s, t, n, x, z, a, bounds) {
+    s.spots = s.spots || []; const want = t === 'guild' ? n : t === 'hedge' ? 6 : 1;
+    const used = new Set(); s.spots.forEach(o => o.cells.forEach(j => used.add(j))); (s.pq || []).forEach(q => used.add(q.i));
+    const cells = []; for (let i = 0; i < NCELL && cells.length < want; i++) if (isActive(s, i) && !s.grid[i] && !used.has(i)) cells.push(i);
+    if (cells.length < want) return { ok: false, msg: 'Plus assez de terrain libre : agrandis le jardin.' };
+    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells };
+    for (let it = 0; it < 8; it++) {
+      let moved = false; const mine = discsOf(sp);
+      for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + .5; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
+      if (bounds) { const R = spotRadius(sp) + .3, nx = Math.max(-bounds[0] + R, Math.min(bounds[0] - R, sp.x)), nz = Math.max(-bounds[1] + R, Math.min(bounds[1] - R, sp.z)); if (nx !== sp.x || nz !== sp.z) { sp.x = nx; sp.z = nz; moved = true; } }
+      if (!moved) break;
+    }
+    for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of discsOf(sp)) if (Math.hypot(d1[0] - d2[0], d1[1] - d2[1]) < d1[2] + d2[2] - .15) return { ok: false, msg: 'Pas la place ici : choisis un endroit plus dégagé.' };
+    s.spots.push(sp); bump(s); return { ok: true, spot: sp };
+  }
+  function removeSpot(s, id) {
+    const k = (s.spots || []).findIndex(o => o.id === id); if (k < 0) return { ok: false }; const sp = s.spots[k];
+    if (sp.cells.some(i => s.grid[i] || (s.pq || []).some(q => q.i === i))) return { ok: false, msg: 'Retire d’abord les plantes de cet emplacement.' };
+    s.spots.splice(k, 1); bump(s); return { ok: true };
+  }
+  function adoptLegacy(s) {
+    if (s.spots) return; s.spots = []; const byK = {}, used = new Set();
+    s.grid.forEach((c, i) => { if (c) { used.add(i); (byK[gkOf(i)] = byK[gkOf(i)] || []).push(i); } });
+    Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5; for (let i = 0; i < NCELL && cs.length < want; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
+      s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
+  }
+  return { adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

@@ -244,9 +244,9 @@ let COLS = 8, ROWS = 6, HW = 8, HH = 6, STRN = 16, dimKey = '';
 const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const GS = 4.4, RG = 1.7; let BCOLS = 4, BROWS = 3, cpos = {};
 const hj = (a, b) => { const q = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return q - Math.floor(q); };
-function bcenter(bx, by) { const gp = A && A.S().gpos, gk = by * A.G.GW + bx; if (gp && gp[gk] && bx >= 0 && by >= 0 && bx < BCOLS && by < BROWS) return gp[gk]; const par = ((by % 2) + 2) % 2, j = (bx >= 0 && by >= 0 && bx < BCOLS && by < BROWS) ? 1 : 0;
+function bcenter(bx, by) { const par = ((by % 2) + 2) % 2, j = (bx >= 0 && by >= 0 && bx < BCOLS && by < BROWS) ? 1 : 0;
   return [(bx + .5 - BCOLS / 2) * GS + (par ? .11 : -.11) * GS + (hj(bx, by) - .5) * .8 * j, (by + .5 - BROWS / 2) * GS + (hj(by + 7, bx + 3) - .5) * .8 * j]; }
-function cr2xz(c, r) { const bx = Math.floor(c / 2), by = Math.floor(r / 2), q = bcenter(bx, by); return [q[0] + (c - 2 * bx - 1) * .85, q[1] + (r - 2 * by - 1) * .85]; }
+function cr2xz(c, r) { const ci = Math.floor(r) * STRN + Math.floor(c); if (c >= 0 && r >= 0 && cpos[ci]) return [cpos[ci][0] + (c - Math.floor(c) - .5) * .5, cpos[ci][1] + (r - Math.floor(r) - .5) * .5]; const bx = Math.floor(c / 2), by = Math.floor(r / 2), q = bcenter(bx, by); return [q[0] + (c - 2 * bx - 1) * .85, q[1] + (r - 2 * by - 1) * .85]; }
 function cellXZ(i) { if (cpos[i]) return cpos[i]; const c = i % STRN, r = (i / STRN) | 0; return bcenter(c >> 1, r >> 1); }
 function hAt(x, z) {
   const r = Math.hypot(x / (HW + 4.5), z / (HH + 4.5)), k = smooth(1.05, 2.2, r);
@@ -536,25 +536,15 @@ function placeCamera() { const sp = Math.sin(cam.pol), x = cam.tx + cam.dist * s
 /* ---------- toucher : on retrouve l'élément 2D correspondant et on clique dessus ---------- */
 const ray = new T.Raycaster(), ndc = new T.Vector2();
 function fire(el) { if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window })); }
-function placeGuild(x, z) {
-  const S = A.S(), svg = A.svg(); if (!svg.querySelector('.cell.pick')) return;
-  x = Math.max(-HW + 2.3, Math.min(HW - 2.3, x)); z = Math.max(-HH + 2.3, Math.min(HH - 2.3, z)); const GWd = A.G.GW, cs = [];
-  for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) { const k = by * GWd + bx; if (!A.G.guildEmpty(S, k)) cs.push(bcenter(bx, by)); }
-  for (let it = 0; it < 4; it++) cs.forEach(q => { const dx = x - q[0], dz = z - q[1], d = Math.hypot(dx, dz); if (d < 4.1) { const u = d > .01 ? 1 / d : 1; x = q[0] + (d > .01 ? dx * u : 1) * 4.1; z = q[1] + (d > .01 ? dz * u : 0) * 4.1; } });
-  { let best = null, bd = 1.9; cs.forEach((a, ia) => cs.forEach((b, ib) => { if (ia === ib) return; const d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d > 4.9 || d < .1) return; const ux = (b[0] - a[0]) / d, uz = (b[1] - a[1]) / d; [[b[0] + ux * 4.1, b[1] + uz * 4.1]].forEach(c => { const dd = Math.hypot(c[0] - x, c[1] - z); if (dd < bd) { bd = dd; best = c; } }); })); if (best) { x = best[0]; z = best[1]; } }
-  x = Math.max(-HW + 2.3, Math.min(HW - 2.3, x)); z = Math.max(-HH + 2.3, Math.min(HH - 2.3, z));
-  let k = -1; for (let by = 0; by < BROWS && k < 0; by++) for (let bx = 0; bx < BCOLS; bx++) { const kk = by * GWd + bx; if (A.G.guildEmpty(S, kk)) { k = kk; break; } }
-  if (k < 0) { A.toast('Plus de place : agrandis le terrain ou complète une guilde existante.'); return; }
-  A.G.setGuild(S, k, x, z); const ci = A.G.gcells(k)[0]; fire(svg.querySelector('.cell[data-i="' + ci + '"]'));
-}
 function tap(cx, cy) {
   const r = canvas.getBoundingClientRect(); ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
   const hit = ray.intersectObjects(pickRoots, true)[0]; if (!hit) return;
   let o = hit.object; while (o && o.userData.pick === undefined && o.parent) o = o.parent; if (!o || o.userData.pick === undefined) return;
   const pk = o.userData.pick, svg = A.svg();
-  if (pk.t === 'ground') { placeGuild(hit.point.x, hit.point.z); return; }
+  if (A.ui().tool === 'spade') { A.spadeTap(hit.point.x, hit.point.z, -cam.az, [HW, HH]); return; }
+  if (pk.t === 'ground') return;
   if (pk.t === 'cell') fire(svg.querySelector('.cell[data-i="' + pk.i + '"]'));
-  else if (pk.t === 'block') { const items = layoutBlock(A.S(), pk.bx, pk.by), isP = o => { const el = svg.querySelector('.cell[data-i="' + o.i + '"]'); return el && el.classList.contains('pick'); }, t = items.find(isP) || items.find(o => !o.cell) || items[0]; if (t) fire(svg.querySelector('.cell[data-i="' + t.i + '"]')); }
+  else if (pk.t === 'spot') { const sp = (A.S().spots || []).find(q => q.id === pk.id); if (sp) { const els = sp.cells.map(i => svg.querySelector('.cell[data-i="' + i + '"]')).filter(Boolean), el = els.find(x => x.classList.contains('pick')) || els.find(x => !A.S().grid[+x.dataset.i]) || els[0]; fire(el); } }
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
   else if (pk.t === 'lawn') fire(svg.querySelector('.lawn[data-k="' + pk.k + '"]'));
   else if (pk.t === 'deco') fire(svg.querySelector('[data-' + pk.k + ']'));
@@ -566,29 +556,28 @@ function rebuildPlate() {
   while (gPlate.children.length) gPlate.remove(gPlate.children[0]);
   const sc = sun.shadow.camera, e = Math.max(HW, HH) + 9; sc.left = -e; sc.right = e; sc.top = e; sc.bottom = -e; sc.updateProjectionMatrix();
 }
-const SLOT = { 'Arbre': [[0, -.15], [-.9, -.95]], 'Grimpante': [[.5, -.3], [-.45, -.55]], 'Arbuste': [[-.9, .5], [.95, .45]], 'Herbacée': [[.15, .98], [-.55, 1.0]], 'Racine': [[-.2, 1.05], [.65, .95]], 'Couvre-sol': [[.95, -.55], [-1.05, -.2]] };
-const FSLOT = [[-.75, .75], [.85, .85], [0, 0]];
-function layoutBlock(S, bx, by) {
-  const out = [], cnt = {};
-  for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
-    const c = bx * 2 + dx, r = by * 2 + dy; if (c >= COLS || r >= ROWS) continue; const i = r * STRN + c, cell = S.grid[i]; let slot = [0, 0], st = null;
-    if (cell && cell.treille) { st = 'F'; const n = cnt.F = (cnt.F || 0) + 1; slot = FSLOT[(n - 1) % FSLOT.length]; }
-    else if (cell) { st = A.P[cell.pid].strate; const arr = SLOT[st] || SLOT['Herbacée'], n = cnt[st] = (cnt[st] || 0); cnt[st]++; slot = arr[n % arr.length]; }
-    out.push({ i, cell, st, slot });
-  }
-  out.cnt = cnt; return out;
-}
-function buildGuild(bx, by, items, S, m, sk) {
-  const g = new T.Group(), q = bcenter(bx, by); g.position.set(q[0], 0, q[1]); g.userData.pick = { t: 'block', bx, by }; g.userData.plants = []; g.userData.waters = [];
+const emptyM = new T.MeshLambertMaterial({ color: 0x57402d });
+function buildSpot(sp, S, m, sk) {
+  const g = new T.Group(); g.position.set(sp.x, 0, sp.z); g.userData.pick = { t: 'spot', id: sp.id }; g.userData.plants = []; g.userData.waters = [];
   const soilMat = new T.MeshLambertMaterial({ color: 0x6e5035 }); g.userData.soil = soilMat;
-  const usedG = items.some(o => o.cell);
-  if (usedG || !S.free) { const hit = new T.Mesh(new T.CylinderGeometry(RG, RG, .5, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit); }
-  if (!usedG) return g;
-  const hs = hj(bx + 3, by + 5);
-  const ring = mesh(new T.CylinderGeometry(RG * 1.16, RG * 1.24, .05, 16), L(0x8a6a48), 0, .025, 0, false); ring.rotation.y = hs * 6; g.add(ring);
-  const mound = mesh(jitter(new T.CylinderGeometry(RG * .98, RG * 1.1, .14, 14, 1), .05), soilMat, 0, .09, 0, false); mound.rotation.y = hs * 6; g.add(mound);
-  items.forEach(o => {
-    const cell = o.cell; if (!cell) return; const i = o.i, w = new T.Group(); w.position.set(o.slot[0], .15, o.slot[1]); w.userData.pick = { t: 'cell', i }; rng = rngMaker(i * 977 + (cell.pid || 0) * 13 + 1);
+  const hs = hj(sp.id, 5), SL = A.G.slotsOf(sp), R = A.G.spotRadius(sp);
+  if (sp.t === 'hedge') {
+    const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, .06, 1.9), L(0x8a6a48), 0, .03, 0, false), bed = mesh(new T.BoxGeometry(len, .18, 1.45), soilMat, 0, .1, 0, false);
+    ring.rotation.y = bed.rotation.y = -(sp.a || 0); g.add(ring, bed);
+    const hit = new T.Mesh(new T.BoxGeometry(len, .6, 1.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .3; hit.rotation.y = -(sp.a || 0); g.add(hit);
+  } else if (sp.t === 'single') {
+    g.add(mesh(new T.CylinderGeometry(R * .86, R * .95, .05, 12), L(0x8a6a48), 0, .025, 0, false));
+    g.add(mesh(jitter(new T.CylinderGeometry(R * .7, R * .8, .13, 10), .04), soilMat, 0, .08, 0, false));
+    const hit = new T.Mesh(new T.CylinderGeometry(R, R, .5, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
+  } else {
+    const ring = mesh(new T.CylinderGeometry(R * 1.1, R * 1.17, .05, 18), L(0x8a6a48), 0, .025, 0, false); ring.rotation.y = hs * 6; g.add(ring);
+    const mound = mesh(jitter(new T.CylinderGeometry(R * .96, R * 1.06, .14, 16, 1), .05), soilMat, 0, .09, 0, false); mound.rotation.y = hs * 6; g.add(mound);
+    const hit = new T.Mesh(new T.CylinderGeometry(R, R, .5, 12), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
+  }
+  sp.cells.forEach((i, k) => {
+    const cell = S.grid[i], sl = SL[k]; const w = new T.Group();
+    if (!cell) { const em = mesh(new T.CylinderGeometry(.42, .5, .09, 10), emptyM, sl[0], .12, sl[1], false); g.add(em); const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
+    w.position.set(sl[0], .15, sl[1]); w.userData.pick = { t: 'cell', i }; rng = rngMaker(i * 977 + (cell.pid || 0) * 13 + 1);
     if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(.72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); }
     else {
       const p = A.P[cell.pid], ph = A.G.phase(cell), dry = cell.water < 25, st = { stage: ph.stage, prog: ph.prog, ready: !!cell.ready, dry, sk, mo: m };
@@ -614,12 +603,10 @@ function ribbon(a, b, seed) {
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, trackM); m.receiveShadow = true; return m;
 }
 function syncTracks(S) {
-  const occ = []; for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) { let used = false; for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const c = bx * 2 + dx, r = by * 2 + dy; if (c < COLS && r < ROWS && S.grid[r * STRN + c]) used = true; } if (used) occ.push([bx, by]); }
-  const y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2], sg = occ.join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
+  const sps = S.spots || [], y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2], sg = sps.filter(o => o.cells.some(i => S.grid[i])).map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1)).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
   while (gPaths.children.length) gPaths.remove(gPaths.children[0]);
-  const pts = [root].concat(occ.map(o => bcenter(o[0], o[1]))), done = [0], rest = pts.map((_, k) => k).slice(1);
-  while (rest.length) { let bi = -1, bj = -1, bd = 1e9; rest.forEach((j, jj) => done.forEach(i => { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d < bd) { bd = d; bi = i; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); if (!(bi > 0 && bd <= 4.9)) gPaths.add(ribbon(pts[bi], pts[j], bi * 31 + j)); }
-  for (let i = 1; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d <= 4.9) { const st = mesh(geo.box(d, .1, RG * 1.7), hedgeM, (pts[i][0] + pts[j][0]) / 2, .08, (pts[i][1] + pts[j][1]) / 2, false); st.rotation.y = -Math.atan2(pts[j][1] - pts[i][1], pts[j][0] - pts[i][0]); st.receiveShadow = true; gPaths.add(st); } }
+  const act = sps.filter(o => o.cells.some(i => S.grid[i])), pts = [root].concat(act.map(o => [o.x, o.z])), rad = [0].concat(act.map(o => A.G.spotRadius(o))), done = [0], rest = pts.map((_, k) => k).slice(1);
+  while (rest.length) { let bi = -1, bj = -1, bd = 1e9; rest.forEach((j, jj) => done.forEach(i => { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d < bd) { bd = d; bi = i; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); if (!(bi > 0 && bd - rad[bi] - rad[j] <= 1.3)) gPaths.add(ribbon(pts[bi], pts[j], bi * 31 + j)); }
 }
 let sigDec = '';
 function ypos(k, dx, dz) { const N = A.walk().N, n = N['y' + k]; if (!n) return null; const q = cr2xz(n.c, n.r); return [q[0] + (dx || 0), q[1] + (dz || 0)]; }
@@ -644,15 +631,15 @@ function syncDecor(S, sk) {
 /* ---------- parcelles : mise à jour ---------- */
 function syncCells(S, m, sk) {
   const G = A.G, P = A.P, fcells = []; cpos = {}; const live = {};
-  for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) {
-    const items = layoutBlock(S, bx, by), q = bcenter(bx, by), bi = by * BCOLS + bx; live[bi] = 1; let sig = S.free ? 'f|' : 'n|', wsum = 0, wn = 0;
-    items.forEach(o => { const cell = o.cell; cpos[o.i] = [q[0] + (cell ? o.slot[0] : 0), q[1] + (cell ? o.slot[1] : 0)];
+  (S.spots || []).forEach(sp => {
+    const SL = G.slotsOf(sp); live[sp.id] = 1; let sig = [sp.id, sp.t, sp.n, sp.x.toFixed(2), sp.z.toFixed(2), (sp.a || 0).toFixed(2)].join(',') + '|', wsum = 0, wn = 0;
+    sp.cells.forEach((i, k) => { cpos[i] = [sp.x + SL[k][0], sp.z + SL[k][1]]; const cell = S.grid[i];
       if (!cell) { sig += '.|'; return; } if (cell.treille) { sig += 'F' + (cell.furn || 'treille') + (cell.ducks ? 1 : 0) + '|'; return; }
-      const p = P[cell.pid], ph = G.phase(cell), dry = cell.water < 25; fcells.push(o.i); wsum += cell.water; wn++;
-      sig += [cell.pid, ph.stage, Math.round(ph.prog * 14), cell.ready ? 1 : 0, dry ? 1 : 0, sk, A.leafColor(p, m, dry), cell.mulch ? 1 : 0, cell.supp || '', cell.nichoir ? 1 : 0, cell.oyaUntil > S.day ? 1 : 0, o.slot[0]].join(',') + '|'; });
-    let e = cg[bi]; if (!e || e.sig !== sig) { if (e) gBeds.remove(e.g); const g = buildGuild(bx, by, items, S, m, sk); gBeds.add(g); e = cg[bi] = { g, sig }; }
+      const p = P[cell.pid], ph = G.phase(cell), dry = cell.water < 25; fcells.push(i); wsum += cell.water; wn++;
+      sig += [cell.pid, ph.stage, Math.round(ph.prog * 14), cell.ready ? 1 : 0, dry ? 1 : 0, sk, A.leafColor(p, m, dry), cell.mulch ? 1 : 0, cell.supp || '', cell.nichoir ? 1 : 0, cell.oyaUntil > S.day ? 1 : 0].join(',') + '|'; });
+    let e = cg[sp.id]; if (!e || e.sig !== sig) { if (e) gBeds.remove(e.g); const g = buildSpot(sp, S, m, sk); gBeds.add(g); e = cg[sp.id] = { g, sig }; }
     if (e.g.userData.soil) e.g.userData.soil.color.copy(soilColor(wn ? wsum / wn : 40));
-  }
+  });
   for (const k in cg) if (!live[k]) { gBeds.remove(cg[k].g); delete cg[k]; }
   deco.cells = fcells;
 }
@@ -662,11 +649,11 @@ const plusM = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opac
 function syncOver(S) {
   while (gOver.children.length) gOver.remove(gOver.children[0]); pulse.length = 0; const svg = A.svg(), blocks = {};
   svg.querySelectorAll('.cell.pick, .cell.sel, .cell.delp').forEach(el => {
-    const i = +el.dataset.i, [x, z] = cellXZ(i), cl = el.classList; if (S.free && cl.contains('pick') && !cl.contains('sel') && !S.grid[i] && !layoutBlock(S, (i % STRN) >> 1, ((i / STRN) | 0) >> 1).some(o => o.cell)) return;
+    const i = +el.dataset.i, cl = el.classList; if (!A.G.spotOf(S, i)) return; const [x, z] = cellXZ(i);
     if (cl.contains('sel') || cl.contains('delp')) { const rg = new T.Mesh(new T.RingGeometry(.78, .95, 28), cl.contains('delp') ? delM : selM); rg.rotation.x = -Math.PI / 2; rg.position.set(x, .3, z); rg.renderOrder = 5; gOver.add(rg); pulse.push(rg); }
-    if (cl.contains('pick')) { const c = i % STRN, r = (i / STRN) | 0, k = (c >> 1) + ',' + (r >> 1); if (!blocks[k]) { blocks[k] = 1; const q = bcenter(c >> 1, r >> 1), g = new T.Group(); g.position.set(q[0], .85, q[1]); g.add(mesh(new T.CylinderGeometry(.5, .5, .06, 16), plusM, 0, 0, 0, false)); const wm = new T.MeshBasicMaterial({ color: 0x3f8f3a }); g.add(mesh(geo.box(.5, .08, .11), wm, 0, .06, 0, false)); g.add(mesh(geo.box(.11, .08, .5), wm, 0, .06, 0, false)); g.userData.bob = 1; gOver.add(g); pulse.push(g); } }
+    if (cl.contains('pick') && !S.grid[i]) { const g = new T.Group(); g.position.set(x, .85, z); g.add(mesh(new T.CylinderGeometry(.5, .5, .06, 16), plusM, 0, 0, 0, false)); const wm = new T.MeshBasicMaterial({ color: 0x3f8f3a }); g.add(mesh(geo.box(.5, .08, .11), wm, 0, .06, 0, false)); g.add(mesh(geo.box(.11, .08, .5), wm, 0, .06, 0, false)); g.userData.bob = 1; gOver.add(g); pulse.push(g); }
   });
-  const used = {}; (S.pq || []).forEach(q => { const c = q.i % STRN, r = (q.i / STRN) | 0, bx = c >> 1, by = r >> 1, p = A.P[q.pid], k = bx + ',' + by + ',' + p.strate, cnt = layoutBlock(S, bx, by).cnt[p.strate] || 0, n = (used[k] = (used[k] === undefined ? cnt : used[k] + 1)), arr = SLOT[p.strate] || SLOT['Herbacée'], sl = arr[n % arr.length], b = bcenter(bx, by), x = b[0] + sl[0], z = b[1] + sl[1];
+  (S.pq || []).forEach(q => { const p = A.P[q.pid], c = cellXZ(q.i), x = c[0], z = c[1];
     const rg = new T.Mesh(new T.RingGeometry(.6, .72, 20), qM); rg.rotation.x = -Math.PI / 2; rg.position.set(x, .3, z); gOver.add(rg); const gh = mesh(geo.cone(.28, .7, 5), new T.MeshLambertMaterial({ color: new T.Color(A.leafColor(p, 6, false) || '#7dbb5c'), transparent: true, opacity: .55 }), x, .65, z, false); gOver.add(gh); });
   const ui = A.ui();
   if (ui.sel >= 0 && S.grid[ui.sel] && !S.grid[ui.sel].treille) {
@@ -692,19 +679,19 @@ function syncBadges() {
 }
 const gbtn = {};
 function syncPlus() {
-  const S = A.S(), GWd = A.G.GW, seen = {};
-  for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) {
-    const k = by * GWd + bx; if (A.G.guildEmpty(S, k)) continue; seen[k] = [bx, by];
-    if (!gbtn[k]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3plus'; b.setAttribute('aria-label', 'Voir la guilde et ses strates'); b.title = 'Voir la guilde'; b.innerHTML = '<i>+</i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); A.openGuild(+b.dataset.k); }); b.dataset.k = k; gbtn[k] = b; }
-    gbtn[k]._b = seen[k];
-  }
+  const S = A.S(), seen = {};
+  (S.spots || []).forEach(sp => {
+    seen[sp.id] = 1;
+    if (!gbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3plus'; b.setAttribute('aria-label', 'Choisir les plantes'); b.title = 'Choisir les plantes'; b.innerHTML = '<i>+</i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); A.openSpot(b._sp.id); }); gbtn[sp.id] = b; }
+    gbtn[sp.id]._sp = sp;
+  });
   for (const k in gbtn) if (!seen[k]) { gbtn[k].remove(); delete gbtn[k]; }
 }
 const topH = { 'Arbre': 3.7, 'Grimpante': 2.6, 'Arbuste': 2.2, 'Racine': 1.3, 'Herbacée': 1.6, 'Couvre-sol': .9 };
 const vtmp = new T.Vector3();
 function placeBadges() {
   const S = A.S(), w = canvas.clientWidth, h = canvas.clientHeight, bs = Math.min(1, Math.max(.52, 30 / cam.dist));
-  for (const k in gbtn) { const b = gbtn[k], q = bcenter(b._b[0], b._b[1]); vtmp.set(q[0] + RG * .78, .5, q[1] + RG * .78).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
+  for (const k in gbtn) { const b = gbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
   for (const id in btns) {
     const b = btns[id]; let x, y, z, ox = 0, oy = 0;
     if (b._kind === 'lawn') { const q = deco['L' + b._k]; if (!q) { b.style.display = 'none'; continue; } x = q[0]; z = q[1]; y = 1.3; }
@@ -721,7 +708,7 @@ let first = true, lastHour = -1, frostPrev = -1, sigAll = '';
 function sync() {
   if (!A || !V.on || !R) return;
   const S = A.S(), d = A.dims(); const ncols = d[0], nrows = d[1];
-  if (!S.free && !S.grid.some(c => c)) { S.free = true; S.gpos = S.gpos || {}; }
+  if (!S.spots) { if (S.grid.some(c => c)) A.G.adoptLegacy(S); else S.spots = []; }
   const m = A.G.dateOf(S.day).m, sk = seasonKey(m);
   COLS = ncols; ROWS = nrows; STRN = A.STR; BCOLS = Math.ceil(COLS / 2); BROWS = Math.ceil(ROWS / 2); HW = BCOLS * GS / 2 + 1.5; HH = BROWS * GS / 2 + 1.5;
   if (sk !== season || first) applySeason(sk, first);
@@ -729,7 +716,7 @@ function sync() {
   const w = S.w || {}; const rn = (w.rain || 0) >= 1, fr = (w.tmin !== undefined && w.tmin < 0) ? 1 : 0; let sk2 = false;
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
-  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche le sol (nouvelle guilde) ou une guilde').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
+  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche un emplacement libre pour poser'); }
   syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
@@ -751,7 +738,7 @@ function moveChar(obj, a, dt, t, kind) {
   const xz0 = cr2xz(a.c, a.r), x = xz0[0], z = xz0[1], u = obj.userData; obj.visible = !a.inside;
   const moving = !!a.path.length && a.pause <= 0, dx = x - obj.position.x, dz = z - obj.position.z;
   if (Math.hypot(dx, dz) > .004 && moving) { const want = Math.atan2(dx, dz); let df = want - u.heading; df = Math.atan2(Math.sin(df), Math.cos(df)); u.heading += df * Math.min(1, dt * 10); }
-  obj.position.set(x, hAt(x, z) + .06, z); obj.rotation.y = u.heading;
+  { let px = obj.position.x, pz = obj.position.z; if (!u.init) { px = x; pz = z; u.init = 1; } else { const d = Math.hypot(x - px, z - pz); if (d > .0005) { const st = Math.min(d, Math.min(9 * dt, Math.max(d * Math.min(1, dt * 10), 1.5 * dt))); px += (x - px) / d * st; pz += (z - pz) / d * st; } } obj.position.set(px, hAt(px, pz) + .06, pz); } obj.rotation.y = u.heading;
   const sw = moving ? Math.sin(t * (kind === 'd' ? 16 : 10)) : 0;
   if (kind === 'd') { u.legs.forEach((l, i) => { l.rotation.z = (i % 3 ? -1 : 1) * sw * .8; }); u.tail.rotation.y = Math.sin(t * 9) * (moving ? .6 : .9); u.body.position.y = moving ? Math.abs(Math.sin(t * 8)) * .04 : 0; u.head.rotation.z = moving ? 0 : Math.sin(t * 1.3) * .12; return; }
   u.legL.rotation.x = sw * .7; u.legR.rotation.x = -sw * .7; u.armL.rotation.x = -sw * .6; u.armR.rotation.x = sw * .6; u.body.position.y = moving ? Math.abs(Math.sin(t * 10)) * .06 : 0; u.body.rotation.x = 0;

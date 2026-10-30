@@ -244,7 +244,7 @@ let COLS = 8, ROWS = 6, HW = 8, HH = 6, STRN = 16, dimKey = '';
 const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const GS = 4.4, RG = 1.7; let BCOLS = 4, BROWS = 3, cpos = {};
 const hj = (a, b) => { const q = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return q - Math.floor(q); };
-function bcenter(bx, by) { const par = ((by % 2) + 2) % 2, j = (bx >= 0 && by >= 0 && bx < BCOLS && by < BROWS) ? 1 : 0;
+function bcenter(bx, by) { const gp = A && A.S().gpos, gk = by * A.G.GW + bx; if (gp && gp[gk] && bx >= 0 && by >= 0 && bx < BCOLS && by < BROWS) return gp[gk]; const par = ((by % 2) + 2) % 2, j = (bx >= 0 && by >= 0 && bx < BCOLS && by < BROWS) ? 1 : 0;
   return [(bx + .5 - BCOLS / 2) * GS + (par ? .11 : -.11) * GS + (hj(bx, by) - .5) * .8 * j, (by + .5 - BROWS / 2) * GS + (hj(by + 7, bx + 3) - .5) * .8 * j]; }
 function cr2xz(c, r) { const bx = Math.floor(c / 2), by = Math.floor(r / 2), q = bcenter(bx, by); return [q[0] + (c - 2 * bx - 1) * .85, q[1] + (r - 2 * by - 1) * .85]; }
 function cellXZ(i) { if (cpos[i]) return cpos[i]; const c = i % STRN, r = (i / STRN) | 0; return bcenter(c >> 1, r >> 1); }
@@ -434,7 +434,7 @@ function setup() {
   const SIZE = 150, SEG = 100; tg = new T.PlaneGeometry(SIZE, SIZE, SEG, SEG); tg.rotateX(-Math.PI / 2);
   tvar = new Float32Array(tg.attributes.position.count); for (let i = 0; i < tvar.length; i++) tvar[i] = rng();
   tg.setAttribute('color', new T.BufferAttribute(new Float32Array(tvar.length * 3), 3));
-  terrain = new T.Mesh(tg, new T.MeshLambertMaterial({ vertexColors: true })); terrain.receiveShadow = true; gTerr.add(terrain);
+  terrain = new T.Mesh(tg, new T.MeshLambertMaterial({ vertexColors: true })); terrain.receiveShadow = true; terrain.userData.pick = { t: 'ground' }; gTerr.add(terrain);
   // herbe en touffes
   tuftMat = new T.MeshLambertMaterial({ color: 0x5e9a3f });
   tuftMat.onBeforeCompile = s => { s.uniforms.uTime = timeU; s.vertexShader = s.vertexShader.replace('#include <common>', 'uniform float uTime;\n#include <common>').replace('#include <begin_vertex>', '#include <begin_vertex>\n vec4 ip = instanceMatrix * vec4(0.,0.,0.,1.);\n float sw = position.y * 1.6;\n transformed.x += sin(uTime*1.8 + ip.x*0.7 + ip.z*0.5) * sw * 0.22;\n transformed.z += cos(uTime*1.5 + ip.z*0.6) * sw * 0.14;'); };
@@ -536,11 +536,22 @@ function placeCamera() { const sp = Math.sin(cam.pol), x = cam.tx + cam.dist * s
 /* ---------- toucher : on retrouve l'élément 2D correspondant et on clique dessus ---------- */
 const ray = new T.Raycaster(), ndc = new T.Vector2();
 function fire(el) { if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window })); }
+function placeGuild(x, z) {
+  const S = A.S(), svg = A.svg(); if (!svg.querySelector('.cell.pick')) return;
+  x = Math.max(-HW + 2.3, Math.min(HW - 2.3, x)); z = Math.max(-HH + 2.3, Math.min(HH - 2.3, z)); const GWd = A.G.GW, cs = [];
+  for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) { const k = by * GWd + bx; if (!A.G.guildEmpty(S, k)) cs.push(bcenter(bx, by)); }
+  for (let it = 0; it < 4; it++) cs.forEach(q => { const dx = x - q[0], dz = z - q[1], d = Math.hypot(dx, dz); if (d < 4.1) { const u = d > .01 ? 1 / d : 1; x = q[0] + (d > .01 ? dx * u : 1) * 4.1; z = q[1] + (d > .01 ? dz * u : 0) * 4.1; } });
+  x = Math.max(-HW + 2.3, Math.min(HW - 2.3, x)); z = Math.max(-HH + 2.3, Math.min(HH - 2.3, z));
+  let k = -1; for (let by = 0; by < BROWS && k < 0; by++) for (let bx = 0; bx < BCOLS; bx++) { const kk = by * GWd + bx; if (A.G.guildEmpty(S, kk)) { k = kk; break; } }
+  if (k < 0) { A.toast('Plus de place : agrandis le terrain ou complète une guilde existante.'); return; }
+  A.G.setGuild(S, k, x, z); const ci = A.G.gcells(k)[0]; fire(svg.querySelector('.cell[data-i="' + ci + '"]'));
+}
 function tap(cx, cy) {
   const r = canvas.getBoundingClientRect(); ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
   const hit = ray.intersectObjects(pickRoots, true)[0]; if (!hit) return;
   let o = hit.object; while (o && o.userData.pick === undefined && o.parent) o = o.parent; if (!o || o.userData.pick === undefined) return;
   const pk = o.userData.pick, svg = A.svg();
+  if (pk.t === 'ground') { placeGuild(hit.point.x, hit.point.z); return; }
   if (pk.t === 'cell') fire(svg.querySelector('.cell[data-i="' + pk.i + '"]'));
   else if (pk.t === 'block') { const items = layoutBlock(A.S(), pk.bx, pk.by), isP = o => { const el = svg.querySelector('.cell[data-i="' + o.i + '"]'); return el && el.classList.contains('pick'); }, t = items.find(isP) || items.find(o => !o.cell) || items[0]; if (t) fire(svg.querySelector('.cell[data-i="' + t.i + '"]')); }
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
@@ -569,8 +580,9 @@ function layoutBlock(S, bx, by) {
 function buildGuild(bx, by, items, S, m, sk) {
   const g = new T.Group(), q = bcenter(bx, by); g.position.set(q[0], 0, q[1]); g.userData.pick = { t: 'block', bx, by }; g.userData.plants = []; g.userData.waters = [];
   const soilMat = new T.MeshLambertMaterial({ color: 0x6e5035 }); g.userData.soil = soilMat;
-  const hit = new T.Mesh(new T.CylinderGeometry(RG, RG, .5, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
-  if (!items.some(o => o.cell)) return g;
+  const usedG = items.some(o => o.cell);
+  if (usedG || !S.free) { const hit = new T.Mesh(new T.CylinderGeometry(RG, RG, .5, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit); }
+  if (!usedG) return g;
   const hs = hj(bx + 3, by + 5);
   const ring = mesh(new T.CylinderGeometry(RG * 1.16, RG * 1.24, .05, 16), L(0x8a6a48), 0, .025, 0, false); ring.rotation.y = hs * 6; g.add(ring);
   const mound = mesh(jitter(new T.CylinderGeometry(RG * .98, RG * 1.1, .14, 14, 1), .05), soilMat, 0, .09, 0, false); mound.rotation.y = hs * 6; g.add(mound);
@@ -612,7 +624,7 @@ function syncDecor(S, sk) {
   const tr = S.trees.map(t => t.formed ? 1 : 0).join(''), lw = [0, 1, 2, 3, 4, 5, 6, 7].map(k => A.G.lawnReady(S, k) ? 1 : 0).join('');
   const sg = [COLS, ROWS, S.cuves | 0, S.poulailler ? 1 : 0, S.atelier ? 1 : 0, Math.round(S.tank / S.tankMax * 8), Math.round(Math.min(1, (S.waste || 0) / 6) * 6), tr, lw, sk, A.walk().N.y0 ? 1 : 0].join('|');
   if (sg === sigDec) return; sigDec = sg;
-  while (gDecor.children.length) gDecor.remove(gDecor.children[0]); pickRoots.length = 0; pickRoots.push(gBeds, gDecor); rng = rngMaker(4242);
+  while (gDecor.children.length) gDecor.remove(gDecor.children[0]); pickRoots.length = 0; pickRoots.push(gBeds, gDecor, terrain); rng = rngMaker(4242);
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
   const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
@@ -630,7 +642,7 @@ function syncDecor(S, sk) {
 function syncCells(S, m, sk) {
   const G = A.G, P = A.P, fcells = []; cpos = {}; const live = {};
   for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) {
-    const items = layoutBlock(S, bx, by), q = bcenter(bx, by), bi = by * BCOLS + bx; live[bi] = 1; let sig = '', wsum = 0, wn = 0;
+    const items = layoutBlock(S, bx, by), q = bcenter(bx, by), bi = by * BCOLS + bx; live[bi] = 1; let sig = S.free ? 'f|' : 'n|', wsum = 0, wn = 0;
     items.forEach(o => { const cell = o.cell; cpos[o.i] = [q[0] + (cell ? o.slot[0] : 0), q[1] + (cell ? o.slot[1] : 0)];
       if (!cell) { sig += '.|'; return; } if (cell.treille) { sig += 'F' + (cell.furn || 'treille') + (cell.ducks ? 1 : 0) + '|'; return; }
       const p = P[cell.pid], ph = G.phase(cell), dry = cell.water < 25; fcells.push(o.i); wsum += cell.water; wn++;
@@ -647,7 +659,7 @@ const plusM = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opac
 function syncOver(S) {
   while (gOver.children.length) gOver.remove(gOver.children[0]); pulse.length = 0; const svg = A.svg(), blocks = {};
   svg.querySelectorAll('.cell.pick, .cell.sel, .cell.delp').forEach(el => {
-    const i = +el.dataset.i, [x, z] = cellXZ(i), cl = el.classList;
+    const i = +el.dataset.i, [x, z] = cellXZ(i), cl = el.classList; if (S.free && cl.contains('pick') && !cl.contains('sel') && !S.grid[i] && !layoutBlock(S, (i % STRN) >> 1, ((i / STRN) | 0) >> 1).some(o => o.cell)) return;
     if (cl.contains('sel') || cl.contains('delp')) { const rg = new T.Mesh(new T.RingGeometry(.78, .95, 28), cl.contains('delp') ? delM : selM); rg.rotation.x = -Math.PI / 2; rg.position.set(x, .3, z); rg.renderOrder = 5; gOver.add(rg); pulse.push(rg); }
     if (cl.contains('pick')) { const c = i % STRN, r = (i / STRN) | 0, k = (c >> 1) + ',' + (r >> 1); if (!blocks[k]) { blocks[k] = 1; const q = bcenter(c >> 1, r >> 1), g = new T.Group(); g.position.set(q[0], .85, q[1]); g.add(mesh(new T.CylinderGeometry(.5, .5, .06, 16), plusM, 0, 0, 0, false)); const wm = new T.MeshBasicMaterial({ color: 0x3f8f3a }); g.add(mesh(geo.box(.5, .08, .11), wm, 0, .06, 0, false)); g.add(mesh(geo.box(.11, .08, .5), wm, 0, .06, 0, false)); g.userData.bob = 1; gOver.add(g); pulse.push(g); } }
   });
@@ -695,6 +707,7 @@ let first = true, lastHour = -1, frostPrev = -1, sigAll = '';
 function sync() {
   if (!A || !V.on || !R) return;
   const S = A.S(), d = A.dims(); const ncols = d[0], nrows = d[1];
+  if (!S.free && !S.grid.some(c => c)) { S.free = true; S.gpos = S.gpos || {}; }
   const m = A.G.dateOf(S.day).m, sk = seasonKey(m);
   COLS = ncols; ROWS = nrows; STRN = A.STR; BCOLS = Math.ceil(COLS / 2); BROWS = Math.ceil(ROWS / 2); HW = BCOLS * GS / 2 + 1.5; HH = BROWS * GS / 2 + 1.5;
   if (sk !== season || first) applySeason(sk, first);
@@ -702,6 +715,7 @@ function sync() {
   const w = S.w || {}; const rn = (w.rain || 0) >= 1, fr = (w.tmin !== undefined && w.tmin < 0) ? 1 : 0; let sk2 = false;
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
+  { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche le sol (nouvelle guilde) ou une guilde').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
   syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
@@ -766,7 +780,7 @@ function setOn(on) {
 V.mount = function (api) {
   A = api;
   try { setup(); applySeason('summer', true); } catch (e) { try { console.warn('Vue 3D indisponible', e); } catch (_) {} document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); if (canvas && canvas.parentNode) canvas.remove(); if (bdiv && bdiv.parentNode) bdiv.remove(); R = null; return false; }
-  V.ok = true; V.sync = sync; V.setOn = setOn; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
+  V.ok = true; V.sync = sync; V.setOn = setOn; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
   window.addEventListener('click', e => {
     const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
     if (a === 'view3d') { e.stopPropagation(); e.preventDefault(); setOn(!V.on); A.rerender(); return; }

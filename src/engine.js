@@ -173,10 +173,7 @@ function make(P) {
       if (support) add('good', p.name + (c.supp ? ' grimpe sur ' + (c.supp === 'pergola' ? 'la pergola' : 'la treille') + '.' : ' grimpe sur le support voisin.'), -1, c.supp ? .06 : 0, c.supp ? .06 : 0);
       else add('bad', p.name + ' n’a rien pour grimper : sans treille, pergola ou arbre voisin, elle ne pousse presque pas.', -1, -.4, -.2);
     }
-    // accès : une plante à plus de deux parcelles du bord et sans chemin voisin est piétinée à chaque soin
-    { const dm = dims(s), r = (i / COLS) | 0, cc = i % COLS, edge = Math.min(r, dm[1] - 1 - r, cc, dm[0] - 1 - cc);
-      if (pathAccess(s, i)) add('good', 'Un sentier longe la parcelle : tu soignes ' + p.name.toLowerCase() + ' sans piétiner le sol.', -1, .03, .02);
-      else if (edge >= 2) add('bad', 'Parcelle enclavée : tu piétines le sol pour atteindre ' + p.name.toLowerCase() + '. Trace un sentier depuis le bord du jardin.', -1, -.06, -.08); }
+    // accès : les sentiers se forment d'eux-mêmes entre les guildes (plus de pénalité d'enclavement)
     if (tree) {
       if (p.soleil >= 6) add('bad', tree.q.name + ' fait de l’ombre : ' + p.name + ' manque de soleil (besoin : ' + p.soleil + ' h).', tree.j, -.25, -.25);
       else if (p.soleil <= 4 && m >= 4 && m <= 7) add('good', tree.q.name + ' donne une ombre d’été que ' + p.name + ' apprécie.', tree.j, .08, 0);

@@ -814,23 +814,23 @@ function spadeTap(x, z, a, bounds) {
 }
 function spotPickSlot(sp, p) {
   const free = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)), sl = G.slotsOf(sp);
-  return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return pr && pr.includes(p.strate); }) ?? free[0];
+  return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return !pr || pr.includes(p.strate); });
 }
 function openSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
-  const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée ou racine', 'Couvre-sol': 'Couvre-sol' };
+  const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
   const rows = sp.cells.map((i, k) => {
     const c = S.grid[i], q = (S.pq || []).find(o => o.i === i), pr = sl[k][2], lb = pr ? (sp.t === 'hedge' ? 'Plante de haie' : LB[pr[0]]) : 'Plante';
     if (c && c.treille) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + (FURN_INFO[c.furn || 'treille'] || {}).n + '</span></li>';
-    if (c && P[c.pid]) return '<li class="good"><span class="m">✓</span><span><b>' + lb + '</b> : ' + P[c.pid].name + '</span></li>';
-    if (q) return '<li class="good"><span class="m">…</span><span><b>' + lb + '</b> : ' + P[q.pid].name + ' (plantation en cours)</span></li>';
+    if (c && P[c.pid]) return '<li class="good"><span class="m">✓</span><span><b>' + (LB[P[c.pid].strate] || P[c.pid].strate) + '</b> : ' + P[c.pid].name + '</span></li>';
+    if (q) return '<li class="good"><span class="m">…</span><span><b>' + (LB[P[q.pid].strate] || P[q.pid].strate) + '</b> : ' + P[q.pid].name + ' (plantation en cours)</span></li>';
     return '<li class="bad"><span class="m">✕</span><span><b>' + lb + '</b> : libre</span></li>';
   }).join('');
   const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille).length, nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
   const have = new Set(sp.cells.map(i => S.grid[i] && S.grid[i].pid != null && P[S.grid[i].pid] ? P[S.grid[i].pid].strate : null).filter(Boolean)), nStr = have.size;
   let h = '<p class="note-p">' + filled + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + nStr + ' strate' + (nStr > 1 ? 's' : '') + ' présente' + (nStr > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p><ul class="notes">' + rows + '</ul>';
   const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0), need = new Set(); sp.cells.forEach((i, k) => { if (!S.grid[i] && sl[k][2]) sl[k][2].forEach(s => need.add(s)); });
-  const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Plus de place.' } : G.plantCheck(S, ci, id); });
+  const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
   if (nFree) h += '<h3 class="gh">Tes plantes disponibles</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte : elle est plantée à l’emplacement qui lui convient. Les cartes cerclées de vert comblent une strate manquante ; les cartes grisées ne sont pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
   if (!filled && !(S.pq || []).some(q => sp.cells.includes(q.i))) h += '<div class="acts"><button type="button" class="btn sm" data-act="spot-del" data-sp="' + sp.id + '">Retirer cet emplacement</button></div>';
@@ -1304,7 +1304,7 @@ document.addEventListener('click', e => {
     case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
     case 'spade-menu': openSpade(); break;
     case 'spade-pick': ui.spade = SPADE[+a.dataset.k]; ui.tool = 'spade'; ui.mode = null; $('layer').innerHTML = ''; render(); break;
-    case 'spot-plant': { const sp = (S.spots || []).find(o => o.id === +a.dataset.sp), p = P[+a.dataset.pid]; if (!sp || !p) break; const ci = spotPickSlot(sp, p); if (ci === undefined) { toast('Tous les emplacements sont pris.'); break; } const r = G.queuePlant(S, ci, p.id, {}); if (!r.ok) { toast(r.msg); break; } toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); openSpot(sp.id); break; }
+    case 'spot-plant': { const sp = (S.spots || []).find(o => o.id === +a.dataset.sp), p = P[+a.dataset.pid]; if (!sp || !p) break; const ci = spotPickSlot(sp, p); if (ci === undefined) { toast('Aucun emplacement libre pour la strate ' + p.strate.toLowerCase() + ' dans cette ' + (sp.t === 'hedge' ? 'haie (arbustes, arbres et lianes)' : 'guilde') + '.'); break; } const r = G.queuePlant(S, ci, p.id, {}); if (!r.ok) { toast(r.msg); break; } toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); openSpot(sp.id); break; }
     case 'spot-del': { const r = G.removeSpot(S, +a.dataset.sp); if (!r.ok) { toast(r.msg || 'Impossible.'); break; } $('layer').innerHTML = ''; save(); render(); break; }
     case 'tool-select': ui.spade = null; ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;

@@ -259,6 +259,7 @@ function make(P) {
     const occ = s.grid[i];
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
+    if (s.spots && !occ) { const sp = spotOf(s, i); if (sp) { const pr = slotsOf(sp)[sp.cells.indexOf(i)][2]; if (pr && !pr.includes(p.strate)) return { ok: false, msg: 'Cet emplacement accueille : ' + pr.map(x => x === 'Grimpante' ? 'liane' : x.toLowerCase()).join(' ou ') + '. ' + p.name + ' est ' + (p.strate === 'Grimpante' ? 'une liane' : 'de strate ' + p.strate.toLowerCase()) + '.' }; } }
     if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
     if (!sowable(p, m)) return { ok: false, msg: 'Pas la bonne saison pour ' + p.name.toLowerCase() + ' (' + (['Arbre', 'Arbuste', 'Grimpante'].includes(p.strate) ? 'plantation' : 'semis') + ' : ' + monthRange(p.semis) + '). Garde la carte.' };

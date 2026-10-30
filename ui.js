@@ -11,8 +11,41 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (n, d) => Number(n).toFixed(d == null ? 1 : d).replace('.', ',');
 function withFamily(o) { if (!o.family) o.family = G.defaultFamily(); return G.fixSave(o); }
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }
-function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && o.grid.length === G.NCELL) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && (o.grid.length === G.NCELL || o.grid.length === 120)) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
+// ----- compte en ligne (projet Supabase « jardin-vivant », séparé de JF Lab) -----
+const CLOUD = { url: 'https://wbdduslvjqeersekxaxw.supabase.co', key: 'sb_publishable_m47WNomSZ0jqHim34mbc7A_vs6uCZVX', AK: 'jardin-vivant-auth', sess: null, timer: null, status: '', last: 0 };
+try { CLOUD.sess = JSON.parse(localStorage.getItem(CLOUD.AK) || 'null'); } catch (e) {}
+function cloudStore(s) { CLOUD.sess = s; try { if (s) localStorage.setItem(CLOUD.AK, JSON.stringify(s)); else localStorage.removeItem(CLOUD.AK); } catch (e) {} }
+async function cloudFetch(path, o) {
+  o = o || {}; const h = Object.assign({ apikey: CLOUD.key, 'Content-Type': 'application/json' }, o.headers || {});
+  if (o.auth !== false && CLOUD.sess) h.Authorization = 'Bearer ' + CLOUD.sess.access_token;
+  const r = await fetch(CLOUD.url + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined });
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+  if (!r.ok) { const er = new Error((j && (j.msg || j.message || j.error_description || j.error)) || ('Erreur ' + r.status)); er.status = r.status; throw er; }
+  return j;
+}
+async function cloudRefresh() {
+  if (!CLOUD.sess || !CLOUD.sess.refresh_token) return false;
+  if (CLOUD.sess.expires_at && Date.now() / 1000 < CLOUD.sess.expires_at - 60) return true;
+  try { const j = await cloudFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', auth: false, body: { refresh_token: CLOUD.sess.refresh_token } }); cloudStore({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Date.now() / 1000 + j.expires_in), email: (j.user && j.user.email) || CLOUD.sess.email, uid: (j.user && j.user.id) || CLOUD.sess.uid }); return true; }
+  catch (e) { if (e.status === 400 || e.status === 401) cloudStore(null); return false; }
+}
+function cloudMap(j, email) { return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Date.now() / 1000 + j.expires_in), email: (j.user && j.user.email) || email, uid: j.user && j.user.id }; }
+async function cloudSignIn(email, pw) { const j = await cloudFetch('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: pw } }); cloudStore(cloudMap(j, email)); }
+async function cloudSignUp(email, pw) { const j = await cloudFetch('/auth/v1/signup', { method: 'POST', auth: false, body: { email, password: pw } }); if (j && j.access_token) { cloudStore(cloudMap(j, email)); return 'ok'; } return 'confirm'; }
+async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) {} cloudStore(null); clearTimeout(CLOUD.timer); CLOUD.status = ''; }
+async function cloudPush() {
+  if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
+  try { await cloudFetch('/rest/v1/saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; return true; }
+  catch (e) { CLOUD.status = 'err'; return false; }
+}
+async function cloudPull() {
+  if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return null;
+  const j = await cloudFetch('/rest/v1/saves?select=data,day,updated_at&user_id=eq.' + encodeURIComponent(CLOUD.sess.uid)); return j && j[0] ? j[0] : null;
+}
+function cloudDirty() { if (!CLOUD.sess) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 20000); }
+window.addEventListener('pagehide', () => { if (CLOUD.sess && CLOUD.timer) cloudPush(); });
 
 /* ---------- icônes ---------- */
 const IC = {
@@ -134,9 +167,9 @@ function cardHtml(p, o) {
   o = o || {}; const m = G.dateOf(S.day).m, now = G.sowable(p, m), rar = p.rarete === 'Commune' ? '' : p.rarete === 'Rare' ? 'rar-Rare' : 'rar-Peu';
   const verb = p.propagation === 'Plant' ? 'plant' : p.propagation.toLowerCase();
   return '<' + (o.btn ? 'button type="button" data-act="mode-plant" data-pid="' + p.id + '"' : 'article') + ' class="card t-' + p.strate + ' ' + rar + (o.on ? ' on' : '') + '">' +
-    '<div class="art" data-pid="' + p.id + '">' + cardArt(p) + phImg(p) + (o.btn ? (now ? '<span class="now">De saison</span>' : '<span class="now no">Hors saison</span>') : '') + (o.count > 1 ? '<span class="cnt">×' + o.count + '</span>' : '') + '</div>' +
+    '<div class="art" data-pid="' + p.id + '">' + cardArt(p) + phImg(p) + (o.btn ? (now ? '<span class="now">De saison</span>' : '<span class="now no">Hors saison</span>') : '') + (o.count > 1 ? '<span class="cnt">×' + o.count + '</span>' : '') + (p.rarete === 'Rare' ? '<span class="rbadge" title="Plante rare ou oubliée">★ Rare</span>' : '') + '</div>' +
     '<h4>' + p.name + '</h4><p class="lat">' + p.latin + '</p>' +
-    '<div class="tags"><span class="tag">' + strIco(p.strate) + p.strate + '</span><span class="tag">' + verb + '</span></div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
+    '<div class="tags"><span class="tag">' + strIco(p.strate) + p.strate + '</span><span class="tag">' + verb + '</span>' + (p.gel >= -3 ? '<span class="tag frail">Craint le gel</span>' : '') + '</div>' + '<div class="cal-wrap">' + cal(p, m) + '</div>' +
     '</' + (o.btn ? 'button' : 'article') + '>';
 }
 const GK = (z) => '<svg class="gk" width="' + (z || 16) + '" height="' + (z || 16) + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 23.2V19.5" stroke="#a8730d" stroke-width="1.6" stroke-linecap="round"/><path d="M12 19.5L1.7 15.7A11 11 0 0 1 11.4 8.5L12 10.7L12.6 8.5A11 11 0 0 1 22.3 15.7Z" fill="#f0b92e" stroke="#a8730d" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 19.5L3.6 12.4M12 19.5L7.0 9.7M12 19.5L17.0 9.7M12 19.5L20.4 12.4" stroke="#fff3b8" stroke-width=".9" stroke-linecap="round" opacity=".9"/></svg>';
@@ -144,7 +177,7 @@ const MATS = {
   paillage: { n: 'Paillage', d: 'Couvre le sol : garde l’eau.', svg: '<path d="M10 62c10-8 14-8 24 0s14 8 24 0M6 48c10-8 14-8 24 0s14 8 24 0M14 34c10-8 14-8 24 0s14 8 24 0" stroke="#b08a4a" stroke-width="5" fill="none" stroke-linecap="round"/>' },
   compost: { n: 'Compost', d: 'Nourrit une plante 30 jours.', svg: '<path d="M16 28h48l-5 40H21z" fill="#6a4e39"/><path d="M12 28h56" stroke="#8a6b4a" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="44" r="4" fill="#4a3526"/><circle cx="46" cy="52" r="3.5" fill="#4a3526"/><circle cx="40" cy="38" r="3" fill="#7dbb5c"/>' },
   treille: { n: 'Treille', d: 'Support pour une grimpante.', svg: treille() },
-  chemin: { n: 'Chemin', d: 'Accès sans piétiner le sol.', svg: '<path d="M8 66L40 50l32 16-32 16z" fill="#d9c9a2" transform="translate(0 -14)"/><ellipse cx="26" cy="54" rx="7" ry="3" fill="#bfae88"/><ellipse cx="42" cy="46" rx="8" ry="3.2" fill="#efe5c6"/><ellipse cx="55" cy="55" rx="6" ry="2.6" fill="#bfae88"/><ellipse cx="38" cy="60" rx="5" ry="2.2" fill="#efe5c6"/><ellipse cx="22" cy="46" rx="4" ry="1.8" fill="#efe5c6"/>' },
+  chemin: { n: 'Chemin', d: 'Un sentier de gravier : tu soignes sans piétiner le sol.', svg: '<path d="M8 66L40 50l32 16-32 16z" fill="#d9c9a2" transform="translate(0 -14)"/><ellipse cx="26" cy="54" rx="7" ry="3" fill="#bfae88"/><ellipse cx="42" cy="46" rx="8" ry="3.2" fill="#efe5c6"/><ellipse cx="55" cy="55" rx="6" ry="2.6" fill="#bfae88"/><ellipse cx="38" cy="60" rx="5" ry="2.2" fill="#efe5c6"/><ellipse cx="22" cy="46" rx="4" ry="1.8" fill="#efe5c6"/>' },
   pergola: { n: 'Pergola', d: 'Support et ombre fraîche.', svg: '<path d="M14 70V24M66 70V24" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><path d="M8 24h64M12 32h56" stroke="#7a5636" stroke-width="4.5" stroke-linecap="round"/><path d="M20 22v-6M30 22v-6M40 22v-6M50 22v-6M60 22v-6" stroke="#7a5636" stroke-width="3.4" stroke-linecap="round"/><circle cx="22" cy="30" r="5" fill="#5aa04c"/><circle cx="38" cy="34" r="5.5" fill="#6bb35a"/><circle cx="54" cy="30" r="5" fill="#5aa04c"/><circle cx="46" cy="39" r="3" fill="#6a3d8f"/><circle cx="30" cy="40" r="3" fill="#6a3d8f"/>' },
   serre: { n: 'Serre froide', d: 'Protège du gel.', svg: '<path d="M10 66V38l30-16 30 16v28z" fill="#dff0f6" opacity=".75" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M10 38h60M40 22v44M25 30v36M55 30v36" stroke="#fff" stroke-width="2.2"/><path d="M10 66h60" stroke="#6a4e39" stroke-width="5"/><circle cx="26" cy="58" r="3.4" fill="#7dbb5c"/><circle cx="40" cy="56" r="3.4" fill="#7dbb5c"/><circle cx="54" cy="58" r="3.4" fill="#7dbb5c"/>' },
   ruche: { n: 'Ruche', d: 'Abeilles : plus de fruits.', svg: '<ellipse cx="40" cy="68" rx="24" ry="6" fill="#000" opacity=".15"/><path d="M22 66V50h36v16" fill="#e8c36a" stroke="#a77d2a" stroke-width="2"/><path d="M20 50V36h40v14" fill="#f0d283" stroke="#a77d2a" stroke-width="2"/><path d="M18 36h44l-4-10H22z" fill="#c8553a"/><rect x="34" y="56" width="12" height="4" rx="2" fill="#4a3526"/><circle cx="58" cy="26" r="3" fill="#f2b13a"/><circle cx="66" cy="34" r="2.6" fill="#f2b13a"/>' },
@@ -179,7 +212,7 @@ function renderTop() {
   $('when').innerHTML = '<b>' + dateStr(S.day) + '</b><span class="chip"><i style="background:' + SEASON_COL[se] + '"></i>' + se + '</span>' +
     '<span style="display:inline-flex;align-items:center;gap:6px">' + ico(wi) + fmt(w.tmin, 0) + ' à ' + fmt(w.tmax, 0) + ' °C' + (w.ev ? ' · ' + ({ gel: 'gel', canicule: 'canicule', secheresse: 'sécheresse', tempete: 'tempête', orage: w.hail ? 'orage de grêle' : 'orage' })[w.ev] : w.rain >= 1 ? ' · pluie ' + fmt(w.rain, 0) + ' mm' : w.tmin < 0 ? ' · gelée' : '') + '</span>';
   const wr = document.querySelector('.garden-wrap'); if (wr) wr.dataset.wx = w.ev || '';
-  const fc = G.forecastInfo(S), wa = $('wxalert'); if (wa) { wa.hidden = !fc; wa.className = 'wxalert' + (fc ? ' k-' + fc.kind : ''); wa.innerHTML = fc ? '<b>' + fc.title + '</b><span>' + fc.tip + '</span>' : ''; }
+  const fc = G.forecastInfo(S), wa = $('wxalert'); if (wa) { wa.hidden = !fc; wa.className = 'wxalert' + (fc ? ' k-' + fc.kind : ''); wa.innerHTML = fc ? '<b>' + fc.title + '</b><span>' + fc.tip + '</span>' + (fc.kind === 'gel' ? ((S.mats.voile || 0) > 0 ? '<button type="button" class="btn sm" data-act="protect">Protéger (' + S.mats.voile + ' voile' + (S.mats.voile > 1 ? 's' : '') + ')</button>' : '<span class="wx-hint">Plus de voile : 6 ginkgos à la boutique.</span>') : '') : ''; }
   const g = (n, v, t, cls) => '<div class="gauge" title="' + t + '"><div class="row"><span>' + n + '</span><strong>' + v + '</strong></div><div class="bar ' + (cls || '') + '"><i style="width:' + clamp(parseFloat(String(v).replace(',', '.')), 0, 100) + '%"></i></div></div>';
   $('gauges').innerHTML = g('Autonomie', fmt(st.autonomy) + ' %', 'Part de ce qu’une forêt comestible peut couvrir (le quart des besoins : fruits, légumes, aromatiques). Base ' + st.aParts.base + ' % (récolte réelle sur 90 jours ' + st.aParts.prod + ' %, potentiel de la forêt ' + st.aParts.pot + ' %), multipliée par le bonus de tes guildes : +' + st.aParts.boost + ' % (' + st.guildsAuto + ' autonome(s) sur ' + st.guildsN + ' guilde(s)).') +
     g('Biodiversité', st.biodiv + ' %', 'Espèces différentes, strates présentes, plantes qui nourrissent les pollinisateurs.') +
@@ -203,7 +236,7 @@ function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
   const kg = S.stock.reduce((a, b) => a + b.kg, 0), X = G.xpInfo(S);
-  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span>' + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
+  $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span><button type="button" class="pill" data-act="shop" title="Tes ginkgos : ouvre la boutique">' + GK(16) + (S.feves || 0) + '<span class="lb"> ginkgos</span></button><button type="button" class="pill' + (S.pts > 0 ? ' on' : '') + '" data-act="skills" title="Points de compétence à dépenser : ouvre les compétences">' + ico('leaf') + (S.pts || 0) + '<span class="lb"> point' + ((S.pts || 0) > 1 ? 's' : '') + ' de compétence</span><span class="sh"> pt</span></button>' + ((S.streak || 0) >= 2 && (S.lastActive || 0) >= S.day - 1 ? '<span class="pill" title="Jours de suite au jardin : 3 ginkgos tous les 7 jours.">Série ' + S.streak + ' j</span>' : '') + mat('paillage') + mat('compost') + mat('chemin') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
   const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
   $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
@@ -212,7 +245,8 @@ function renderRes() {
 /* ---------- jardin isométrique ---------- */
 const GROUND = { 'Printemps': ['#a9d37e', '#8fc069'], 'Été': ['#b9cc68', '#a2b956'], 'Automne': ['#b9bc6a', '#a5a85a'], 'Hiver': ['#c3d0bc', '#aebfa4'] };
 const TW = 46, TH = 23, OX = 334, OY = 150, BH = 8, PT = 14, INS = .06;
-const PHONE = () => window.innerWidth <= 560, defView = () => ({ z: PHONE() ? 1.3 : 1, cx: 380, cy: PHONE() ? 240 : 286 });
+const PHONE = () => window.innerWidth <= 560, defView = () => ({ z: PHONE() ? 1.0 : 1, cx: 380, cy: PHONE() ? 300 : 286 });
+['gesturestart','gesturechange','gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 let VROT = 0, view = defView();
 function rot(c, r) { switch (VROT) { case 0: return [c, r]; case 1: return [ROWS - r, c]; case 2: return [COLS - c, ROWS - r]; default: return [r, COLS - c]; } }
 function irot(a, b) { switch (VROT) { case 0: return [a, b]; case 1: return [b, ROWS - a]; case 2: return [COLS - a, ROWS - b]; default: return [COLS - b, a]; } }
@@ -290,7 +324,7 @@ function butterflies(n, m) {
 
 /* ---------- mobilier ---------- */
 const FURN_INFO = {
-  chemin: { n: 'Chemin', d: 'Un passage de gravier : tu soignes les plantes voisines sans piétiner le sol (+ croissance et rendement). Indispensable pour atteindre le cœur du jardin.', unit: 'une parcelle' },
+  chemin: { n: 'Sentier', d: 'Un sentier de gravier entre les parcelles : il ne prend aucune place de plante. Il part du bord du jardin et se trace en glissant ; les plantes qu’il longe se soignent sans piétiner le sol, et un beau sentier rend la famille plus heureuse.', unit: 'un tronçon' },
   treille: { n: 'Treille', d: 'Un support pour les grimpantes voisines (haricot, pois, vigne, kiwi).' },
   pergola: { n: 'Pergola', d: 'Support pour les grimpantes voisines, et ombre fraîche l’été pour les plantes qui la préfèrent.' },
   serre: { n: 'Serre froide', d: 'Abrite ses voisines du gel (jusqu’à 4 °C de plus) et réchauffe le sol en hiver.' },
@@ -301,8 +335,8 @@ const FURN_INFO = {
   hamac: { n: 'Hamac', d: 'Un coin de repos entre deux poteaux. Tant qu’il est posé à côté d’au moins 3 plantes en bonne santé, la famille est plus heureuse (+10 de bonheur visé). Un jardin qu’on a envie d’habiter.' },
   ruche: { n: 'Ruche', d: 'Les abeilles pollinisent les fleurs voisines : plus de fruits pour les vivaces et les plantes gourmandes proches. Compte aussi dans la biodiversité.' }
 };
-const FURNK = ['chemin', 'treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac'];
-const TARGET = { voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
+const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac'];
+const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer. Les cercles orange marquent les plantes encore sans sentier.', voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
 const INSTANT = ['atelier', 'poulailler', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
 const dia = (cx, cy, k) => [(cx).toFixed(1) + ',' + (cy - TH * k).toFixed(1), (cx + TW * k).toFixed(1) + ',' + cy.toFixed(1), (cx).toFixed(1) + ',' + (cy + TH * k).toFixed(1), (cx - TW * k).toFixed(1) + ',' + cy.toFixed(1)];
 function furnTile(k, cx, cy, m, seed, cell) {
@@ -397,11 +431,9 @@ function rebuildWalk() {
   const key = (c, r) => 'b' + c.toFixed(2) + '_' + r.toFixed(2);
   seq.forEach(([c, r]) => ring.push(add(key(c, r), c, r)));
   ring.forEach((k, n) => link(k, ring[(n + 1) % ring.length]));
-  S.grid.forEach((cell, i) => { if (!cell || cell.furn !== 'chemin') return; const c = i % STR, r = (i / STR) | 0; if (c >= COLS || r >= ROWS) return; add('p' + i, c + .5, r + .5); });
-  S.grid.forEach((cell, i) => { if (!cell || cell.furn !== 'chemin') return; const c = i % STR, r = (i / STR) | 0, k = 'p' + i; if (c >= COLS || r >= ROWS) return;
-    if (c + 1 < COLS) link(k, 'p' + (i + 1)); if (r + 1 < ROWS) link(k, 'p' + (i + STR));
-    if (r === 0) link(k, key(c + .5, -RING)); if (r === ROWS - 1) link(k, key(c + .5, ROWS + RING));
-    if (c === 0) link(k, key(-RING, r + .5)); if (c === COLS - 1) link(k, key(COLS + RING, r + .5)); });
+  { const vk = (x, y) => 'v' + x + '_' + y; (S.paths || []).forEach(pk0 => { const [x1, y1, x2, y2] = G.pparse(pk0); add(vk(x1, y1), x1, y1); add(vk(x2, y2), x2, y2); });
+    (S.paths || []).forEach(pk0 => { const [x1, y1, x2, y2] = G.pparse(pk0); link(vk(x1, y1), vk(x2, y2)); });
+    const dm = G.dims(S); Object.keys(N).filter(k => k[0] === 'v').forEach(k => { const n = N[k]; if (n.c === 0 || n.r === 0 || n.c === dm[0] || n.r === dm[1]) { let best = null, bd = 1e9; ring.forEach(q => { const d = (N[q].c - n.c) ** 2 + (N[q].r - n.r) ** 2; if (d < bd) { bd = d; best = q; } }); link(k, best); } }); }
   { const KS = Math.min(1, 14 / (COLS + ROWS)), CGx = OX + (COLS - ROWS) / 2 * TW, CGy = OY + (COLS + ROWS) / 2 * TH;
     const ys = YARD.map(([X, Y], n) => { const xl = (X - 380) / KS + CGx, yl = (Y - 311) / KS + CGy, s1 = (xl - OX) / TW, s2 = (yl - OY) / TH; return add('y' + n, (s1 + s2) / 2, (s2 - s1) / 2); });
     ys.forEach((a, n) => ys.forEach((b, m) => { if (n < m && Math.hypot(N[a].c - N[b].c, N[a].r - N[b].r) < 2.6 / KS * .6 + 1.2) link(a, b); }));
@@ -451,7 +483,7 @@ function famStep(a) {
   else if (a.inside && walk.N.y0) { a.inside = false; a.node = 'y0'; a.c = walk.N.y0.c; a.r = walk.N.y0.r; a.path = []; a.pause = .4 + a.k * 1.6; }
 }
 function agentSvg(a) { if (a.who === 'f') return '<g class="chr person" data-who="f' + a.k + '"><ellipse cx="0" cy="1" rx="8" ry="3" fill="#000" opacity=".22"/>' + personSvg(a.k) + '</g>'; return '<g class="chr ' + (a.who === 'g' ? 'gardener' : 'doggy') + '" data-who="' + a.who + '"><ellipse cx="0" cy="1" rx="' + (a.who === 'g' ? 9 : 10) + '" ry="3.2" fill="#000" opacity=".22"/>' + (a.who === 'g' ? GARD : DOG) + '</g>'; }
-function agentPos(a) { const k = a.node && walk.N[a.node]; const onPath = k && k.k[0] === 'p'; return [isoX(a.c, a.r), isoY(a.c, a.r) - (onPath ? 3 : 0)]; }
+function agentPos(a) { const k = a.node && walk.N[a.node]; const onPath = k && k.k[0] === 'v'; return [isoX(a.c, a.r), isoY(a.c, a.r) - (onPath ? 3 : 0)]; }
 function placeAgent(a) {
   const gr = $('garden'); if (!gr) return;
   if (!a.el || !a.el.isConnected) { const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'g'); tmp.innerHTML = agentSvg(a); a.el = tmp.firstChild; a.fl = null; }
@@ -545,6 +577,33 @@ function flyIcon(kind, pos) {
   if (combo.n >= 3) s += '<text class="combo" y="-24" text-anchor="middle">×' + combo.n + '</text>';
   s += '</g>'; const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.innerHTML = s; const el = g.firstChild; svg.appendChild(el); setTimeout(() => el.remove(), 1100);
 }
+const PHW = .17, PLIFT = BH;
+function pathsSvg() {
+  const dm = G.dims(S), linked = new Set(G.pathLinkedEdges(S)), cm = ui.mode && ui.mode.type === 'mat' && ui.mode.k === 'chemin'; let h = '<g id="gPaths" style="pointer-events:none">';
+  const P3 = (c, r) => pt(c, r, PLIFT), bord = (x, y) => x === 0 || y === 0 || x === dm[0] || y === dm[1];
+  (S.paths || []).forEach((k, n) => {
+    const [x1, y1, x2, y2] = G.pparse(k), hor = y1 === y2, ok = linked.has(k);
+    const ext = (x, y) => bord(x, y) ? .4 : PHW;
+    const e1 = ext(x1, y1), e2 = ext(x2, y2);
+    let q; if (hor) q = [[x1 - e1, y1 - PHW], [x2 + e2, y1 - PHW], [x2 + e2, y1 + PHW], [x1 - e1, y1 + PHW]]; else q = [[x1 - PHW, y1 - e1], [x1 + PHW, y1 - e1], [x1 + PHW, y2 + e2], [x1 - PHW, y2 + e2]];
+    h += '<polygon points="' + q.map(p => P3(p[0], p[1])).join(' ') + '" fill="' + (ok ? '#ebdcb2' : '#d9d0bd') + '" stroke="' + (ok ? '#b39d6c' : '#a79f8c') + '" stroke-width="1.3" stroke-linejoin="round"' + (ok ? '' : ' stroke-dasharray="4 3" opacity=".85"') + '/>';
+    const R = rnd(n * 13 + x1 * 7 + y1 * 5 + 1);
+    for (let t = 0; t < 4; t++) { const u = (t + .5 + (R() - .5) * .5) / 4, c = hor ? x1 + u * (x2 - x1) : x1 + (R() - .5) * PHW, r = hor ? y1 + (R() - .5) * PHW : y1 + u * (y2 - y1);
+      h += '<ellipse cx="' + isoX(c, r).toFixed(1) + '" cy="' + (isoY(c, r) - PLIFT).toFixed(1) + '" rx="' + (2.2 + R() * 2).toFixed(1) + '" ry="' + (1 + R()).toFixed(1) + '" fill="' + (t % 2 ? '#c6b283' : '#f6edcf') + '"/>'; }
+  });
+  if (cm) {
+    const L = G.pathLinked(S), starts = []; for (let x = 1; x < dm[0]; x++) { starts.push([x, 0], [x, dm[1]]); } for (let y = 1; y < dm[1]; y++) { starts.push([0, y], [dm[0], y]); }
+    L.forEach(v => { const [x, y] = v.split(',').map(Number); if (!bord(x, y)) starts.push([x, y]); });
+    starts.forEach(([x, y]) => { h += '<circle class="pdot" cx="' + isoX(x, y).toFixed(1) + '" cy="' + (isoY(x, y) - PLIFT).toFixed(1) + '" r="4.6" fill="#fff" stroke="var(--leaf)" stroke-width="2.2" opacity=".92"/>'; });
+    if (ui.trace && ui.trace.v) h += '<circle cx="' + isoX(ui.trace.v[0], ui.trace.v[1]).toFixed(1) + '" cy="' + (isoY(ui.trace.v[0], ui.trace.v[1]) - PLIFT).toFixed(1) + '" r="8" fill="var(--leaf)" stroke="#fff" stroke-width="2.6"/>';
+  }
+  return h + '</g>';
+}
+function enclavedSvg() {
+  if (!(ui.mode && ui.mode.type === 'mat' && ui.mode.k === 'chemin')) return ''; let h = '<g id="gEncl" style="pointer-events:none">';
+  { const dm2 = G.dims(S); S.grid.forEach((c, i) => { if (!c || c.treille) return; const cc = i % STR, rr = (i / STR) | 0; if (cc >= dm2[0] || rr >= dm2[1]) return; if (Math.min(rr, dm2[1] - 1 - rr, cc, dm2[0] - 1 - cc) >= 2 && !G.pathAccess(S, i)) h += '<ellipse cx="' + isoX(cc + .5, rr + .5).toFixed(1) + '" cy="' + (isoY(cc + .5, rr + .5) - BH + 2).toFixed(1) + '" rx="30" ry="12" fill="none" stroke="#e0832e" stroke-width="3" stroke-dasharray="5 4" opacity=".9"/>'; }); }
+  return h + '</g>';
+}
 function renderGarden() {
   syncDims(); const [DW, DH] = dispDims(), { KS, CGx, CGy } = kview(DW, DH);
   const m = G.dateOf(S.day).m, se = SEASON(m), gc = GROUND[se], w = S.w, st = G.stats(S);
@@ -563,14 +622,16 @@ function renderGarden() {
   { const Lp = P0.reduce((p, q) => q[0] < p[0] ? q : p), Rp = P0.reduce((p, q) => q[0] > p[0] ? q : p), Bp = P0.reduce((p, q) => q[1] > p[1] ? q : p);
     h += poly([Lp.join(','), Bp.join(','), Bp[0] + ',' + (Bp[1] + PT), Lp[0] + ',' + (Lp[1] + PT)], '#8a6b4a') + poly([Bp.join(','), Rp.join(','), Rp[0] + ',' + (Rp[1] + PT), Bp[0] + ',' + (Bp[1] + PT)], '#6e5338'); }
   h += poly(P0.map(p => p.join(',')), '#d8c79f') + poly(P0.map(p => p.join(',')), 'none', ' stroke="#b8a37a" stroke-width="2"');
+  h += pathsSvg();
   h += '<g id="gBack"></g>';
   const picking = ui.mode && ui.mode.type === 'plant', tre = ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k);
   const dry = c => c.water < 25;
+  const PE = new Set(S.paths || []);
   const order = []; for (let s = 0; s < DW + DH - 1; s++) for (let rr = 0; rr < DH; rr++) { const cc = s - rr; if (cc >= 0 && cc < DW) { const q = irot(cc + .5, rr + .5); order.push([Math.floor(q[0]), Math.floor(q[1])]); } }
   const centers = {}, pqSet = {}; (S.pq || []).forEach(q => { pqSet[q.i] = q; });
   for (const [c, r] of order) {
     const i = r * STR + c, cell = S.grid[i], free = !cell, lift = BH;
-    const a = c + INS, b2 = c + 1 - INS, rr0 = r + INS, rr1 = r + 1 - INS;
+    const a = c + (PE.has(G.pk(c, r, c, r + 1)) ? PHW : INS), b2 = c + 1 - (PE.has(G.pk(c + 1, r, c + 1, r + 1)) ? PHW : INS), rr0 = r + (PE.has(G.pk(c, r, c + 1, r)) ? PHW : INS), rr1 = r + 1 - (PE.has(G.pk(c, r + 1, c + 1, r + 1)) ? PHW : INS);
     const cor = [[a, rr0], [b2, rr0], [b2, rr1], [a, rr1]].map(([x, y]) => [isoX(x, y), isoY(x, y) - lift]), T = cor.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1));
     const Lc = cor.reduce((p, q) => q[0] < p[0] ? q : p), Rc = cor.reduce((p, q) => q[0] > p[0] ? q : p), Bc = cor.reduce((p, q) => q[1] > p[1] ? q : p), up = p => p[0].toFixed(1) + ',' + p[1].toFixed(1), dn = p => p[0].toFixed(1) + ',' + (p[1] + lift).toFixed(1);
     const cx = isoX(c + .5, r + .5), cyTop = isoY(c + .5, r + .5) - lift; centers[i] = [cx, cyTop];
@@ -601,6 +662,7 @@ function renderGarden() {
     } else if (!qd && (picking || tre || relT || (ui.planHl && ui.planHl.includes(i)))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
     h += '<polygon class="frame" points="' + T.join(' ') + '"/><polygon points="' + [pt(c, r, lift), pt(c + 1, r, lift), pt(c + 1, r + 1, lift), pt(c, r + 1, lift)].join(' ') + '" fill="transparent"/></g>';
   }
+  h += enclavedSvg();
   h += '<g id="gFront"></g>';
   if (ui.sel >= 0 && S.grid[ui.sel] && !S.grid[ui.sel].treille) {
     const sy = G.synergy(S, ui.sel), A = centers[ui.sel];
@@ -628,11 +690,11 @@ function renderGarden() {
   const hint = $('hint');
   if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
-  else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
-  else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' ou une <b>treille / pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + sw(p) + ' : ' + G.monthRange(p.semis) + '.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
+  else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer. Touche un tronçon de sentier pour le retirer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
+  else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' à côté d’un <b>arbre</b>, ou sur / contre une <b>treille ou pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + (G.isWoody(p) ? (ui.mode.noyau ? 'Semis en pleine terre : très long, mais l’arbre devient autonome (ni eau, ni guilde, il résiste à tout).' : 'Jeune plant : plus rapide, il faudra l’arroser et le protéger.') : sw(p)) + ' ' + G.monthRange(p.semis) + '.</span>' + (G.isWoody(p) ? '<button type="button" class="btn sm' + (ui.mode.noyau ? '' : ' primary') + '" data-act="seedmode" data-v="0">Jeune plant</button><button type="button" class="btn sm' + (ui.mode.noyau ? ' primary' : '') + '" data-act="seedmode" data-v="1">Semer le noyau</button>' : '') + '<button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
-  else hint.innerHTML = S.pq && S.pq.length ? '<span><b>Le jardinier plante (' + S.pq.length + ' en attente).</b> Touche une plante prévue pour l’annuler.</span>' : '';
+  else hint.innerHTML = '';
 }
 
 /* ---------- réserve ---------- */
@@ -642,14 +704,16 @@ function renderTray() {
   const tot = all.reduce((a, id) => a + S.cards[id], 0), ti = $('trayInfo');
   if (ti) ti.textContent = (ids.length ? ids.reduce((a, id) => a + S.cards[id], 0) + ' à planter' : '') + (off.length ? (ids.length ? ' · ' : '') + off.reduce((a, id) => a + S.cards[id], 0) + ' hors saison' : '') + (nextU ? ' · ' + nextU.toLowerCase() + 's dès ' + G.UNLOCK[nextU] + ' plantations (' + Math.min(S.plantings, G.UNLOCK[nextU]) + '/' + G.UNLOCK[nextU] + ')' : '');
   const st = $('strip'); if (!st) return;
-  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ouvre le booster du jour.</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
+  st.insertAdjacentHTML('afterbegin', ids.map(id => cardHtml(P[id], { btn: true, count: S.cards[id], on: ui.mode && ui.mode.type === 'plant' && ui.mode.pid === id })).join('') + (off.length ? '<button type="button" class="task p2" data-act="reserve-off"><span class="disc">' + ico('pack') + '</span><span><b>Hors saison</b><span class="sub">' + off.length + ' plante' + (off.length > 1 ? 's' : '') + ' en réserve</span></span></button>' : '') + (!tot ? '<p class="empty">Aucune carte en réserve : ' + (G.boosterReady(S) ? 'ouvre ton booster.' : 'prochain booster dans ' + G.boosterIn(S) + ' jour' + (G.boosterIn(S) > 1 ? 's' : '') + '.') + '</p>' : !ids.length ? '<p class="empty">Rien à planter en cette saison.</p>' : ''));
 }
 
 /* ---------- tâches ---------- */
 function renderToday() {
-  const T = G.buildTasks(S), done = S.doneToday.day === S.day ? S.doneToday.n : 0;
-  const tk = T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '');
-  $('today').innerHTML = '<div class="dh"><h2>Aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip">' + tk + '<i class="sepv"></i></div>';
+  $('today').innerHTML = '<div class="dh"><h2>À planter aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip"></div>';
+}
+function tasksHtml() {
+  const T = G.buildTasks(S);
+  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '') };
 }
 
 /* ---------- fiche ---------- */
@@ -688,8 +752,12 @@ function renderFiche0() {
     if (G.isExo(p)) h += '<p class="note-p"><b style="color:var(--ink)">Plante exotique :</b> fragile au froid. Place-la à côté d’une grande serre pour qu’elle passe l’hiver.</p>'; }
   h += '<ul class="notes">' + (sy.notes.length ? sy.notes.map(n => '<li class="' + n.t + '"><span class="m">' + (n.t === 'good' ? '✓' : '✕') + '</span><span>' + n.text + (n.n > 1 ? ' (×' + n.n + ')' : '') + '</span></li>').join('') : '<li><span class="m" style="background:var(--surface-2);color:var(--ink-2)">·</span><span>Pas encore d’interaction avec les voisines. Une guilde se construit en associant les strates.</span></li>') + '</ul>';
   h += cal(p, m) + legend;
-  h += '<p class="note-p">' + eauT.charAt(0).toUpperCase() + eauT.slice(1) + ' · ' + p.soleil + ' h de soleil · résiste jusqu’à ' + p.gel + ' °C' + (perYear > 0 ? ' · environ ' + fmt(perYear) + ' kg par an à maturité' : '') + '.</p><p class="note-p">' + p.note + '</p>' + (phInfo(p) ? '<p class="note-p cred">Photo : ' + esc(phInfo(p).c || 'JF Lab') + '</p>' : '');
-  const cost = G.waterCost(c), acts = [];
+  { const gd0 = G.guildOf(S, i); if (gd0 && ['jeune', 'mature'].includes(G.phase(S.grid[gd0.c]).stage)) h += '<p class="note-p">' + ico('leaf') + ' Guilde établie : cette plante résiste au gel, à la canicule, à la sécheresse, à la tempête et à la grêle.</p>'; }
+  if (c.noyau) h += '<p class="note-p">' + ico('leaf') + ' Arbre de semis : autonome. Il n’a besoin ni d’eau ni de guilde et résiste à toutes les intempéries, mais il pousse lentement.</p>'; else if (c.young) h += '<p class="note-p">Planté en jeune plant : il fructifie plus tôt, mais il faut l’arroser et le protéger.</p>';
+  const wsv0 = G.waterSave(S, i);
+  if (wsv0 < 1) h += '<p class="note-p">' + ico('drop') + ' Besoin en eau réduit de ' + Math.round((1 - wsv0) * 100) + ' %' + (c.mulch ? ' (paillage' + (G.guildOf && G.guildOf(S, i) ? ' + guilde' : '') + ')' : ' (guilde)') + '.</p>';
+  h += '<p class="note-p">' + eauT.charAt(0).toUpperCase() + eauT.slice(1) + ' · ' + p.soleil + ' h de soleil · résiste jusqu’à ' + p.gel + ' °C' + (perYear > 0 ? ' · environ ' + fmt(perYear) + ' kg par an à maturité' : '') + '.</p><p class="note-p">' + p.note + '</p>' + (p.cat ? '<p class="note-p cred">Source : <a href="https://www.jflab.earth/catalogue-plantes/' + p.cat + '" target="_blank" rel="noopener">JF Lab</a></p>' : '') + (phInfo(p) ? '<p class="note-p cred">Photo : ' + esc(phInfo(p).c || 'JF Lab') + '</p>' : '');
+  const cost = Math.round(G.waterCost(c, S, i) * 10) / 10, wsv = G.waterSave(S, i), acts = [];
   if (c.sick) acts.push('<button type="button" class="btn sm primary" data-act="heal1">Soigner (' + (c.sick.k === 'limaces' ? 'ramasser les limaces' : 'retirer les parties malades') + ')</button>');
   if (c.water < 95) acts.push('<button type="button" class="btn sm" data-act="water1"' + (S.tank < cost ? ' disabled' : '') + '>' + ico('drop') + 'Arroser (' + cost + ' L)</button>');
   if (!c.mulch && S.mats.paillage > 0) acts.push('<button type="button" class="btn sm" data-act="mulch1">Pailler</button>');
@@ -727,8 +795,8 @@ function modal(title, body, wide) {
 }
 function closeModal() { $('layer').innerHTML = ''; render(); }
 function openBooster() {
-  if (S.boosterDay >= S.day) { toast('Le booster du jour est déjà ouvert.'); return; }
-  modal('Booster du jour', '<div class="pack"><svg width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 20h110l-6 150H26z" fill="var(--leaf)"/><path d="M20 20c18 12 36 12 55 0 19 12 37 12 55 0" fill="color-mix(in srgb,var(--leaf) 70%,#000)"/><circle cx="75" cy="92" r="34" fill="var(--surface)"/><path d="M75 115V88" stroke="var(--leaf)" stroke-width="4" stroke-linecap="round"/><path d="M75 94c-14 0-20-6-20-16 14 0 20 6 20 16zM75 88c0-12 8-18 20-18 0 12-8 18-20 18z" fill="var(--leaf-2)"/><text x="75" y="150" text-anchor="middle" font-family="var(--font-d)" font-weight="800" font-size="15" fill="var(--on-leaf)">GRAINES DE VIE</text></svg><p>Six cartes de saison : graines, noyaux et plants. Les plantes de la saison en cours sont plus fréquentes.</p><button type="button" class="btn primary" data-act="rip">Ouvrir le sachet</button></div>');
+  if (!G.boosterReady(S)) { const n = G.boosterIn(S); toast('Ton prochain booster arrive dans ' + n + ' jour' + (n > 1 ? 's' : '') + '.'); return; }
+  modal('Booster de la semaine', '<div class="pack"><svg width="150" height="190" viewBox="0 0 150 190" aria-hidden="true"><path d="M20 20h110l-6 150H26z" fill="var(--leaf)"/><path d="M20 20c18 12 36 12 55 0 19 12 37 12 55 0" fill="color-mix(in srgb,var(--leaf) 70%,#000)"/><circle cx="75" cy="92" r="34" fill="var(--surface)"/><path d="M75 115V88" stroke="var(--leaf)" stroke-width="4" stroke-linecap="round"/><path d="M75 94c-14 0-20-6-20-16 14 0 20 6 20 16zM75 88c0-12 8-18 20-18 0 12-8 18-20 18z" fill="var(--leaf-2)"/><text x="75" y="150" text-anchor="middle" font-family="var(--font-d)" font-weight="800" font-size="15" fill="var(--on-leaf)">GRAINES DE VIE</text></svg><p>Sept cartes, dont au moins quatre de saison : graines, noyaux et plants. Les plantes de la saison en cours sont plus fréquentes.</p><button type="button" class="btn primary" data-act="rip">Ouvrir le sachet</button></div>');
 }
 function ripBooster() {
   const cards = G.openBooster(S); if (!cards) return; save();
@@ -813,12 +881,12 @@ function shopCard(k) {
 }
 function openShop() {
   const byP = a => a.filter(k => G.SHOP[k]).sort((a, b) => G.SHOP[a] - G.SHOP[b]), ks = byP(Object.keys(G.SHOP).filter(k => !SOINS.includes(k) && !BASE.includes(k))), ss = byP(SOINS), bs = BASE.filter(k => G.SHOP[k]);
-  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant le booster du jour (1), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes.</p><h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
+  let h = '<p class="note-p">Tu as <b>' + GK(18) + (S.feves || 0) + ' ginkgos</b>. Tu en gagnes en ouvrant ton booster (2), en réussissant les objectifs de Guildéon et en recyclant tes cartes en double. Pas de vente de récolte : ce que tu cultives nourrit la famille. Les boosters ne contiennent que des plantes : le reste s’achète ici.</p><h3 style="margin:10px 0 6px">Pochette découverte</h3><p class="note-p">Trois cartes : une plante rare ou oubliée que tu n’as pas encore, et deux autres espèces nouvelles. Une pochette par semaine.</p>' + (() => { const pf = G.pochetteInfo(S); return (pf.why ? '<p class="note-p"><small>' + pf.why + '</small></p>' : '') + '<div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="pochette"' + (pf.can ? '' : ' disabled') + '>Ouvrir une pochette · ' + pf.price + ' ginkgos</button></div>'; })() + '<h3 style="margin:10px 0 6px">Matériaux</h3><p class="note-p">Tu peux aussi gagner du paillage en tondant et en taillant des trognes, et ton composteur fabrique du compost avec les déchets de ta récolte (bouton sur le composteur, près de la maison).</p><div class="amen-grid">' + bs.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Soins, eau et savoir</h3><p class="note-p">Tu peux aussi fabriquer purin, prêle, nichoir, oya et cuve toi-même avec la compétence Fabrication.</p><div class="amen-grid">' + ss.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Bâtiments et mobilier</h3><div class="amen-grid">' + ks.map(shopCard).join('') + '</div><h3 style="margin:14px 0 6px">Recycler les cartes en double</h3>';
   const dup = Object.keys(S.cards).map(Number).filter(id => S.cards[id] > 1);
-  if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune 1 ginkgo, peu commune 2, rare 4 par carte.</p>';
+  if (!dup.length) h += '<p class="note-p">Aucune carte en double pour l’instant. Les doublons de ta réserve se recyclent ici : commune ' + G.RECYCLE['Commune'] + ' ginkgos, peu commune ' + G.RECYCLE['Peu commune'] + ', rare ' + G.RECYCLE['Rare'] + ' par carte.</p>';
   else {
     const tot = dup.reduce((a, id) => a + G.recycleValue(S, id, S.cards[id] - 1), 0);
-    h += '<p class="note-p">Commune 1 ginkgo, peu commune 2, rare 4 par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
+    h += '<p class="note-p">Commune ' + G.RECYCLE['Commune'] + ' ginkgos, peu commune ' + G.RECYCLE['Peu commune'] + ', rare ' + G.RECYCLE['Rare'] + ' par carte. On garde toujours un exemplaire.</p><div class="acts" style="justify-content:flex-start;margin:0 0 6px"><button type="button" class="btn sm primary" data-act="recycle-all">Recycler tous les doubles · +' + tot + ' ginkgos</button></div><div class="kit">' + dup.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ×' + S.cards[id] + ' · ' + P[id].rarete.toLowerCase() + '</span></span><span class="acts" style="margin:0"><button type="button" class="btn sm" data-act="recycle1" data-pid="' + id + '">Recycler 1 · +' + G.recycleValue(S, id, 1) + '</button></span></div>').join('') + '</div>';
   }
   modal('Boutique · ' + (S.feves || 0) + ' ginkgos', h, true);
 }
@@ -902,14 +970,30 @@ function openSkills() {
 }
 
 function openStock() { const e = EXTRA(); modal('Matériel', '<p class="note-p">Touche un objet pour le poser dans le jardin.</p><div class="items" style="display:flex;flex-wrap:wrap;gap:8px">' + e.h + '</div>'); }
+function openAccount(msg) {
+  const m = msg ? '<p class="note-p" id="acc-msg" role="status">' + msg + '</p>' : '<p class="note-p" id="acc-msg" role="status"></p>';
+  if (CLOUD.sess) {
+    modal('Mon compte', '<p class="note-p">Connecté : <b>' + esc(CLOUD.sess.email || '') + '</b>.<br>Ta partie est sauvegardée en ligne automatiquement, et tu peux la reprendre sur un autre appareil.</p>' + m + '<div class="menu" style="gap:10px"><button type="button" class="btn primary" data-act="cloud-push">Sauvegarder maintenant</button><button type="button" class="btn" data-act="cloud-pull">Reprendre ma partie en ligne</button><button type="button" class="btn" data-act="cloud-out">Se déconnecter</button></div>');
+  } else {
+    modal('Compte en ligne', '<p class="note-p">Crée un compte pour sauvegarder ta forêt en ligne et la retrouver partout. Ce compte est propre au jeu, il est indépendant de JF Lab.</p><div class="acc-f"><label>Adresse e-mail<input id="acc-mail" type="email" autocomplete="email" inputmode="email" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label><label>Mot de passe (8 caractères minimum)<input id="acc-pw" type="password" autocomplete="current-password" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label></div>' + m + '<div class="menu" style="gap:10px;margin-top:10px"><button type="button" class="btn primary" data-act="cloud-in">Se connecter</button><button type="button" class="btn" data-act="cloud-up">Créer mon compte</button></div>');
+  }
+}
+async function accountAfterLogin() {
+  try {
+    const r = await cloudPull();
+    if (!r) { await cloudPush(); openAccount('Compte connecté. Ta partie actuelle est maintenant sauvegardée en ligne.'); return; }
+    modal('Quelle partie garder ?', '<p class="note-p">Une partie existe déjà sur ton compte (jour ' + (r.day || 0) + '). Ta partie sur cet appareil est au jour ' + (S.day || 0) + '.</p><div class="menu" style="gap:10px"><button type="button" class="btn primary" data-act="cloud-pull">Reprendre la partie en ligne</button><button type="button" class="btn" data-act="cloud-push">Garder cet appareil et l’envoyer en ligne</button></div>');
+  } catch (e) { openAccount('Connecté, mais la sauvegarde en ligne est indisponible pour le moment : ' + esc(e.message)); }
+}
 function openMenu() {
   const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
-  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
+  const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
   if (ui.trayOpen == null) ui.trayOpen = !PHONE();
   const td = $('today'); if (td) td.classList.toggle('shut', !ui.trayOpen);
-  document.body.classList.toggle('sel', ui.sel >= 0);
+  document.body.classList.toggle('sel', ui.sel >= 0); document.body.classList.toggle('tools-open', !!ui.toolsOpen);
 }
 function openJournal() {
   modal('Carnet du jardinier', (S.knowledge.length ? '<p class="note-p">Plantes apprises : ' + S.knowledge.map(id => P[id].name).join(', ') + '.</p>' : '') + '<ul class="log">' + (S.log.length ? S.log.map(l => '<li><span class="d">' + dateStr(l.day, true) + '</span><span class="' + (l.type === 'warn' ? 'warn' : l.type === 'bad' ? 'bad' : '') + '">' + l.text + '</span></li>').join('') : '<li>Rien pour l’instant.</li>') + '</ul>');
@@ -959,21 +1043,21 @@ function applyView() {
   const wrap = svg.parentNode; wrap.classList.toggle('panable', ui.tool === 'move' || view.z > 1.001); wrap.dataset.tool = ui.tool || 'select';
 }
 /* ---------- caméra : réglages centralisés ---------- */
-const CAM = { zoomMinDesk: .8, zoomMinPhone: 1, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
+const CAM = { zoomMinDesk: .45, zoomMinPhone: .6, zoomMax: 3.2, wheelStep: 1.1, btnStep: 1.3, dragPx: 8, keyPxPerSec: 500, edgeScroll: false };
 const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
-  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now();
-  if (g.ready > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
+  const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now(), tk = tasksHtml(), notif = g.ready + tk.n;
+  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster de la semaine t’attend : cinq nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
+  if (notif > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
   ui.gText = g.text;
-  ui.gReady = g.ready;
-  m.classList.toggle('joy', g.ready > 0); bd.hidden = !g.ready; bd.textContent = g.ready;
+  ui.gReady = notif;
+  m.classList.toggle('joy', notif > 0); bd.hidden = !notif; bd.textContent = notif;
   say.textContent = g.text; say.hidden = !(ui.gUntil > now) || !!ui.gOpen;
   card.hidden = !ui.gOpen; m.setAttribute('aria-expanded', ui.gOpen ? 'true' : 'false');
-  if (!ui.gOpen) return;
   const row = q => '<li class="gq' + (q.done ? ' done' : '') + '"><div class="gqt"><b>' + esc(q.t) + '</b>' + (q.daily ? '<em>Défi du jour</em>' : '') + '</div><div class="gqb"><i style="width:' + Math.round(q.have / q.need * 100) + '%"></i></div><div class="gqr"><span>' + q.have + ' / ' + q.need + ' · ' + esc(q.label) + '</span>' + (q.done && !q.claimed ? '<button type="button" class="btn sm pri" data-act="guil-claim" data-id="' + q.id + '">Récupérer</button>' : q.claimed ? '<span class="ok">Fait</span>' : '') + '</div></li>';
   const ready = g.qs.filter(q => q.done && !q.claimed), open = g.qs.filter(q => !q.done && !q.daily).slice(0, 3), daily = g.qs.find(q => q.daily && !ready.includes(q)), nd = g.qs.filter(q => q.claimed && !q.daily).length;
-  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
+  card.innerHTML = '<div class="gh"><b>Guildéon</b><button type="button" class="gx" data-act="guil-toggle" aria-label="Fermer">×</button></div><p class="gsp">' + esc(g.text) + '</p><h4 class="gh2">Aujourd’hui</h4><div class="gtasks">' + tk.h + '</div>' + (g.boost ? '<p class="gbo">Croissance accélérée : encore ' + g.boost + ' j</p>' : '') + '<ul class="gl">' + ready.map(row).join('') + open.map(row).join('') + (daily ? row(daily) : '') + '</ul><p class="gfoot">' + nd + ' objectif' + (nd > 1 ? 's' : '') + ' réussi' + (nd > 1 ? 's' : '') + ' · ' + g.guilds + ' guilde' + (g.guilds > 1 ? 's' : '') + ' dans ta forêt</p>';
 }
 function renderStr() {
   const m = $('strmenu'); if (!m) return; m.hidden = !ui.strOpen;
@@ -1050,10 +1134,10 @@ const cam = (function initCamera() {
 })();
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
-  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Commence par ouvrir ton booster du jour : six cartes de plantes de saison.', target: '#today [data-id="booster"]', done: () => S.boosters >= 1 },
-  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans ta réserve, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
+  { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster, des cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
+  { t: 'Pose une plante', x: 'Touche une carte « De saison » dans le bandeau du bas, puis une parcelle libre du jardin (marquée d’un +). Le jardinier viendra la planter.', target: '#strip', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Plante quelques cartes', x: 'Le jardinier plante une plante après l’autre, il faut un peu de patience. Touche une plante fantôme pour l’annuler. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
-  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain pour un nouveau booster.', target: '#today [data-act="next"]', done: () => S.day >= 1 },
+  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain : un nouveau booster arrive tous les trois jours au début, puis chaque semaine.', target: '.endday', done: () => S.day >= 1 },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
   { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
@@ -1071,7 +1155,7 @@ function renderTuto() {
   el.innerHTML = '<div class="tk"><span>Premiers pas · ' + (t.step + 1) + ' / ' + TUTO.length + '</span></div><h4>' + st.t + '</h4><p>' + st.x + '</p><div class="tbar"><i style="width:' + Math.round((t.step + 1) / TUTO.length * 100) + '%"></i></div><div class="tact"><button type="button" class="btn sm" data-act="tuto-skip">Passer le tutoriel</button>' + (st.next ? '<button type="button" class="btn sm primary" data-act="tuto-next">' + (st.last ? 'Terminer' : 'Suivant') + '</button>' : '') + '</div>';
   const tg = st.target && document.querySelector(st.target); if (tg) tg.classList.add('tuto-ring');
 }
-function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
+function render() { applyHud(); const nt = G.takeNotes(S); if (nt.length) setTimeout(() => toast(nt.join(' ')), 900); renderTop(); renderGarden(); if (window.V3D && V3D.on) V3D.sync(); applyView(); renderTools(); renderStr(); renderGuil(); mountChars(); renderRes(); renderToday(); renderTray(); renderFiche(); renderFoot(); renderTuto(); save(); wantPhotos(); }
 function advance(n) {
   const before = S.day; const ev = n === 1 ? G.nextDay(S, false) : G.skip(S, n);
   ui.confirmDel = false; const bad = ev.filter(e => e.t === 'bad' || e.t === 'warn');
@@ -1117,13 +1201,13 @@ function clickCell(i) {
   } setTimeout(() => { if (window.innerWidth <= 1040 && ui.sel === i && !ui.mode) $('fiche').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
   if (ui.mode && ui.mode.type === 'plant') {
     if (c && !(c.treille && (c.furn === 'treille' || c.furn === 'pergola') && P[ui.mode.pid].strate === 'Grimpante')) { ui.sel = i; ui.confirmDel = false; render(); return; }
-    const r = G.queuePlant(S, i, ui.mode.pid); if (!r.ok) { toast(r.msg); return; }
+    const r = G.queuePlant(S, i, ui.mode.pid, { noyau: !!ui.mode.noyau }); if (!r.ok) { toast(r.msg); return; }
     if (!S.cards[ui.mode.pid]) ui.mode = null; ui.sel = -1; toast('Le jardinier s’en occupe (' + S.pq.length + ' en attente).'); save(); render(); return;
   }
   ui.planHl = null;
   if (ui.mode && ui.mode.type === 'skill') { const kk = ui.mode.k, r = kk === 'bouture' ? G.bouturer(S, i) : G.greffer(S, i); if (!r.ok) { toast(r.msg); return; } toast(kk === 'bouture' ? 'Bouture prélevée : une nouvelle carte de ' + r.name.toLowerCase() + ' dans ta réserve.' : r.name + ' greffé : plus de fruits et plus vite.'); ui.sel = i; save(); render(); return; }
   if (ui.mode && ui.mode.type === 'mat') {
-    const k = ui.mode.k; if (k === 'canard') { if (c && c.furn === 'mare') { if (G.placeDuck(S, i)) { toast('Les canards s’installent à la mare.'); if (!(S.mats.canard > 0)) ui.mode = null; ui.sel = i; render(); } else toast('Cette mare a déjà ses canards.'); } else toast('Touche une mare pour y installer les canards.'); return; }
+    const k = ui.mode.k; if (k === 'chemin') return; if (k === 'canard') { if (c && c.furn === 'mare') { if (G.placeDuck(S, i)) { toast('Les canards s’installent à la mare.'); if (!(S.mats.canard > 0)) ui.mode = null; ui.sel = i; render(); } else toast('Cette mare a déjà ses canards.'); } else toast('Touche une mare pour y installer les canards.'); return; }
     if (k === 'trogne') { toast('Touche un arbre au bord du jardin.'); return; }
     if (TARGET[k]) {
       if (!c || c.treille) { toast(TARGET[k]); return; }
@@ -1163,7 +1247,7 @@ document.addEventListener('click', e => {
   if (act === 'veil') { if (e.target === a) closeModal(); return; }
   switch (act) {
     case 'close': closeModal(); break;
-    case 'task': doTask(a.dataset.id); break;
+    case 'task': ui.gOpen = false; doTask(a.dataset.id); break;
     case 'next': advance(1); break;
     case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
@@ -1185,6 +1269,7 @@ document.addEventListener('click', e => {
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
     case 'menu': openMenu(); break;
+    case 'tools-toggle': ui.toolsOpen = !ui.toolsOpen; applyHud(); break;
     case 'stock': openStock(); break;
     case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
     case 'reserve-off': { const m = G.dateOf(S.day).m; modal('Hors saison', '<p class="note-p">Ces plantes attendent leur saison de semis ou de plantation.</p><div class="strip" style="flex-wrap:wrap">' + Object.keys(S.cards).map(Number).filter(id => !G.sowable(P[id], m)).map(id => cardHtml(P[id], { count: S.cards[id] })).join('') + '</div>'); break; }
@@ -1194,6 +1279,7 @@ document.addEventListener('click', e => {
     case 'skill-mode': closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; ui.mode = { type: 'skill', k: a.dataset.k }; render(); break;
     case 'craft': { const r = G.craft(S, a.dataset.k); toast(r.ok ? 'Fabriqué : ' + RECIPE_N[a.dataset.k].toLowerCase() + '.' : r.msg); save(); render(); openSkills(); break; }
     case 'shop': openShop(); break;
+    case 'pochette': { const r = G.pochetteBuy(S); toast(r.ok ? 'Pochette : ' + r.names.join(', ') + '.' : r.msg); save(); render(); openShop(); break; }
     case 'shop-buy': { const r = G.shopBuy(S, a.dataset.k); toast(r.ok ? 'Acheté ! Retrouve-le dans la barre du haut.' : r.msg); save(); render(); openShop(); break; }
     case 'recycle1': { const r = G.recycleCards(S, +a.dataset.pid, 1); if (r.ok) toast('+' + r.gain + ' ginkgo' + (r.gain > 1 ? 's' : '') + '.'); save(); render(); openShop(); break; }
     case 'recycle-all': { const r = G.recycleDoubles(S); toast(r.ok ? '+' + r.gain + ' ginkgos : ' + r.n + ' carte' + (r.n > 1 ? 's' : '') + ' recyclée' + (r.n > 1 ? 's' : '') + '.' : 'Rien à recycler.'); save(); render(); openShop(); break; }
@@ -1206,6 +1292,22 @@ document.addEventListener('click', e => {
     case 'cookall': { const pids = [...document.querySelectorAll('#kit input')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); openKitchen(r); render(); break; }
     case 'herbier': openHerbier(); break;
     case 'famille': openFamily(); break;
+    case 'compte': openAccount(); break;
+    case 'seedmode': if (ui.mode && ui.mode.type === 'plant') { ui.mode.noyau = a.dataset.v === '1'; render(); } break;
+    case 'cloud-in': case 'cloud-up': {
+      const mail = ($('acc-mail') || {}).value, pw = ($('acc-pw') || {}).value, msg = $('acc-msg');
+      if (!mail || !/^\S+@\S+\.\S+$/.test(mail)) { if (msg) msg.textContent = 'Entre une adresse e-mail valide.'; break; }
+      if (!pw || pw.length < 8) { if (msg) msg.textContent = 'Le mot de passe doit faire au moins 8 caractères.'; break; }
+      if (msg) msg.textContent = 'Un instant…';
+      (async () => { try {
+        if (a.dataset.act === 'cloud-up') { const r = await cloudSignUp(mail.trim(), pw); if (r === 'confirm') { openAccount('Compte créé. Ouvre l’e-mail de confirmation que tu viens de recevoir, puis reviens te connecter ici.'); return; } }
+        else await cloudSignIn(mail.trim(), pw);
+        await accountAfterLogin();
+      } catch (e) { const t = /Invalid login/i.test(e.message) ? 'E-mail ou mot de passe incorrect (ou e-mail pas encore confirmé).' : /already registered/i.test(e.message) ? 'Cette adresse a déjà un compte : choisis « Se connecter ».' : /fetch|network|Failed/i.test(e.message) ? 'Connexion impossible pour le moment. Ta partie reste sauvegardée sur cet appareil.' : e.message; const m2 = $('acc-msg'); if (m2) m2.textContent = t; } })();
+      break; }
+    case 'cloud-push': (async () => { const ok = await cloudPush(); openAccount(ok ? 'Partie sauvegardée en ligne (jour ' + (S.day || 0) + ').' : 'Sauvegarde en ligne impossible pour le moment. Ta partie reste sur cet appareil.'); })(); break;
+    case 'cloud-pull': (async () => { try { const r = await cloudPull(); if (!r) { openAccount('Aucune partie en ligne pour l’instant.'); return; } S = withFamily(r.data); S.w = G.weather(S.day); syncDims(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; save(); closeModal(); toast('Partie en ligne reprise (jour ' + (S.day || 0) + ').'); } catch (e) { openAccount('Impossible de reprendre la partie : ' + esc(e.message)); } })(); break;
+    case 'cloud-out': cloudSignOut().then(() => openAccount('Tu es déconnecté. Ta partie reste sur cet appareil.')); break;
     case 'amenager': openAmenager(); break;
     case 'expand': if (G.expand(S)) { save(); toast('Terrain agrandi : ' + COLS + ' × ' + ROWS + ' parcelles.'); render(); openAmenager(); } break;
     case 'use-furn': { closeModal(); ui.mode = { type: 'mat', k: a.dataset.k }; render(); $('garden').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); break; }
@@ -1213,6 +1315,7 @@ document.addEventListener('click', e => {
     case 'herb-more': hLimit += 80; $('hlist').innerHTML = herbHtml(); break;
     case 'time': openTime(); break;
     case 'rip': ripBooster(); break;
+    case 'protect': { const r = G.protectFrost(S); toast(r.msg); save(); render(); break; }
     case 'flip': a.classList.toggle('up'); break;
     case 'flipall': document.querySelectorAll('.flipper').forEach(f => f.classList.add('up')); break;
     case 'cook': { const pids = [...document.querySelectorAll('#kit input:checked')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); openKitchen(r); render(); break; }
@@ -1248,6 +1351,58 @@ function pqTick(dt) {
   save(); render(); msgs.forEach((m, k) => setTimeout(() => toast(m), 900 + k * 1300));
 }
 setInterval(() => pqTick(.25), 250);
-window.__jv = { cam, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+const trace = (function initTrace() {
+  const wrap = document.querySelector('.garden-wrap'); if (!wrap) return {};
+  let T = null, swallow = 0;
+  const chemMode = () => ui.mode && ui.mode.type === 'mat' && ui.mode.k === 'chemin';
+  function gridAt(cx, cy) { const g = $('gGrid'); if (!g || !g.getScreenCTM) return null; const m = g.getScreenCTM(); if (!m) return null; const p = new DOMPoint(cx, cy).matrixTransform(m.inverse()), s1 = (p.x - OX) / TW, s2 = (p.y + PLIFT - OY) / TH, q = irot((s1 + s2) / 2, (s2 - s1) / 2); return { c: q[0], r: q[1] }; }
+  function vertexClient(x, y) { const g = $('gGrid'), m = g.getScreenCTM(), p = new DOMPoint(isoX(x, y), isoY(x, y) - PLIFT).matrixTransform(m); return { x: p.x, y: p.y }; }
+  const segDist = (c, r, k) => { const [x1, y1, x2, y2] = G.pparse(k), dx = x2 - x1, dy = y2 - y1, t = Math.max(0, Math.min(1, ((c - x1) * dx + (r - y1) * dy) / (dx * dx + dy * dy))); return Math.hypot(c - (x1 + t * dx), r - (y1 + t * dy)); };
+  function nearEdge(c, r, tol) { let best = null, bd = tol; (S.paths || []).forEach(k => { const d = segDist(c, r, k); if (d < bd) { bd = d; best = k; } }); return best; }
+  function startVertex(c, r) {
+    const dm = G.dims(S), L = G.pathLinked(S); let best = null, bd = 1.7; const tryV = (x, y) => { const d = Math.hypot(x - c, y - r); if (d < bd) { bd = d; best = [x, y]; } };
+    for (let x = 1; x < dm[0]; x++) { tryV(x, 0); tryV(x, dm[1]); } for (let y = 1; y < dm[1]; y++) { tryV(0, y); tryV(dm[0], y); }
+    L.forEach(v => { const [x, y] = v.split(',').map(Number); tryV(x, y); }); return best;
+  }
+  function extend(c, r) {
+    const dm = G.dims(S), tx = Math.max(0, Math.min(dm[0], Math.round(c))), ty = Math.max(0, Math.min(dm[1], Math.round(r))); let added = 0, guard = 0;
+    while ((T.v[0] !== tx || T.v[1] !== ty) && guard++ < 40) {
+      const dx = tx - T.v[0], dy = ty - T.v[1], nx = Math.abs(dx) >= Math.abs(dy) ? [T.v[0] + Math.sign(dx), T.v[1]] : [T.v[0], T.v[1] + Math.sign(dy)];
+      const res = G.addPath(S, T.v[0], T.v[1], nx[0], nx[1]);
+      if (!res.ok) { if (res.why === 'stock') { toast(res.msg); ui.mode = null; T.dead = true; added++; } break; }
+      T.v = nx; if (!res.exists) { added++; T.n++; }
+    }
+    return added;
+  }
+  const down = e => {
+    if (!e.target.closest || !e.target.closest('#garden')) return; if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (T && T.id !== e.pointerId) { T = null; return; }
+    const g = gridAt(e.clientX, e.clientY); if (!g) return;
+    if (chemMode()) { const v = startVertex(g.c, g.r); T = { id: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false, n: 0, g0: g, v: v, bad: !v }; if (v) { ui.trace = { v }; render(); } }
+    else if (ui.tool === 'delete' && !ui.mode) T = { id: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false, del: true, g0: g };
+  };
+  const move = e => {
+    if (!T || T.id !== e.pointerId || T.del || T.dead) return;
+    if (!T.moved && Math.hypot(e.clientX - T.x0, e.clientY - T.y0) > 6) T.moved = true;
+    if (!T.moved || !T.v) return; const g = gridAt(e.clientX, e.clientY); if (!g) return;
+    if (extend(g.c, g.r)) { ui.trace = { v: T.v }; render(); }
+  };
+  const up = e => {
+    if (!T || T.id !== e.pointerId) return; const t = T; T = null; const g = gridAt(e.clientX, e.clientY);
+    if (t.moved) { ui.trace = null; if (t.n) { toast(t.n + (t.n > 1 ? ' tronçons posés' : ' tronçon posé') + (S.mats.chemin > 0 ? ' · reste ' + S.mats.chemin : '')); save(); } render(); swallow = performance.now() + 350; return; }
+    if (t.del && g) { const k = nearEdge(g.c, g.r, .15); if (k) { G.removePath(S, k); toast('Tronçon retiré : +1 gravier.'); swallow = performance.now() + 350; save(); render(); } return; }
+    if (chemMode()) { ui.trace = null; swallow = performance.now() + 350;
+      const k = g && nearEdge(g.c, g.r, .26); if (k) { G.removePath(S, k); toast('Tronçon retiré : +1 gravier.'); save(); }
+      else if (t.bad) toast('Un sentier part du bord du jardin ou d’un sentier déjà tracé : glisse depuis là.');
+      else toast('Glisse le doigt ou la souris pour tracer le sentier.');
+      render(); }
+  };
+  document.addEventListener('selectstart', e => { if (T) e.preventDefault(); });
+  wrap.addEventListener('pointerdown', down, true); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', e => { if (T && T.id === e.pointerId) { T = null; ui.trace = null; render(); } });
+  wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
+  return { gridAt, vertexClient, startVertex };
+})();
+window.__jv = { G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); else V3D.mount({ S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 render(); startChars();
 })();

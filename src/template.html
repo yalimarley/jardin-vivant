@@ -420,6 +420,14 @@ body{padding:0}
 
 .app #today{left:74px}body.tools-open .app #today{left:262px}
 @media (max-width:560px){.app #today,body.tools-open .app #today{left:8px;bottom:70px}body.tools-open .app #today{bottom:144px}.app .endday{bottom:8px}}
+
+#gl3d{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:0;touch-action:none;outline:0}
+#v3bd{position:absolute;inset:0;display:none;overflow:hidden;pointer-events:none;z-index:2}
+.v3d-on #gl3d,.v3d-on #v3bd{display:block}
+.v3d-on #garden{opacity:0;pointer-events:none}
+.v3b{position:absolute;left:0;top:0;width:42px;height:42px;padding:0;border:0;background:transparent;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;will-change:transform}
+.v3b svg{display:block;overflow:visible}
+body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 </style>
 
 <div class="app">
@@ -453,6 +461,7 @@ body{padding:0}
         <button type="button" class="tb" data-act="rot-l" title="Tourner à gauche" aria-label="Tourner à gauche"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.5-5.4M5 4v4h4"/></svg></button>
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
+        <button type="button" class="tb on" data-act="view3d" aria-pressed="true" title="Passer en vue 2D" aria-label="Basculer entre vue 3D et vue 2D"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></button>
       </div><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
       <div class="foot" id="foot"></div>
     </section>
@@ -469,6 +478,10 @@ body{padding:0}
 <script>
 const PLANTS = /*__PLANTS__*/;
 const HERB = /*__HERB__*/;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" onerror="window.THREE_FAIL=1"></script>
+<script>
+/*__V3D__*/
 </script>
 <script>
 /*__ENGINE__*/

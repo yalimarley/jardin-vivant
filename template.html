@@ -1,6 +1,6 @@
 <title>Jardin Vivant</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Figtree:wght@400;500;600&display=swap">
 <style>
 /* Concept : carnet de jardinier. Le plan du jardin au centre, les tâches du jour à droite, les cartes comme des sachets de graines.
@@ -22,6 +22,8 @@
   --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); --dim:transparent; --on-leaf:#0f1d15; --on-fruit:#1b0b07; color-scheme:dark}
 
 *{box-sizing:border-box}
+html,body{touch-action:manipulation;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+.sh{display:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:15px;line-height:1.45;
   padding-block:0; padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px))}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -388,6 +390,18 @@ body{padding:0}
   .toast{bottom:170px}
 }
 
+@media (max-width:560px){
+  html,body{overflow-x:hidden;max-width:100vw}
+  .hud-tl{gap:5px;max-width:calc(100vw - 72px)}
+  .hud-tl .top{flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 8px;padding:5px 9px;border-radius:12px}
+  .hud-tl .brand h1{display:none}.hud-tl .brand svg{width:22px;height:22px}
+  .hud-tl .when{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:11px}.hud-tl .when b{font-size:12.5px}
+  .hud-tl .res{gap:4px}.hud-tl .res .items{gap:4px}
+  .hud-tl .pill{padding:2px 8px;font-size:11.5px;gap:4px}.hud-tl .pill svg{width:14px;height:14px}
+  .hud-tl .pill .lb{display:none}.hud-tl .pill .sh{display:inline}
+  .pill .mini{width:32px}
+}
+
 /* ===== bandeau du bas : Aujourd'hui (tâches + plantes à planter) ===== */
 .app #today{position:fixed;left:262px;right:260px;bottom:12px;z-index:12;padding:7px 10px 4px;border-radius:16px;background:color-mix(in srgb,var(--surface) 95%,transparent);max-height:none;overflow:visible}
 .app #today .dh{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}.app #today .dh h2{font-size:14px;margin:0;display:flex;gap:8px;align-items:baseline;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app #today .dh small{font-family:var(--font-b);font-weight:500;font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis}
@@ -406,6 +420,14 @@ body{padding:0}
 
 .app #today{left:74px}body.tools-open .app #today{left:262px}
 @media (max-width:560px){.app #today,body.tools-open .app #today{left:8px;bottom:70px}body.tools-open .app #today{bottom:144px}.app .endday{bottom:8px}}
+
+#gl3d{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:0;touch-action:none;outline:0}
+#v3bd{position:absolute;inset:0;display:none;overflow:hidden;pointer-events:none;z-index:2}
+.v3d-on #gl3d,.v3d-on #v3bd{display:block}
+.v3d-on #garden{opacity:0;pointer-events:none}
+.v3b{position:absolute;left:0;top:0;width:42px;height:42px;padding:0;border:0;background:transparent;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;will-change:transform}
+.v3b svg{display:block;overflow:visible}
+body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 </style>
 
 <div class="app">
@@ -439,6 +461,7 @@ body{padding:0}
         <button type="button" class="tb" data-act="rot-l" title="Tourner à gauche" aria-label="Tourner à gauche"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.5-5.4M5 4v4h4"/></svg></button>
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
+        <button type="button" class="tb on" data-act="view3d" aria-pressed="true" title="Passer en vue 2D" aria-label="Basculer entre vue 3D et vue 2D"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></button>
       </div><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
       <div class="foot" id="foot"></div>
     </section>
@@ -455,6 +478,10 @@ body{padding:0}
 <script>
 const PLANTS = /*__PLANTS__*/;
 const HERB = /*__HERB__*/;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" onerror="window.THREE_FAIL=1"></script>
+<script>
+/*__V3D__*/
 </script>
 <script>
 /*__ENGINE__*/

@@ -541,6 +541,7 @@ function placeGuild(x, z) {
   x = Math.max(-HW + 2.3, Math.min(HW - 2.3, x)); z = Math.max(-HH + 2.3, Math.min(HH - 2.3, z)); const GWd = A.G.GW, cs = [];
   for (let by = 0; by < BROWS; by++) for (let bx = 0; bx < BCOLS; bx++) { const k = by * GWd + bx; if (!A.G.guildEmpty(S, k)) cs.push(bcenter(bx, by)); }
   for (let it = 0; it < 4; it++) cs.forEach(q => { const dx = x - q[0], dz = z - q[1], d = Math.hypot(dx, dz); if (d < 4.1) { const u = d > .01 ? 1 / d : 1; x = q[0] + (d > .01 ? dx * u : 1) * 4.1; z = q[1] + (d > .01 ? dz * u : 0) * 4.1; } });
+  { let best = null, bd = 1.9; cs.forEach((a, ia) => cs.forEach((b, ib) => { if (ia === ib) return; const d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d > 4.9 || d < .1) return; const ux = (b[0] - a[0]) / d, uz = (b[1] - a[1]) / d; [[b[0] + ux * 4.1, b[1] + uz * 4.1]].forEach(c => { const dd = Math.hypot(c[0] - x, c[1] - z); if (dd < bd) { bd = dd; best = c; } }); })); if (best) { x = best[0]; z = best[1]; } }
   x = Math.max(-HW + 2.3, Math.min(HW - 2.3, x)); z = Math.max(-HH + 2.3, Math.min(HH - 2.3, z));
   let k = -1; for (let by = 0; by < BROWS && k < 0; by++) for (let bx = 0; bx < BCOLS; bx++) { const kk = by * GWd + bx; if (A.G.guildEmpty(S, kk)) { k = kk; break; } }
   if (k < 0) { A.toast('Plus de place : agrandis le terrain ou complète une guilde existante.'); return; }
@@ -604,6 +605,7 @@ function buildGuild(bx, by, items, S, m, sk) {
 }
 function soilColor(w) { return new T.Color(0x5c4433).lerp(new T.Color(0xb09a74), 1 - Math.min(1, Math.max(0, w / 100))); }
 let sigPaths = '';
+const hedgeM = new T.MeshLambertMaterial({ color: 0x6e5035 });
 const trackM = new T.MeshLambertMaterial({ color: 0xd2b27c, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 function ribbon(a, b, seed) {
   const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len, wob = (hj(seed, 1.7) - .5) * Math.min(2.2, len * .5), cx = (a[0] + b[0]) / 2 + nx * wob, cz = (a[1] + b[1]) / 2 + nz * wob, N = Math.max(8, Math.round(len * 2.2)), pos = [], idx = [];
@@ -616,7 +618,8 @@ function syncTracks(S) {
   const y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2], sg = occ.join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
   while (gPaths.children.length) gPaths.remove(gPaths.children[0]);
   const pts = [root].concat(occ.map(o => bcenter(o[0], o[1]))), done = [0], rest = pts.map((_, k) => k).slice(1);
-  while (rest.length) { let bi = -1, bj = -1, bd = 1e9; rest.forEach((j, jj) => done.forEach(i => { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d < bd) { bd = d; bi = i; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); gPaths.add(ribbon(pts[bi], pts[j], bi * 31 + j)); }
+  while (rest.length) { let bi = -1, bj = -1, bd = 1e9; rest.forEach((j, jj) => done.forEach(i => { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d < bd) { bd = d; bi = i; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); if (!(bi > 0 && bd <= 4.9)) gPaths.add(ribbon(pts[bi], pts[j], bi * 31 + j)); }
+  for (let i = 1; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d <= 4.9) { const st = mesh(geo.box(d, .1, RG * 1.7), hedgeM, (pts[i][0] + pts[j][0]) / 2, .08, (pts[i][1] + pts[j][1]) / 2, false); st.rotation.y = -Math.atan2(pts[j][1] - pts[i][1], pts[j][0] - pts[i][0]); st.receiveShadow = true; gPaths.add(st); } }
 }
 let sigDec = '';
 function ypos(k, dx, dz) { const N = A.walk().N, n = N['y' + k]; if (!n) return null; const q = cr2xz(n.c, n.r); return [q[0] + (dx || 0), q[1] + (dz || 0)]; }

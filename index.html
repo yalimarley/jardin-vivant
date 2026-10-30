@@ -1086,17 +1086,35 @@ function soilColor(w) { return new T.Color(0x5c4433).lerp(new T.Color(0xb09a74),
 let sigPaths = '';
 const hedgeM = new T.MeshLambertMaterial({ color: 0x6e5035 });
 const trackM = new T.MeshLambertMaterial({ color: 0xd2b27c, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-function ribbon(a, b, seed) {
-  const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len, wob = (hj(seed, 1.7) - .5) * Math.min(2.2, len * .5), cx = (a[0] + b[0]) / 2 + nx * wob, cz = (a[1] + b[1]) / 2 + nz * wob, N = Math.max(8, Math.round(len * 2.2)), pos = [], idx = [];
-  for (let k = 0; k <= N; k++) { const t = k / N, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz + t * t * b[1], tx = 2 * u * (cx - a[0]) + 2 * t * (b[0] - cx), tz = 2 * u * (cz - a[1]) + 2 * t * (b[1] - cz), tl = Math.hypot(tx, tz) || 1, px = -tz / tl, pz = tx / tl, w = .78 + (hj(seed + k, 3.1) - .5) * .3 + Math.sin(t * Math.PI) * .1;
+function ribbon(a, b, seed, w0, obst) {
+  w0 = w0 || .78; const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len, N = Math.max(8, Math.round(len * 2.2)), pos = [], idx = [];
+  const base = (hj(seed, 1.7) - .5) * Math.min(2.4, len * .55); let wob = base, bestC = -1e9;
+  [base, -base, base * .4, -base * .4, 0].some(cw => { const cx0 = (a[0] + b[0]) / 2 + nx * cw, cz0 = (a[1] + b[1]) / 2 + nz * cw; let cl = 1e9; for (let k = 1; k < 8; k++) { const t = k / 8, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx0 + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz0 + t * t * b[1]; (obst || []).forEach(o => { cl = Math.min(cl, Math.hypot(x - o[0], z - o[1]) - o[2] - w0); }); } if (cl > bestC) { bestC = cl; wob = cw; } return cl >= .15; });
+  const cx = (a[0] + b[0]) / 2 + nx * wob, cz = (a[1] + b[1]) / 2 + nz * wob;
+  for (let k = 0; k <= N; k++) { const t = k / N, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz + t * t * b[1], tx = 2 * u * (cx - a[0]) + 2 * t * (b[0] - cx), tz = 2 * u * (cz - a[1]) + 2 * t * (b[1] - cz), tl = Math.hypot(tx, tz) || 1, px = -tz / tl, pz = tx / tl, w = w0 + (hj(seed + k, 3.1) - .5) * .26 * (w0 / .78) + Math.sin(t * Math.PI) * .08;
     pos.push(x + px * w, .04, z + pz * w, x - px * w, .04, z - pz * w); if (k < N) { const q = k * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, trackM); m.receiveShadow = true; return m;
 }
+function plate(x, z, r) { const m = new T.Mesh(new T.CylinderGeometry(r, r, .03, 14), trackM); m.position.set(x, .045, z); m.receiveShadow = true; return m; }
 function syncTracks(S) {
-  const sps = S.spots || [], y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2], sg = sps.filter(o => o.cells.some(i => S.grid[i])).map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1)).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
+  const sps = S.spots || [], y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2];
+  const sg = sps.map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1)).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
   while (gPaths.children.length) gPaths.remove(gPaths.children[0]);
-  const act = sps.filter(o => o.cells.some(i => S.grid[i])), pts = [root].concat(act.map(o => [o.x, o.z])), rad = [0].concat(act.map(o => A.G.spotRadius(o))), done = [0], rest = pts.map((_, k) => k).slice(1);
-  while (rest.length) { let bi = -1, bj = -1, bd = 1e9; rest.forEach((j, jj) => done.forEach(i => { const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]); if (d < bd) { bd = d; bi = i; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); if (!(bi > 0 && bd - rad[bi] - rad[j] <= 1.3)) gPaths.add(ribbon(pts[bi], pts[j], bi * 31 + j)); }
+  if (!sps.length) return;
+  const nodes = [{ d: [[root[0], root[1], 0]] }].concat(sps.map(o => ({ d: A.G.discsOf(o) })));
+  const link = (i, j) => { let best = null; for (const da of nodes[i].d) for (const db of nodes[j].d) { const dx = db[0] - da[0], dz = db[1] - da[1], dd = Math.hypot(dx, dz) || .01, rim = dd - da[2] - db[2]; if (!best || rim < best.rim) best = { rim, da, db, ux: dx / dd, uz: dz / dd }; }
+    const pa = i ? .22 : 0, pb = .22; return { i, j, rim: best.rim, a: [best.da[0] + best.ux * (best.da[2] + pa), best.da[1] + best.uz * (best.da[2] + pa)], b: [best.db[0] - best.ux * (best.db[2] + pb), best.db[1] - best.uz * (best.db[2] + pb)] }; };
+  const done = [0], rest = nodes.map((_, k) => k).slice(1), edges = [], deg = nodes.map(() => 0), depth = [0];
+  while (rest.length) { let best = null, bj = -1; rest.forEach((j, jj) => done.forEach(i => { const l = link(i, j); if (!best || l.rim < best.rim) { best = l; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); edges.push(best); deg[best.i]++; deg[j]++; depth[j] = depth[best.i] + 1; }
+  // boucles de promenade : un second lien pour les voisins proches
+  const has = (i, j) => edges.some(e => (e.i === i && e.j === j) || (e.i === j && e.j === i));
+  for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { if (has(i, j) || deg[i] >= 3 || deg[j] >= 3) continue; const l = link(i, j); if (l.rim < 4.2) { edges.push(l); deg[i]++; deg[j]++; } }
+  const allD = nodes.map((n, k) => n.d.map(q => [q[0], q[1], q[2], k]));
+  edges.forEach((e, n) => {
+    const obst = []; allD.forEach((ds, k) => { if (k !== e.i && k !== e.j) ds.forEach(q => obst.push(q)); });
+    const w = e.i === 0 ? 1.05 : depth[e.j] <= 2 ? .88 : .72;
+    gPaths.add(ribbon(e.a, e.b, e.i * 31 + e.j * 7 + n, w, obst)); gPaths.add(plate(e.a[0], e.a[1], w * .98)); gPaths.add(plate(e.b[0], e.b[1], w * .98));
+  });
 }
 let sigDec = '';
 function ypos(k, dx, dz) { const N = A.walk().N, n = N['y' + k]; if (!n) return null; const q = cr2xz(n.c, n.r); return [q[0] + (dx || 0), q[1] + (dz || 0)]; }
@@ -2278,11 +2296,11 @@ function make(P) {
     const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
     for (let it = 0; it < 8; it++) {
       let moved = false; const mine = discsOf(sp);
-      for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + .5; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
+      for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + 1.6; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
       if (bounds) { const R = spotRadius(sp) + .3, nx = Math.max(-bounds[0] + R, Math.min(bounds[0] - R, sp.x)), nz = Math.max(-bounds[1] + R, Math.min(bounds[1] - R, sp.z)); if (nx !== sp.x || nz !== sp.z) { sp.x = nx; sp.z = nz; moved = true; } }
       if (!moved) break;
     }
-    for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of discsOf(sp)) if (Math.hypot(d1[0] - d2[0], d1[1] - d2[1]) < d1[2] + d2[2] - .15) return { ok: false, msg: 'Pas la place ici : choisis un endroit plus dégagé.' };
+    for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of discsOf(sp)) if (Math.hypot(d1[0] - d2[0], d1[1] - d2[1]) < d1[2] + d2[2] + 1.3) return { ok: false, msg: 'Pas la place ici : choisis un endroit plus dégagé.' };
     s.spots.push(sp); bump(s); return { ok: true, spot: sp };
   }
   function removeSpot(s, id, force) {
@@ -2299,7 +2317,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

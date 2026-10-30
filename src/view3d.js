@@ -482,7 +482,7 @@ function gradientSky() {
   sun.position.set(Math.cos(a) * 34, Math.sin(a) * 26 + 3, 14); sun.target.position.set(0, 0, 0);
   const sc = new T.Color(S.light).lerp(new T.Color(0xff9a58), warm * .85); sun.color.copy(sc);
   const gloom = rainOn ? .55 : 1;
-  sun.intensity = (.18 + .55 * smooth(0, .45, e)) * gloom; hemi.intensity = (.28 + .3 * smooth(0, .5, e)) * (rainOn ? .85 : 1);
+  sun.intensity = (.3 + .45 * smooth(0, .45, e)) * gloom; hemi.intensity = (.45 + .2 * smooth(0, .5, e)) * (rainOn ? .85 : 1);
   hemi.color.setHex(0xffffff).lerp(new T.Color(0xffc9a0), warm * .5);
   const hor = new T.Color(S.sky).lerp(new T.Color(0xf4a878), warm * .65).lerp(new T.Color(0x2a3558), (1 - smooth(0, .25, e)) * .7); if (rainOn) hor.lerp(new T.Color(0x8e9aa6), .5);
   const zen = new T.Color(S.zen).lerp(new T.Color(0x34406a), (1 - smooth(0, .35, e)) * .75); if (rainOn) zen.lerp(new T.Color(0x7a8794), .5);

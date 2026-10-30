@@ -209,7 +209,7 @@ function dateStr(day, short) { const d = G.dateOf(day); return d.d + ' ' + (shor
 function renderTop() {
   const d = G.dateOf(S.day), w = S.w, st = G.stats(S), se = SEASON(d.m);
   const wi = w.tmin < 0 ? 'frost' : w.rain >= 1 ? 'rain' : w.tmax > 22 ? 'sun' : 'cloud';
-  $('when').innerHTML = '<b>' + dateStr(S.day) + '</b><span class="chip"><i style="background:' + SEASON_COL[se] + '"></i>' + se + '</span>' +
+  $('when').innerHTML = '<b>' + dateStr(S.day) + '</b><span class="chip" id="clk">' + clockTxt() + '</span><span class="chip"><i style="background:' + SEASON_COL[se] + '"></i>' + se + '</span>' +
     '<span style="display:inline-flex;align-items:center;gap:6px">' + ico(wi) + fmt(w.tmin, 0) + ' à ' + fmt(w.tmax, 0) + ' °C' + (w.ev ? ' · ' + ({ gel: 'gel', canicule: 'canicule', secheresse: 'sécheresse', tempete: 'tempête', orage: w.hail ? 'orage de grêle' : 'orage' })[w.ev] : w.rain >= 1 ? ' · pluie ' + fmt(w.rain, 0) + ' mm' : w.tmin < 0 ? ' · gelée' : '') + '</span>';
   const wr = document.querySelector('.garden-wrap'); if (wr) wr.dataset.wx = w.ev || '';
   const fc = G.forecastInfo(S), wa = $('wxalert'); if (wa) { wa.hidden = !fc; wa.className = 'wxalert' + (fc ? ' k-' + fc.kind : ''); wa.innerHTML = fc ? '<b>' + fc.title + '</b><span>' + fc.tip + '</span>' + (fc.kind === 'gel' ? ((S.mats.voile || 0) > 0 ? '<button type="button" class="btn sm" data-act="protect">Protéger (' + S.mats.voile + ' voile' + (S.mats.voile > 1 ? 's' : '') + ')</button>' : '<span class="wx-hint">Plus de voile : 6 ginkgos à la boutique.</span>') : '') : ''; }
@@ -476,6 +476,8 @@ function personSvg(k) {
     '<rect class="arm a2" x="6" y="-26" width="3.6" height="12" rx="1.8" fill="' + sh + '"/><circle cx="7.8" cy="-13.4" r="2" fill="' + sk + '"/>' +
     '<circle cx="0" cy="-32" r="5.8" fill="' + sk + '"/><circle cx="2.3" cy="-32.4" r="1" fill="#3a2b20"/><path d="M-6 -33.5c0-6 12-6 12 0c-2-2.2-4-2.8-6-2.8s-4 .6-6 2.8z" fill="' + hr + '"/>' + (k === 0 ? '<path d="M-5.6 -33l-1 7" stroke="' + hr + '" stroke-width="2.6" stroke-linecap="round"/>' : '') + (k === 2 ? '<path d="M-5.6 -32l-2 8" stroke="' + hr + '" stroke-width="2.6" stroke-linecap="round"/>' : '') + '</g></g>';
 }
+function clockTxt() { const d = new Date(), h = d.getHours() + d.getMinutes() / 60, ic = h < 6.2 || h >= 20 ? '☾ nuit' : h < 8 ? '☀ matin' : h >= 18 ? '☀ soir' : '☀ jour'; return ic + ' · ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+setInterval(() => { const c = document.getElementById('clk'); if (c) c.textContent = clockTxt(); }, 30000);
 function famOut() { const d = new Date(), h = d.getHours() + d.getMinutes() / 60; return (h >= 10 && h < 11) || (h >= 16 && h < 17); }
 function famStep(a) {
   const out = famOut();

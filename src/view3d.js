@@ -719,12 +719,16 @@ function syncBadges() {
   for (const id in btns) if (!seen[id]) { btns[id].remove(); delete btns[id]; }
 }
 const gbtn = {}, wbtn = {};
+function splash(b) {
+  const r = b.getBoundingClientRect(), br = bdiv.getBoundingClientRect(), cx = r.left - br.left + r.width / 2, cy = r.top - br.top + r.height / 2;
+  for (let k = 0; k < 9; k++) { const d = document.createElement('i'), an = -Math.PI / 2 + (k - 4) * .38 + (Math.random() - .5) * .25, sp = 26 + Math.random() * 26; d.className = 'v3splash'; d.style.left = cx + 'px'; d.style.top = cy + 'px'; d.style.setProperty('--dx', (Math.cos(an) * sp).toFixed(1) + 'px'); d.style.setProperty('--dy', (Math.sin(an) * sp).toFixed(1) + 'px'); d.style.animationDelay = (k * 18) + 'ms'; bdiv.appendChild(d); setTimeout(() => d.remove(), 900); }
+}
 function syncPlus() {
   const S = A.S(), seen = {};
   (S.spots || []).forEach(sp => {
     if (sp.f || !sp.cells.some(i => S.grid[i] && !S.grid[i].treille)) return; seen[sp.id] = 1;
-    if (!wbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3drop'; b.setAttribute('aria-label', 'Arroser'); b.title = 'Arroser'; b.innerHTML = '<i><svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path d="M10 2.5c3 4 5 6.4 5 9a5 5 0 0 1-10 0c0-2.6 2-5 5-9z"/></svg></i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); A.waterSpot(b._sp.id); }); wbtn[sp.id] = b; }
-    wbtn[sp.id]._sp = sp; wbtn[sp.id].classList.toggle('dry', sp.cells.some(i => { const c = S.grid[i]; return c && !c.treille && c.water < 60; }));
+    if (!wbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3drop'; b.setAttribute('aria-label', 'Arroser'); b.title = 'Arroser'; b.innerHTML = '<i><svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path d="M10 2.5c3 4 5 6.4 5 9a5 5 0 0 1-10 0c0-2.6 2-5 5-9z"/></svg></i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); splash(b); A.waterSpot(b._sp.id); syncPlus(); }); wbtn[sp.id] = b; }
+    wbtn[sp.id]._sp = sp; wbtn[sp.id].classList.toggle('hid', !sp.cells.some(i => { const c = S.grid[i]; return c && !c.treille && c.water < 60 && !A.pendI(i); }));
   });
   for (const k in wbtn) if (!seen[k]) { if (wbtn[k]) { wbtn[k].remove(); delete wbtn[k]; } }
 }

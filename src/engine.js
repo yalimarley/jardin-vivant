@@ -13,9 +13,9 @@ const EVAP = [2,2.5,4,6,8,11,14,13,9,6,3,2];
 const SEASONF = [.15,.2,.5,.85,1,1,1,1,.9,.7,.35,.15];
 const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
-const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac'];
-const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8 };
-const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 15, cuve: 20, mycor: 25, treille: 15, hamac: 30, pergola: 40, serre: 40, canard: 30, sechoir: 35, mare: 50, ruche: 60, atelier: 60, poulailler: 50, voile: 6, grandeserre: 150 };
+const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel'];
+const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8, boismort: 2, pierres: 3, prairie: 4, hotel: 5 };
+const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 8, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 30, serre: 30, canard: 20, sechoir: 25, mare: 30, ruche: 40, atelier: 45, poulailler: 40, voile: 6, grandeserre: 120, boismort: 5, pierres: 5, prairie: 8, hotel: 12 };
 const SKILLS = {
   plantation: { n: 'Plantation', cat: 'culture', max: 5, req: 0, use: [10, 30, 60, 120], unit: 'plantes plantées', xpk: 5, d: ['Le jardinier plante une plante à la fois, environ 7 secondes (un peu plus pour un arbre).', 'Plantation plus rapide : 6 secondes par plante.', 'Il plante deux plantes à la fois, en 4,5 secondes.', 'Deux plantes à la fois, en 3 secondes.', 'Plantation experte : quatre plantes à la fois, en 2 secondes.'], how: 'Plante une carte.' },
   tonte: { n: 'Tonte', cat: 'entretien', max: 5, req: 0, use: [8, 25, 50, 90], unit: 'zones tondues', xpk: 8, d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone.', '+5 paillage par zone, et l’herbe repousse 3 jours plus vite.', '+6 paillage par zone.'], how: 'Tonds les zones d’herbe autour du jardin.' },
@@ -40,7 +40,7 @@ const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, p
 const RECYCLE = { 'Commune': 2, 'Peu commune': 3, 'Rare': 6 };
 const MAT_UNLOCK = { savoir: 3, voile: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
 const EGG_CAP = 30, EGG_KCAL = 86, EGG_PROT = 7.5, EGG_G = 60;
-const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac']), JAR_KG = .5, DRY_CAP = 3;
+const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel']), JAR_KG = .5, DRY_CAP = 3;
 const JARKG = [0, .5, .7, 1], DRYCAP = [0, 3, 5, 8];
 const MAT_QTY = { voile: 2, chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
 const COMPOST_RATE = .6, COMPOST_KG = 2.5;
@@ -98,7 +98,7 @@ const GSL = { 3: genSlots(1, 0, 0, 0, 3, 1.0, 1.35), 5: genSlots(1, 1, 3, 2, 0, 
 const SPOT_R = { 3: 1.75, 5: 2.25, 7: 2.65 }, HSP = 1.15;
 function slotsOf(sp) {
   if (sp.t === 'single') return [[0, 0, null]];
-  if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, ['Arbuste', 'Arbre', 'Grimpante']]; }); }
+  if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, sp.b ? null : ['Arbuste', 'Arbre', 'Grimpante']]; }); }
   return GSL[sp.n] || GSL[3];
 }
 function spotOf(s, i) { return ((s && s.spots) || []).find(o => o.cells.includes(i)) || null; }
@@ -266,6 +266,7 @@ function make(P) {
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
     if (s.spots && !spotOf(s, i)) return { ok: false, msg: 'Pose d’abord un emplacement avec la pelle (guilde, haie ou plante isolée).' };
+    if (s.spots && !occ) { const sp0 = spotOf(s, i); if (sp0 && sp0.b && p.kind !== 'annuelle') return { ok: false, msg: 'Une butte potager n’accueille que des plantes annuelles (légumes, aromatiques, fleurs).' }; }
     if (s.spots && !occ) { const sp = spotOf(s, i); if (sp) { const pr = slotsOf(sp)[sp.cells.indexOf(i)][2]; if (pr && !pr.includes(p.strate)) return { ok: false, msg: 'Cet emplacement accueille : ' + pr.map(x => x === 'Grimpante' ? 'liane' : x.toLowerCase()).join(' ou ') + '. ' + p.name + ' est ' + (p.strate === 'Grimpante' ? 'une liane' : 'de strate ' + p.strate.toLowerCase()) + '.' }; } }
     if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
@@ -627,7 +628,7 @@ function make(P) {
     const mares = s.grid.filter(c => c && c.furn === 'mare').length;
     const ruches = s.grid.filter(c => c && c.furn === 'ruche').length + Math.min(2, s.grid.filter(c => c && c.ducks).length);
     const woody = cs.filter(o => P[o.c.pid].strate === 'Arbre' || P[o.c.pid].strate === 'Arbuste'), woodyMature = woody.filter(o => phase(o.c).stage === 'mature').length, nich = cs.filter(o => o.c.nichoir).length;
-    const biodiv = cs.length ? Math.round(clamp(5 + Math.min(sp.size, 80) * .55 + strata.size * 2 + Math.min(mell, 10) * 1.2 + Math.min(2, mares) * 5 + Math.min(2, ruches) * 3 + Math.min(3, nich) * 2 + (woody.length ? woodyMature / woody.length * 12 : 0), 0, 100)) : 0;
+    const biodiv = cs.length ? Math.round(clamp(5 + Math.min(sp.size, 80) * .55 + strata.size * 2 + Math.min(mell, 10) * 1.2 + Math.min(2, mares) * 5 + Math.min(2, ruches) * 3 + Math.min(3, nich) * 2 + Math.min(4, s.grid.filter(c => c && (c.furn === 'hotel' || c.furn === 'boismort' || c.furn === 'pierres')).length) * 2.5 + Math.min(3, s.grid.filter(c => c && c.furn === 'prairie').length) * 2.5 + (woody.length ? woodyMature / woody.length * 12 : 0), 0, 100)) : 0;
     const eaten30 = s.eaten.filter(e => s.day - e.day < 30).reduce((a, b) => a + b.kcal, 0);
     const target = Math.min(clamp(45 + Math.min(20, couvre * 3) + Math.min(10, azote * 2.5) + (cs.length ? mul / cs.length * 10 : 0) + comp * 1.5, 20, 95), 70 + 25 * clamp((s.day || 0) / 730, 0, 1));
     const need = famNeed(s) * gshare(s), prod90 = (s.prod || []).filter(x => s.day - x.day < 90).reduce((a, b) => a + b.kcal, 0), gl = guilds(s);
@@ -983,16 +984,18 @@ function make(P) {
     if (!s.spots) return { g: 1, r: 0, gel: 0, ev: 1 }; const sp = spotOf(s, i); if (!sp) return { g: 1, r: 0, gel: 0, ev: 1 };
     if (sp.t === 'single') return sp.f ? { g: 1, r: 0, gel: 0, ev: 1 } : { g: .6, r: -.35, gel: -3, ev: 1.25 };
     const pl = sp.cells.filter(j => s.grid[j] && !s.grid[j].treille && P[s.grid[j].pid]), n = sp.cells.length, gr = new Set(pl.map(j => { const st = P[s.grid[j].pid].strate; return st === 'Herbacée' || st === 'Racine' || st === 'Couvre-sol' ? 'bas' : st; }));
+    if (sp.b) return { g: 1.2, r: -.05, gel: -1, ev: .88 };
     if (sp.t === 'hedge') { const q = Math.min(1, pl.length / n); return { g: 1.05 + .25 * q, r: .1 + .3 * q, gel: .5 + 1.5 * q, ev: .95 - .1 * q }; }
     const q = Math.min(1, .55 * pl.length / Math.max(3, n * .75) + .45 * gr.size / 4); return { g: 1.3 + .7 * q, r: .3 + .4 * q, gel: 2 + 3 * q, ev: .9 - .2 * q };
   }
   function cleanFurnSpots(s) { if (!s.spots) return; s.spots = s.spots.filter(o => !o.f || s.grid[o.cells[0]] || (s.pq || []).some(q => q.i === o.cells[0])); }
   function addSpot(s, t, n, x, z, a, bounds) {
+    const isB = t === 'butte'; if (isB) t = 'hedge';
     s.spots = s.spots || []; const want = t === 'guild' ? (GSL[n] || GSL[3]).length : t === 'hedge' ? 6 : 1;
     const used = new Set(); s.spots.forEach(o => o.cells.forEach(j => used.add(j))); (s.pq || []).forEach(q => used.add(q.i));
     const cells = []; for (let i = 0; i < NCELL && cells.length < want; i++) if (isActive(s, i) && !s.grid[i] && !used.has(i)) cells.push(i);
     if (cells.length < want) return { ok: false, msg: 'Plus assez de terrain libre : agrandis le jardin.' };
-    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
+    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (isB) sp.b = 1; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
     for (let it = 0; it < 8; it++) {
       let moved = false; const mine = discsOf(sp);
       for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + 1.6; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }

@@ -326,6 +326,24 @@ function furn(k, cell) {
     [-.35, .35].forEach(x => B(.08, .35, .08, mat.wood, x, .18, 0)); B(.9, .3, .7, mat.straw, 0, .5, 0); B(.9, .3, .7, mat.white, 0, .8, 0); B(1.0, .08, .8, mat.roof, 0, 1.02, 0); B(.3, .06, .1, mat.dark, 0, .56, .36);
     g.userData.bees = true;
   }
+  else if (k === 'boismort') {
+    [[0, .14, 0, 1.5], [.1, .14, .3, 1.3], [-.1, .14, -.32, 1.4], [0, .38, .1, 1.2], [.05, .4, -.15, 1.0], [-.1, .6, 0, .8]].forEach((a, n) => { const l = mesh(geo.cyl(.13, .15, a[3], 7), n % 2 ? L(0x7a5636) : L(0x8a6240), a[0], a[1], a[2]); l.rotation.z = Math.PI / 2; l.rotation.y = (n % 3 - 1) * .18; g.add(l); });
+    g.add(mesh(geo.cyl(.1, .1, .5, 6), L(0x5a3d26), .6, .3, .5)); const m1 = mesh(geo.ico(.18, 0), L(0xe8dccc), -.6, .1, .55); m1.scale.set(1, .6, 1); g.add(m1);
+  }
+  else if (k === 'pierres') {
+    [[0, 0, 0, .55], [.6, .1, .3, .38], [-.55, .1, .2, .42], [.2, .45, -.1, .35], [-.2, .5, .1, .3], [.1, .1, -.6, .33]].forEach((a, n) => { const r = mesh(rockGeo(a[3]), n % 2 ? mat.rock : L(0xb0b4ad), a[0], a[3] * .55 + a[1] * .3, a[2]); r.scale.y = .75; g.add(r); });
+  }
+  else if (k === 'prairie') {
+    g.add(mesh(geo.cyl(1.05, 1.1, .05, 12), L(0x86b45e), 0, .03, 0, false)); const cols = [0xe8745a, 0xf6c24b, 0x9b6fd0, 0xf4f0e4, 0xe86fa0];
+    for (let i = 0; i < 26; i++) { const a = i * 2.4, rr = .15 + (i % 7) * .12, h = .45 + rng() * .5, x = Math.cos(a) * rr, z = Math.sin(a) * rr; g.add(mesh(geo.cyl(.012, .016, h, 3), mat.leafA, x, h / 2, z, false)); const f = mesh(geo.ico(.07 + rng() * .03, 0), L(cols[i % 5]), x, h, z, false); g.add(f); }
+    g.userData.bees = true;
+  }
+  else if (k === 'hotel') {
+    [-.55, .55].forEach(x => B(.09, .5, .09, mat.wood, x, .25, 0)); B(1.3, 1.15, .4, L(0xa77d4e), 0, 1.07, 0);
+    const cl = [0xe8c36a, 0x6b4a2e, 0xc98a5a, 0xd9b88a, 0x8a9a4a];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) B(.34, .3, .06, L(cl[(r * 3 + c) % 5]), -.4 + c * .4, .73 + r * .35, .2);
+    const rf = mesh(new T.ConeGeometry(1.0, .38, 4), mat.roof, 0, 1.83, 0); rf.rotation.y = Math.PI / 4; rf.scale.set(1.12, 1, .42); g.add(rf);
+  }
   else if (k === 'hamac') {
     [-.95, .95].forEach(x => B(.1, 1.7, .1, mat.wood, x, .85, 0)); const h = mesh(geo.box(1.7, .06, .5), L(0xc8553a), 0, .8, 0); h.scale.set(1, 1, 1); g.add(h); h.geometry = h.geometry.clone();
     const pa = h.geometry.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i); pa.setY(i, pa.getY(i) + (x * x / .72 - 1) * .1 - .08 + (x * x) * .0); } pa.needsUpdate = true; h.geometry.computeVertexNormals();
@@ -563,10 +581,10 @@ function rebuildPlate() {
 const emptyM = new T.MeshLambertMaterial({ color: 0x57402d });
 function buildSpot(sp, S, m, sk) {
   const g = new T.Group(); g.position.set(sp.x, 0, sp.z); g.userData.pick = { t: 'spot', id: sp.id }; g.userData.plants = []; g.userData.waters = [];
-  const soilMat = new T.MeshLambertMaterial({ color: 0x6e5035 }); g.userData.soil = soilMat;
+  const soilMat = new T.MeshLambertMaterial({ color: sp.b ? 0x4a3224 : 0x6e5035 }); g.userData.soil = soilMat;
   const hs = hj(sp.id, 5), SL = A.G.slotsOf(sp), R = A.G.spotRadius(sp);
   if (sp.t === 'hedge') {
-    const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, .06, 1.9), L(0x8a6a48), 0, .03, 0, false), bed = mesh(new T.BoxGeometry(len, .18, 1.45), soilMat, 0, .1, 0, false);
+    const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, sp.b ? .16 : .06, 1.9), L(sp.b ? 0xb8905a : 0x8a6a48), 0, sp.b ? .08 : .03, 0, false), bed = mesh(new T.BoxGeometry(sp.b ? len - .1 : len, sp.b ? .26 : .18, sp.b ? 1.5 : 1.45), soilMat, 0, sp.b ? .13 : .1, 0, false);
     ring.rotation.y = bed.rotation.y = -(sp.a || 0); g.add(ring, bed);
     const hit = new T.Mesh(new T.BoxGeometry(len, .6, 1.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .3; hit.rotation.y = -(sp.a || 0); g.add(hit);
   } else if (sp.f) {

@@ -832,6 +832,24 @@ function furn(k, cell) {
     [-.35, .35].forEach(x => B(.08, .35, .08, mat.wood, x, .18, 0)); B(.9, .3, .7, mat.straw, 0, .5, 0); B(.9, .3, .7, mat.white, 0, .8, 0); B(1.0, .08, .8, mat.roof, 0, 1.02, 0); B(.3, .06, .1, mat.dark, 0, .56, .36);
     g.userData.bees = true;
   }
+  else if (k === 'boismort') {
+    [[0, .14, 0, 1.5], [.1, .14, .3, 1.3], [-.1, .14, -.32, 1.4], [0, .38, .1, 1.2], [.05, .4, -.15, 1.0], [-.1, .6, 0, .8]].forEach((a, n) => { const l = mesh(geo.cyl(.13, .15, a[3], 7), n % 2 ? L(0x7a5636) : L(0x8a6240), a[0], a[1], a[2]); l.rotation.z = Math.PI / 2; l.rotation.y = (n % 3 - 1) * .18; g.add(l); });
+    g.add(mesh(geo.cyl(.1, .1, .5, 6), L(0x5a3d26), .6, .3, .5)); const m1 = mesh(geo.ico(.18, 0), L(0xe8dccc), -.6, .1, .55); m1.scale.set(1, .6, 1); g.add(m1);
+  }
+  else if (k === 'pierres') {
+    [[0, 0, 0, .55], [.6, .1, .3, .38], [-.55, .1, .2, .42], [.2, .45, -.1, .35], [-.2, .5, .1, .3], [.1, .1, -.6, .33]].forEach((a, n) => { const r = mesh(rockGeo(a[3]), n % 2 ? mat.rock : L(0xb0b4ad), a[0], a[3] * .55 + a[1] * .3, a[2]); r.scale.y = .75; g.add(r); });
+  }
+  else if (k === 'prairie') {
+    g.add(mesh(geo.cyl(1.05, 1.1, .05, 12), L(0x86b45e), 0, .03, 0, false)); const cols = [0xe8745a, 0xf6c24b, 0x9b6fd0, 0xf4f0e4, 0xe86fa0];
+    for (let i = 0; i < 26; i++) { const a = i * 2.4, rr = .15 + (i % 7) * .12, h = .45 + rng() * .5, x = Math.cos(a) * rr, z = Math.sin(a) * rr; g.add(mesh(geo.cyl(.012, .016, h, 3), mat.leafA, x, h / 2, z, false)); const f = mesh(geo.ico(.07 + rng() * .03, 0), L(cols[i % 5]), x, h, z, false); g.add(f); }
+    g.userData.bees = true;
+  }
+  else if (k === 'hotel') {
+    [-.55, .55].forEach(x => B(.09, .5, .09, mat.wood, x, .25, 0)); B(1.3, 1.15, .4, L(0xa77d4e), 0, 1.07, 0);
+    const cl = [0xe8c36a, 0x6b4a2e, 0xc98a5a, 0xd9b88a, 0x8a9a4a];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) B(.34, .3, .06, L(cl[(r * 3 + c) % 5]), -.4 + c * .4, .73 + r * .35, .2);
+    const rf = mesh(new T.ConeGeometry(1.0, .38, 4), mat.roof, 0, 1.83, 0); rf.rotation.y = Math.PI / 4; rf.scale.set(1.12, 1, .42); g.add(rf);
+  }
   else if (k === 'hamac') {
     [-.95, .95].forEach(x => B(.1, 1.7, .1, mat.wood, x, .85, 0)); const h = mesh(geo.box(1.7, .06, .5), L(0xc8553a), 0, .8, 0); h.scale.set(1, 1, 1); g.add(h); h.geometry = h.geometry.clone();
     const pa = h.geometry.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i); pa.setY(i, pa.getY(i) + (x * x / .72 - 1) * .1 - .08 + (x * x) * .0); } pa.needsUpdate = true; h.geometry.computeVertexNormals();
@@ -1069,10 +1087,10 @@ function rebuildPlate() {
 const emptyM = new T.MeshLambertMaterial({ color: 0x57402d });
 function buildSpot(sp, S, m, sk) {
   const g = new T.Group(); g.position.set(sp.x, 0, sp.z); g.userData.pick = { t: 'spot', id: sp.id }; g.userData.plants = []; g.userData.waters = [];
-  const soilMat = new T.MeshLambertMaterial({ color: 0x6e5035 }); g.userData.soil = soilMat;
+  const soilMat = new T.MeshLambertMaterial({ color: sp.b ? 0x4a3224 : 0x6e5035 }); g.userData.soil = soilMat;
   const hs = hj(sp.id, 5), SL = A.G.slotsOf(sp), R = A.G.spotRadius(sp);
   if (sp.t === 'hedge') {
-    const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, .06, 1.9), L(0x8a6a48), 0, .03, 0, false), bed = mesh(new T.BoxGeometry(len, .18, 1.45), soilMat, 0, .1, 0, false);
+    const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, sp.b ? .16 : .06, 1.9), L(sp.b ? 0xb8905a : 0x8a6a48), 0, sp.b ? .08 : .03, 0, false), bed = mesh(new T.BoxGeometry(sp.b ? len - .1 : len, sp.b ? .26 : .18, sp.b ? 1.5 : 1.45), soilMat, 0, sp.b ? .13 : .1, 0, false);
     ring.rotation.y = bed.rotation.y = -(sp.a || 0); g.add(ring, bed);
     const hit = new T.Mesh(new T.BoxGeometry(len, .6, 1.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .3; hit.rotation.y = -(sp.a || 0); g.add(hit);
   } else if (sp.f) {
@@ -1373,9 +1391,9 @@ const EVAP = [2,2.5,4,6,8,11,14,13,9,6,3,2];
 const SEASONF = [.15,.2,.5,.85,1,1,1,1,.9,.7,.35,.15];
 const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
-const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac'];
-const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8 };
-const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 10, oya: 15, cuve: 20, mycor: 25, treille: 15, hamac: 30, pergola: 40, serre: 40, canard: 30, sechoir: 35, mare: 50, ruche: 60, atelier: 60, poulailler: 50, voile: 6, grandeserre: 150 };
+const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel'];
+const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8, boismort: 2, pierres: 3, prairie: 4, hotel: 5 };
+const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 8, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 30, serre: 30, canard: 20, sechoir: 25, mare: 30, ruche: 40, atelier: 45, poulailler: 40, voile: 6, grandeserre: 120, boismort: 5, pierres: 5, prairie: 8, hotel: 12 };
 const SKILLS = {
   plantation: { n: 'Plantation', cat: 'culture', max: 5, req: 0, use: [10, 30, 60, 120], unit: 'plantes plantées', xpk: 5, d: ['Le jardinier plante une plante à la fois, environ 7 secondes (un peu plus pour un arbre).', 'Plantation plus rapide : 6 secondes par plante.', 'Il plante deux plantes à la fois, en 4,5 secondes.', 'Deux plantes à la fois, en 3 secondes.', 'Plantation experte : quatre plantes à la fois, en 2 secondes.'], how: 'Plante une carte.' },
   tonte: { n: 'Tonte', cat: 'entretien', max: 5, req: 0, use: [8, 25, 50, 90], unit: 'zones tondues', xpk: 8, d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone.', '+5 paillage par zone, et l’herbe repousse 3 jours plus vite.', '+6 paillage par zone.'], how: 'Tonds les zones d’herbe autour du jardin.' },
@@ -1400,7 +1418,7 @@ const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, p
 const RECYCLE = { 'Commune': 2, 'Peu commune': 3, 'Rare': 6 };
 const MAT_UNLOCK = { savoir: 3, voile: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
 const EGG_CAP = 30, EGG_KCAL = 86, EGG_PROT = 7.5, EGG_G = 60;
-const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac']), JAR_KG = .5, DRY_CAP = 3;
+const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel']), JAR_KG = .5, DRY_CAP = 3;
 const JARKG = [0, .5, .7, 1], DRYCAP = [0, 3, 5, 8];
 const MAT_QTY = { voile: 2, chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
 const COMPOST_RATE = .6, COMPOST_KG = 2.5;
@@ -1458,7 +1476,7 @@ const GSL = { 3: genSlots(1, 0, 0, 0, 3, 1.0, 1.35), 5: genSlots(1, 1, 3, 2, 0, 
 const SPOT_R = { 3: 1.75, 5: 2.25, 7: 2.65 }, HSP = 1.15;
 function slotsOf(sp) {
   if (sp.t === 'single') return [[0, 0, null]];
-  if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, ['Arbuste', 'Arbre', 'Grimpante']]; }); }
+  if (sp.t === 'hedge') { const n = sp.cells.length, c = Math.cos(sp.a || 0), sn = Math.sin(sp.a || 0); return sp.cells.map((_, k) => { const dx = (k - (n - 1) / 2) * HSP; return [dx * c, dx * sn, sp.b ? null : ['Arbuste', 'Arbre', 'Grimpante']]; }); }
   return GSL[sp.n] || GSL[3];
 }
 function spotOf(s, i) { return ((s && s.spots) || []).find(o => o.cells.includes(i)) || null; }
@@ -1626,6 +1644,7 @@ function make(P) {
     if (occ && !(occ.treille && (occ.furn === 'treille' || occ.furn === 'pergola') && p.strate === 'Grimpante')) return { ok: false, msg: 'Cette parcelle est occupée.' };
     if (!unlocked(s).has(p.strate)) return { ok: false, msg: 'Strate pas encore débloquée.' };
     if (s.spots && !spotOf(s, i)) return { ok: false, msg: 'Pose d’abord un emplacement avec la pelle (guilde, haie ou plante isolée).' };
+    if (s.spots && !occ) { const sp0 = spotOf(s, i); if (sp0 && sp0.b && p.kind !== 'annuelle') return { ok: false, msg: 'Une butte potager n’accueille que des plantes annuelles (légumes, aromatiques, fleurs).' }; }
     if (s.spots && !occ) { const sp = spotOf(s, i); if (sp) { const pr = slotsOf(sp)[sp.cells.indexOf(i)][2]; if (pr && !pr.includes(p.strate)) return { ok: false, msg: 'Cet emplacement accueille : ' + pr.map(x => x === 'Grimpante' ? 'liane' : x.toLowerCase()).join(' ou ') + '. ' + p.name + ' est ' + (p.strate === 'Grimpante' ? 'une liane' : 'de strate ' + p.strate.toLowerCase()) + '.' }; } }
     if (p.strate === 'Grimpante' && !climbSupport(s, i)) return { ok: false, msg: CLIMB_MSG };
     const m = dateOf(s.day).m;
@@ -1987,7 +2006,7 @@ function make(P) {
     const mares = s.grid.filter(c => c && c.furn === 'mare').length;
     const ruches = s.grid.filter(c => c && c.furn === 'ruche').length + Math.min(2, s.grid.filter(c => c && c.ducks).length);
     const woody = cs.filter(o => P[o.c.pid].strate === 'Arbre' || P[o.c.pid].strate === 'Arbuste'), woodyMature = woody.filter(o => phase(o.c).stage === 'mature').length, nich = cs.filter(o => o.c.nichoir).length;
-    const biodiv = cs.length ? Math.round(clamp(5 + Math.min(sp.size, 80) * .55 + strata.size * 2 + Math.min(mell, 10) * 1.2 + Math.min(2, mares) * 5 + Math.min(2, ruches) * 3 + Math.min(3, nich) * 2 + (woody.length ? woodyMature / woody.length * 12 : 0), 0, 100)) : 0;
+    const biodiv = cs.length ? Math.round(clamp(5 + Math.min(sp.size, 80) * .55 + strata.size * 2 + Math.min(mell, 10) * 1.2 + Math.min(2, mares) * 5 + Math.min(2, ruches) * 3 + Math.min(3, nich) * 2 + Math.min(4, s.grid.filter(c => c && (c.furn === 'hotel' || c.furn === 'boismort' || c.furn === 'pierres')).length) * 2.5 + Math.min(3, s.grid.filter(c => c && c.furn === 'prairie').length) * 2.5 + (woody.length ? woodyMature / woody.length * 12 : 0), 0, 100)) : 0;
     const eaten30 = s.eaten.filter(e => s.day - e.day < 30).reduce((a, b) => a + b.kcal, 0);
     const target = Math.min(clamp(45 + Math.min(20, couvre * 3) + Math.min(10, azote * 2.5) + (cs.length ? mul / cs.length * 10 : 0) + comp * 1.5, 20, 95), 70 + 25 * clamp((s.day || 0) / 730, 0, 1));
     const need = famNeed(s) * gshare(s), prod90 = (s.prod || []).filter(x => s.day - x.day < 90).reduce((a, b) => a + b.kcal, 0), gl = guilds(s);
@@ -2343,16 +2362,18 @@ function make(P) {
     if (!s.spots) return { g: 1, r: 0, gel: 0, ev: 1 }; const sp = spotOf(s, i); if (!sp) return { g: 1, r: 0, gel: 0, ev: 1 };
     if (sp.t === 'single') return sp.f ? { g: 1, r: 0, gel: 0, ev: 1 } : { g: .6, r: -.35, gel: -3, ev: 1.25 };
     const pl = sp.cells.filter(j => s.grid[j] && !s.grid[j].treille && P[s.grid[j].pid]), n = sp.cells.length, gr = new Set(pl.map(j => { const st = P[s.grid[j].pid].strate; return st === 'Herbacée' || st === 'Racine' || st === 'Couvre-sol' ? 'bas' : st; }));
+    if (sp.b) return { g: 1.2, r: -.05, gel: -1, ev: .88 };
     if (sp.t === 'hedge') { const q = Math.min(1, pl.length / n); return { g: 1.05 + .25 * q, r: .1 + .3 * q, gel: .5 + 1.5 * q, ev: .95 - .1 * q }; }
     const q = Math.min(1, .55 * pl.length / Math.max(3, n * .75) + .45 * gr.size / 4); return { g: 1.3 + .7 * q, r: .3 + .4 * q, gel: 2 + 3 * q, ev: .9 - .2 * q };
   }
   function cleanFurnSpots(s) { if (!s.spots) return; s.spots = s.spots.filter(o => !o.f || s.grid[o.cells[0]] || (s.pq || []).some(q => q.i === o.cells[0])); }
   function addSpot(s, t, n, x, z, a, bounds) {
+    const isB = t === 'butte'; if (isB) t = 'hedge';
     s.spots = s.spots || []; const want = t === 'guild' ? (GSL[n] || GSL[3]).length : t === 'hedge' ? 6 : 1;
     const used = new Set(); s.spots.forEach(o => o.cells.forEach(j => used.add(j))); (s.pq || []).forEach(q => used.add(q.i));
     const cells = []; for (let i = 0; i < NCELL && cells.length < want; i++) if (isActive(s, i) && !s.grid[i] && !used.has(i)) cells.push(i);
     if (cells.length < want) return { ok: false, msg: 'Plus assez de terrain libre : agrandis le jardin.' };
-    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
+    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (isB) sp.b = 1; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
     for (let it = 0; it < 8; it++) {
       let moved = false; const mine = discsOf(sp);
       for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + 1.6; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
@@ -2599,6 +2620,10 @@ const MATS = {
   plan: { n: 'Plan de guilde', d: 'Te dit quoi planter autour d’un arbre.', svg: '<path d="M14 18h48v52H14z" fill="#f1e6c8" stroke="#b8a67e" stroke-width="2.4"/><path d="M62 18l6 6v52l-6-6z" fill="#d9c9a2"/><circle cx="38" cy="44" r="8" fill="#4f9a4a"/><g fill="none" stroke="#6f9a52" stroke-width="2.4" stroke-dasharray="3 3"><circle cx="38" cy="44" r="17"/></g><g fill="#e0603a"><circle cx="38" cy="25" r="3"/><circle cx="55" cy="44" r="3"/></g><g fill="#f0b23a"><circle cx="21" cy="44" r="3"/><circle cx="38" cy="63" r="3"/></g>' },
   mycor: { n: 'Inoculum de mycorhizes', d: 'Un arbre ou arbuste pousse plus vite 2 mois.', svg: '<ellipse cx="40" cy="70" rx="28" ry="5" fill="#6a4e39"/><g stroke="#f4efe0" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M14 70q10-10 20-4t22-6 14-4M26 66q-4-8 0-14M50 62q6-8 2-16"/></g><path d="M40 62V44" stroke="#efe5c6" stroke-width="6" stroke-linecap="round"/><path d="M26 44a14 11 0 0 1 28 0z" fill="#c8553a"/><circle cx="34" cy="38" r="2.2" fill="#fff"/><circle cx="44" cy="35" r="2.6" fill="#fff"/><circle cx="48" cy="41" r="1.8" fill="#fff"/>' },
   savoir: { n: 'Savoir', d: 'Apprends une plante de saison.', svg: '<path d="M10 22c10-4 22-4 30 2v44c-8-6-20-6-30-2z" fill="#f1e6c8" stroke="#b8a67e" stroke-width="2"/><path d="M70 22c-10-4-22-4-30 2v44c8-6 20-6 30-2z" fill="#f7efd6" stroke="#b8a67e" stroke-width="2"/><g stroke="#b8a67e" stroke-width="1.8" stroke-linecap="round"><path d="M16 32c6-1 12-1 18 2M16 42c6-1 12-1 18 2M46 34c6-3 12-3 18-2M46 44c6-3 12-3 18-2"/></g><path d="M40 20c-6-6-4-12 2-14 2 6 0 10-2 14z" fill="#4f9a4a"/>' },
+  boismort: { n: 'Tas de bois mort', d: 'Abri pour hérissons, insectes et champignons.', svg: '<ellipse cx="40" cy="68" rx="30" ry="6" fill="#000" opacity=".15"/><g stroke="#4a3322" stroke-width="2"><rect x="10" y="52" width="60" height="12" rx="6" fill="#8a6240"/><rect x="14" y="40" width="50" height="12" rx="6" fill="#9a7048"/><rect x="22" y="28" width="38" height="12" rx="6" fill="#7a5636"/></g><circle cx="14" cy="58" r="3.5" fill="#d9b88a"/><circle cx="19" cy="46" r="3.5" fill="#d9b88a"/><circle cx="26" cy="34" r="3.5" fill="#d9b88a"/>' },
+  pierres: { n: 'Tas de pierres', d: 'Refuge pour lézards, orvets et insectes.', svg: '<ellipse cx="40" cy="68" rx="30" ry="6" fill="#000" opacity=".15"/><path d="M10 64l8-16 14-4 8-10 14 6 10 8 8 16z" fill="#9aa09a" stroke="#6f756f" stroke-width="2.4" stroke-linejoin="round"/><path d="M26 64l6-12 10-2 8 14z" fill="#b4b9b2" stroke="#6f756f" stroke-width="2"/>' },
+  prairie: { n: 'Prairie fleurie', d: 'Un coin de fleurs sauvages : abeilles et papillons.', svg: '<ellipse cx="40" cy="68" rx="30" ry="7" fill="#7aa857"/><g stroke="#4f7a3c" stroke-width="2.4" stroke-linecap="round"><path d="M18 66V42M30 68V34M42 66V40M54 68V30M64 66V46"/></g><circle cx="18" cy="40" r="5" fill="#e8745a"/><circle cx="30" cy="32" r="5" fill="#f6c24b"/><circle cx="42" cy="38" r="5" fill="#9b6fd0"/><circle cx="54" cy="28" r="5" fill="#f4f0e4"/><circle cx="64" cy="44" r="5" fill="#e8745a"/>' },
+  hotel: { n: 'Hôtel à insectes', d: 'Abeilles solitaires, coccinelles et perce-oreilles : moins de pucerons.', svg: '<ellipse cx="40" cy="72" rx="26" ry="5" fill="#000" opacity=".15"/><path d="M22 72V58M58 72V58" stroke="#6b4a2e" stroke-width="4"/><rect x="14" y="14" width="52" height="46" rx="3" fill="#a77d4e" stroke="#6b4a2e" stroke-width="3"/><g><rect x="18" y="18" width="14" height="12" fill="#e8c36a"/><rect x="34" y="18" width="14" height="12" fill="#6b4a2e"/><rect x="50" y="18" width="12" height="12" fill="#c98a5a"/><rect x="18" y="32" width="20" height="12" fill="#d9b88a"/><rect x="40" y="32" width="22" height="12" fill="#8a9a4a"/><rect x="18" y="46" width="12" height="10" fill="#c98a5a"/><rect x="32" y="46" width="14" height="10" fill="#e8c36a"/><rect x="48" y="46" width="14" height="10" fill="#6b4a2e"/></g><path d="M10 14l30-10 30 10z" fill="#b5503c" stroke="#7a3322" stroke-width="2.4" stroke-linejoin="round"/>' },
   hamac: { n: 'Hamac', d: 'Un coin de repos : la famille est plus heureuse.', svg: '<ellipse cx="40" cy="72" rx="32" ry="5" fill="#000" opacity=".14"/><path d="M12 70V20M68 70V20" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><path d="M12 24Q40 62 68 24Q40 44 12 24z" fill="#e8745a" stroke="#b9503a" stroke-width="1.6" stroke-linejoin="round"/><path d="M20 30Q40 52 60 30" stroke="#f6c24b" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M12 22l-6-3M68 22l6-3" stroke="#6b4a2e" stroke-width="2" stroke-linecap="round"/><path d="M14 22c1 4 3 6 6 8M66 22c-1 4-3 6-6 8" stroke="#d9c9a2" stroke-width="1.4" fill="none"/>' }
 };
 function matCard(k, q) { const mt = MATS[k]; return '<article class="card t-mat"><div class="art"><svg viewBox="0 0 80 80" aria-hidden="true">' + mt.svg + '</svg>' + (q > 1 ? '<span class="cnt">×' + q + '</span>' : '') + '</div><h4>' + mt.n + '</h4><p class="lat" style="font-style:normal">' + mt.d + '</p><div class="tags"><span class="tag">' + (k === 'paillage' || k === 'compost' ? 'matériel' : k === 'trogne' ? 'technique' : k === 'canard' || k === 'nichoir' || k === 'poulailler' ? 'animal' : ['atelier', 'bocaux', 'sechoir'].includes(k) ? 'transformation' : ['voile', 'ortie', 'prele', 'mycor'].includes(k) ? 'soin' : ['cuve', 'oya'].includes(k) ? 'eau' : ['plan', 'savoir'].includes(k) ? 'savoir' : 'mobilier') + '</span></div></article>'; }
@@ -2733,10 +2758,14 @@ const FURN_INFO = {
   canard: { n: 'Canards coureurs indiens', d: 'Ces canards se tiennent debout comme des bouteilles et patrouillent toute la journée : ils mangent les limaces. Installe-les à la mare : les plantes dans un rayon de 3 parcelles sont presque à l’abri des attaques de limaces.' },
   trogne: { n: 'Trogne (arbre têtard)', d: 'Une technique de taille ancestrale : on coupe un arbre à hauteur d’homme, il repart en dizaines de rejets. Tous les 3 mois, tu récoltes les branches : +4 paillage et les plantes poussent 60 % plus vite pendant 20 jours (cumulable jusqu’à 60 jours). Touche un arbre au bord du jardin pour le former.' },
   grandeserre: { n: 'Grande serre', d: 'Une vraie serre : les plantes exotiques fragiles au froid (bananier, agrumes, curcuma…) y survivent, et ses voisines sont protégées du gel (jusqu’à 9 °C de plus). Elle donne aussi un coup de pouce de croissance l’hiver. Les plantes exotiques n’apparaissent dans les boosters qu’une fois la serre posée.' },
+  boismort: { n: 'Tas de bois mort', d: 'Branches et souches empilées : abri pour hérissons, insectes et champignons. Augmente la biodiversité.' },
+  pierres: { n: 'Tas de pierres', d: 'Un refuge pour lézards, orvets et insectes du sol. Augmente la biodiversité.' },
+  prairie: { n: 'Prairie fleurie', d: 'Un coin laissé aux fleurs sauvages : abeilles et papillons y viennent. Augmente la biodiversité.' },
+  hotel: { n: 'Hôtel à insectes', d: 'Abeilles solitaires, coccinelles et perce-oreilles y nichent. Augmente la biodiversité.' },
   hamac: { n: 'Hamac', d: 'Un coin de repos entre deux poteaux. Tant qu’il est posé à côté d’au moins 3 plantes en bonne santé, la famille est plus heureuse (+10 de bonheur visé). Un jardin qu’on a envie d’habiter.' },
   ruche: { n: 'Ruche', d: 'Les abeilles pollinisent les fleurs voisines : plus de fruits pour les vivaces et les plantes gourmandes proches. Compte aussi dans la biodiversité.' }
 };
-const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac'];
+const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel'];
 const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer. Les cercles orange marquent les plantes encore sans sentier.', voile: 'Touche une plante : le voile couvre elle et ses voisines.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
 const INSTANT = ['atelier', 'poulailler', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
 const dia = (cx, cy, k) => [(cx).toFixed(1) + ',' + (cy - TH * k).toFixed(1), (cx + TW * k).toFixed(1) + ',' + cy.toFixed(1), (cx).toFixed(1) + ',' + (cy + TH * k).toFixed(1), (cx - TW * k).toFixed(1) + ',' + cy.toFixed(1)];
@@ -2776,6 +2805,28 @@ function furnTile(k, cx, cy, m, seed, cell) {
     for (let n = 0; n <= 6; n++) { const t = n / 6, x1 = A[0] + (D[0] - A[0]) * t, y1 = A[1] + (D[1] - A[1]) * t, x2 = Bq[0] + (C[0] - Bq[0]) * t, y2 = Bq[1] + (C[1] - Bq[1]) * t; s += '<path d="M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + 'L' + x2.toFixed(1) + ' ' + y2.toFixed(1) + '" stroke="#7a5636" stroke-width="3.2" stroke-linecap="round"/>'; }
     s += '<path d="M' + A.join(' ') + 'L' + Bq.join(' ') + 'L' + C.join(' ') + 'L' + D.join(' ') + 'Z" fill="none" stroke="#6b4a2e" stroke-width="3.4" stroke-linejoin="round"/>';
     if (m >= 3 && m <= 10) for (let n = 0; n < 9; n++) { const x = A[0] - 40 + R() * 80, y = A[1] + 6 + R() * 24; s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (3 + R() * 2.6).toFixed(1) + '" fill="' + (m >= 9 ? '#c7a24a' : '#5aa04c') + '" opacity=".9"/>'; }
+    return s;
+  }
+  if (k === 'boismort') {
+    s += poly(dia(cx, cy + 4, .98), '#7d9a52') + poly(dia(cx, cy + 3, .9), '#8fae5f');
+    [[-14, 2, 0], [8, 4, 0], [-4, -8, 0], [-16, -10, 0], [12, -9, 0]].forEach(a => { s += '<rect x="' + (cx + a[0] - 17) + '" y="' + (cy + a[1] - 6) + '" width="34" height="9" rx="4.5" fill="#8a6240" stroke="#4a3322" stroke-width="1.6"/><circle cx="' + (cx + a[0] - 14) + '" cy="' + (cy + a[1] - 1.5) + '" r="2.6" fill="#d9b88a"/>'; });
+    return s;
+  }
+  if (k === 'pierres') {
+    s += poly(dia(cx, cy + 4, .98), '#7d9a52') + poly(dia(cx, cy + 3, .9), '#8fae5f');
+    s += '<path d="M' + (cx - 30) + ' ' + (cy + 6) + 'l9-20 17-5 10-12 17 8 12 10 9 19z" fill="#9aa09a" stroke="#6f756f" stroke-width="2.4" stroke-linejoin="round"/><path d="M' + (cx - 10) + ' ' + (cy + 6) + 'l7-14 12-3 9 17z" fill="#b4b9b2" stroke="#6f756f" stroke-width="2"/>';
+    return s;
+  }
+  if (k === 'prairie') {
+    s += poly(dia(cx, cy + 4, .98), '#7aa857') + poly(dia(cx, cy + 3, .9), '#8fbb62');
+    const R2 = rnd(cx * 7 + cy * 13); for (let n = 0; n < 16; n++) { const x = cx - 36 + R2() * 72, y = cy - 6 + R2() * 20, h = 14 + R2() * 18, col = ['#e8745a', '#f6c24b', '#9b6fd0', '#f4f0e4', '#e86fa0'][n % 5]; s += '<path d="M' + x.toFixed(1) + ' ' + y.toFixed(1) + 'v-' + h.toFixed(1) + '" stroke="#4f7a3c" stroke-width="2" stroke-linecap="round"/><circle cx="' + x.toFixed(1) + '" cy="' + (y - h).toFixed(1) + '" r="4.2" fill="' + col + '"/>'; }
+    return s;
+  }
+  if (k === 'hotel') {
+    s += poly(dia(cx, cy + 4, .98), '#7d9a52') + poly(dia(cx, cy + 3, .9), '#8fae5f');
+    s += '<path d="M' + (cx - 18) + ' ' + (cy + 4) + 'V' + (cy - 12) + 'M' + (cx + 18) + ' ' + (cy + 4) + 'V' + (cy - 12) + '" stroke="#6b4a2e" stroke-width="4"/><rect x="' + (cx - 28) + '" y="' + (cy - 54) + '" width="56" height="46" rx="3" fill="#a77d4e" stroke="#6b4a2e" stroke-width="3"/>';
+    [['#e8c36a', 0, 0], ['#6b4a2e', 1, 0], ['#c98a5a', 2, 0], ['#d9b88a', 0, 1], ['#8a9a4a', 2, 1], ['#c98a5a', 0, 2], ['#e8c36a', 1, 2], ['#6b4a2e', 2, 2]].forEach(a => { s += '<rect x="' + (cx - 24 + a[1] * 16) + '" y="' + (cy - 50 + a[2] * 14) + '" width="14" height="12" fill="' + a[0] + '"/>'; });
+    s += '<path d="M' + (cx - 32) + ' ' + (cy - 54) + 'l32-12 32 12z" fill="#b5503c" stroke="#7a3322" stroke-width="2.4" stroke-linejoin="round"/>';
     return s;
   }
   if (k === 'hamac') {
@@ -3241,9 +3292,10 @@ const SPADE = [
   { t: 'guild', n: 5, nm: 'Guilde moyenne', d: '5 strates : 1 arbre, 1 arbuste, 1 liane, 3 herbacées ou racines et 2 couvre-sols. 8 plantes sur environ 16 m². Idéale pour démarrer.' },
   { t: 'guild', n: 7, nm: 'Grande guilde', d: 'La forêt dense : 1 arbre, 2 arbustes, 1 liane, 5 herbacées ou racines et 3 couvre-sols. 12 plantes sur environ 22 m² : la densité d’un jardin-forêt.' },
   { t: 'hedge', n: 6, nm: 'Haie comestible', d: 'Une ligne de 6 arbustes, arbres ou lianes. Tu peux la tourner avec deux doigts.' },
+  { t: 'butte', n: 6, nm: 'Butte potager', d: 'Une butte de 6 places pour les plantes annuelles : légumes, aromatiques et fleurs. Pousse vite, demande des soins.' },
   { t: 'single', n: 1, nm: 'Plante isolée', d: 'Une seule plante sur environ 11 m² : elle prend beaucoup de place, pousse plus lentement, demande plus d’arrosage et résiste moins aux aléas.' }
 ];
-const spadeName = sp => sp.t === 'guild' ? (sp.n === 3 ? 'Petite guilde' : sp.n === 5 ? 'Guilde moyenne' : 'Grande guilde') : sp.t === 'hedge' ? 'Haie comestible' : 'Plante isolée';
+const spadeName = sp => sp.t === 'guild' ? (sp.n === 3 ? 'Petite guilde' : sp.n === 5 ? 'Guilde moyenne' : 'Grande guilde') : sp.b ? 'Butte potager' : sp.t === 'hedge' ? 'Haie comestible' : 'Plante isolée';
 function openSpade() {
   modal('La pelle : que veux-tu planter ?', '<div class="spadelist">' + SPADE.map((o, k) => '<button type="button" class="spadeopt" data-act="spade-pick" data-k="' + k + '"><b>' + o.nm + '</b><span>' + o.d + '</span></button>').join('') + '</div>');
 }
@@ -3266,11 +3318,11 @@ function spotPickSlot(sp, p) {
 function openSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
   const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
-  const prLb = pr => !pr ? 'Plante' : pr.length >= 3 ? 'Petite plante' : pr.map(x => LB[x]).join(' ou ');
+  const prLb = pr => !pr ? (sp.b ? 'Annuelle' : 'Plante') : pr.length >= 3 ? 'Petite plante' : pr.map(x => LB[x]).join(' ou ');
   const filled = sp.cells.filter(i => S.grid[i] && !S.grid[i].treille && P[S.grid[i].pid]), nFree = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)).length;
   const have = new Set(filled.map(i => P[S.grid[i].pid].strate)), mine = [];
   const hasAny = sp.cells.some(i => S.grid[i]) || (S.pq || []).some(q => sp.cells.includes(q.i));
-  const actsH = '<div class="acts" style="margin:8px 0">' + (sp.t === 'hedge' ? '<button type="button" class="btn sm" data-act="hedge-orient" data-sp="' + sp.id + '">Tourner la haie</button> ' : '') + (ui.spotDel === sp.id ? '<span class="note-p">Tu perds ' + (hasAny ? 'toutes les plantes de ' : '') + 'cet emplacement. Sûr ?</span> <button type="button" class="btn sm danger" data-act="spot-del" data-sp="' + sp.id + '">Oui, supprimer</button> <button type="button" class="btn sm" data-act="spot-del-ask" data-sp="0">Non</button>' : '<button type="button" class="btn sm" data-act="spot-del-ask" data-sp="' + sp.id + '">Supprimer ' + (sp.t === 'hedge' ? 'la haie' : sp.t === 'single' ? 'la plante' : 'la guilde') + (hasAny ? ' et ses plantes' : '') + '</button>') + '</div>';
+  const actsH = '<div class="acts" style="margin:8px 0">' + (sp.t === 'hedge' ? '<button type="button" class="btn sm" data-act="hedge-orient" data-sp="' + sp.id + '">' + (sp.b ? 'Tourner la butte' : 'Tourner la haie') + '</button> ' : '') + (ui.spotDel === sp.id ? '<span class="note-p">Tu perds ' + (hasAny ? 'toutes les plantes de ' : '') + 'cet emplacement. Sûr ?</span> <button type="button" class="btn sm danger" data-act="spot-del" data-sp="' + sp.id + '">Oui, supprimer</button> <button type="button" class="btn sm" data-act="spot-del-ask" data-sp="0">Non</button>' : '<button type="button" class="btn sm" data-act="spot-del-ask" data-sp="' + sp.id + '">Supprimer ' + (sp.t === 'hedge' ? 'la haie' : sp.t === 'single' ? 'la plante' : 'la guilde') + (hasAny ? ' et ses plantes' : '') + '</button>') + '</div>';
   // plantothèque de la guilde : les cartes de ses plantes, avec leur état
   let h = '<p class="note-p">' + filled.length + '/' + sp.cells.length + ' plantes' + (sp.t === 'guild' ? ' · ' + have.size + ' strate' + (have.size > 1 ? 's' : '') + ' présente' + (have.size > 1 ? 's' : '') : '') + '.' + (nFree ? '' : ' Tout est planté.') + '</p>' + actsH + '<div class="gcards">';
   sp.cells.forEach((i, k) => {

@@ -10,6 +10,20 @@ const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (n, d) => Number(n).toFixed(d == null ? 1 : d).replace('.', ',');
 function withFamily(o) { if (!o.family) o.family = G.defaultFamily(); return G.fixSave(o); }
+const LIVE = !window.__JV_INSTANT && !/[?&]dev\b/.test(location.search);
+if (LIVE) document.body.classList.add('live');
+function realDay() { const d = new Date(); return G.dayOfDate(d.getFullYear(), d.getMonth(), d.getDate()); }
+function catchUp() {
+  if (!LIVE || S.demo) return false;
+  const rd = realDay(); if (S.day >= rd) return false;
+  if (S.day === 0 && !S.grid.some(c => c) && !(S.spots || []).length) { S.day = rd - 1; G.nextDay(S, false); return true; }
+  let n = rd - S.day; const away = n; if (n > 60) { S.day = rd - 60; n = 60; }
+  const before = S.grid.filter(c => c && !c.treille).length;
+  for (let k = 1; k <= n; k++) { G.neglect(S, k); G.nextDay(S, false); }
+  const left = S.grid.filter(c => c && !c.treille), lost = before - left.length, weak = left.filter(c => c.health < 60).length;
+  if (away >= 2) setTimeout(() => { try { modal('Pendant ton absence', '<p class="note-p">Tu n’es pas venu depuis <b>' + away + ' jours</b>. Le jardin a continué sans toi.' + (away > 3 ? ' Sans soins, les plantes s’affaiblissent.' : '') + '</p><p class="note-p">' + (lost ? '<b>' + lost + '</b> plante' + (lost > 1 ? 's sont mortes' : ' est morte') + '. ' : 'Aucune plante n’est morte. ') + (weak ? '<b>' + weak + '</b> ' + (weak > 1 ? 'sont affaiblies' : 'est affaiblie') + ' : arrose, paille, soigne-les.' : '') + '</p>'); } catch (e) {} }, 900);
+  return true;
+}
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }
 function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && (o.grid.length === G.NCELL || o.grid.length === 120)) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
@@ -754,7 +768,7 @@ function renderToday() {
 }
 function tasksHtml() {
   const T = G.buildTasks(S);
-  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">Passer au lendemain</span></span></button>' : '') };
+  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">' + (LIVE ? 'Reviens demain : la nuit fait pousser' : 'Passer au lendemain') + '</span></span></button>' : '') };
 }
 
 /* ---------- fiche ---------- */
@@ -1084,7 +1098,7 @@ async function accountAfterLogin() {
 }
 function openMenu() {
   const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
-  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('time', 'clock', 'Temps') + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
   const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
@@ -1236,7 +1250,7 @@ const TUTO = [
   { t: 'Choisis une plante', x: 'Touche ta guilde : tu vois ses emplacements libres et la strate de chacun (arbre, arbuste, herbacées…). Choisis une carte : elle rejoint la liste du jardinier.', target: '#garden', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Le jardinier travaille', x: 'Il suit les sentiers et fait les tâches une par une : planter, puis arroser, pailler, récolter. Rien n’est instantané, il faut un peu de patience. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Arrose et soigne', x: 'Chaque guilde a une goutte bleue : touche-la pour demander l’arrosage de toutes ses plantes. Les pastilles sur les plantes (goutte, panier, paillage…) sont d’autres tâches à confier au jardinier.', target: '#garden', next: true },
-  { t: 'Termine la journée', x: 'La nuit, tes plantes poussent et la météo change. Touche « Terminer la journée », puis reviens demain : un nouveau booster arrive tous les trois jours au début, puis chaque semaine.', target: '.endday', done: () => S.day >= 1 },
+  { t: 'Un jardin en temps réel', x: 'Le jardin vit au rythme du vrai calendrier : un jour de jeu par jour réel, saisons comprises. Chaque nuit, tes plantes poussent et la météo change. Reviens chaque jour pour arroser, pailler et récolter : si tu t’absentes plus de trois jours, le jardin se met à dépérir.', target: '#garden', next: true },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
   { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },
@@ -1352,8 +1366,8 @@ document.addEventListener('click', e => {
   switch (act) {
     case 'close': closeModal(); break;
     case 'task': ui.gOpen = false; doTask(a.dataset.id); break;
-    case 'next': advance(1); break;
-    case 'skip': $('layer').innerHTML = ''; advance(+a.dataset.n); break;
+    case 'next': if (LIVE) { toast('Le jardin vit en temps réel : reviens demain, la nuit fait pousser tes plantes.'); break; } advance(1); break;
+    case 'skip': if (LIVE) break; $('layer').innerHTML = ''; advance(+a.dataset.n); break;
     case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
     case 'mode-mat': { if (a.closest('#layer')) closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
@@ -1445,7 +1459,7 @@ document.addEventListener('click', e => {
     case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
-    case 'newgame': S = G.newGame(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); break;
+    case 'newgame': S = G.newGame(); catchUp(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); break;
   }
 });
 document.addEventListener('keydown', e => {
@@ -1516,5 +1530,6 @@ const trace = (function initTrace() {
 })();
 window.__jv = { tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
-render(); startChars();
+catchUp(); render(); startChars();
+if (LIVE) { const tickDay = () => { if (S.day < realDay() && catchUp()) { $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 })();

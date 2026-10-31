@@ -718,20 +718,21 @@ function syncBadges() {
   });
   for (const id in btns) if (!seen[id]) { btns[id].remove(); delete btns[id]; }
 }
-const gbtn = {};
+const gbtn = {}, wbtn = {};
 function syncPlus() {
   const S = A.S(), seen = {};
   (S.spots || []).forEach(sp => {
-    seen[sp.id] = 1;
-    if (!gbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3plus'; b.setAttribute('aria-label', 'Choisir les plantes'); b.title = 'Choisir les plantes'; b.innerHTML = '<i>+</i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); A.openSpot(b._sp.id); }); gbtn[sp.id] = b; }
-    gbtn[sp.id]._sp = sp;
+    if (sp.f || !sp.cells.some(i => S.grid[i] && !S.grid[i].treille)) return; seen[sp.id] = 1;
+    if (!wbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3drop'; b.setAttribute('aria-label', 'Arroser'); b.title = 'Arroser'; b.innerHTML = '<i><svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path d="M10 2.5c3 4 5 6.4 5 9a5 5 0 0 1-10 0c0-2.6 2-5 5-9z"/></svg></i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); A.waterSpot(b._sp.id); }); wbtn[sp.id] = b; }
+    wbtn[sp.id]._sp = sp; wbtn[sp.id].classList.toggle('dry', sp.cells.some(i => { const c = S.grid[i]; return c && !c.treille && c.water < 60; }));
   });
-  for (const k in gbtn) if (!seen[k]) { gbtn[k].remove(); delete gbtn[k]; }
+  for (const k in wbtn) if (!seen[k]) { if (wbtn[k]) { wbtn[k].remove(); delete wbtn[k]; } }
 }
 const topH = { 'Arbre': 3.7, 'Grimpante': 2.6, 'Arbuste': 2.2, 'Racine': 1.3, 'Herbacée': 1.6, 'Couvre-sol': .9 };
 const vtmp = new T.Vector3();
 function placeBadges() {
   const S = A.S(), w = canvas.clientWidth, h = canvas.clientHeight, bs = Math.min(1, Math.max(.52, 30 / cam.dist));
+  for (const k in wbtn) { const b = wbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
   for (const k in gbtn) { const b = gbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
   for (const id in btns) {
     const b = btns[id]; let x, y, z, ox = 0, oy = 0;
@@ -758,7 +759,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges();
+  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
 }

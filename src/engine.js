@@ -103,8 +103,8 @@ function slotsOf(sp) {
 }
 function spotOf(s, i) { return ((s && s.spots) || []).find(o => o.cells.includes(i)) || null; }
 function cellPos(s, i) { const sp = spotOf(s, i); if (!sp) return null; const sl = slotsOf(sp)[sp.cells.indexOf(i)]; return [sp.x + sl[0], sp.z + sl[1]]; }
-function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? (sp.f ? 1.7 : 1.9) : SPOT_R[sp.n]]]; }
-function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? (sp.f ? 1.7 : 1.9) : SPOT_R[sp.n]; }
+function discsOf(sp) { if (sp.t === 'hedge') return slotsOf(sp).map(q => [sp.x + q[0], sp.z + q[1], .85]); return [[sp.x, sp.z, sp.t === 'single' ? (sp.f ? (sp.r || 1.7) : 1.9) : SPOT_R[sp.n]]]; }
+function spotRadius(sp) { return sp.t === 'hedge' ? (sp.cells.length - 1) * HSP / 2 + .85 : sp.t === 'single' ? (sp.f ? (sp.r || 1.7) : 1.9) : SPOT_R[sp.n]; }
 function neigh(i, s) {
   if (s && s.spots) {
     const sp = spotOf(s, i); if (!sp) return []; const pi = cellPos(s, i), out = [];
@@ -995,14 +995,14 @@ function make(P) {
     const used = new Set(); s.spots.forEach(o => o.cells.forEach(j => used.add(j))); (s.pq || []).forEach(q => used.add(q.i));
     const cells = []; for (let i = 0; i < NCELL && cells.length < want; i++) if (isActive(s, i) && !s.grid[i] && !used.has(i)) cells.push(i);
     if (cells.length < want) return { ok: false, msg: 'Plus assez de terrain libre : agrandis le jardin.' };
-    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (isB) sp.b = 1; if (t === 'single' && bounds && bounds.f) { sp.f = 1; bounds = bounds.b; }
+    const sp = { id: (s.sid = (s.sid || 0) + 1), t, n: t === 'guild' ? n : want, x, z, a: a || 0, cells }; if (isB) sp.b = 1; if (t === 'single' && bounds && bounds.f) { sp.f = 1; if (bounds.r) sp.r = bounds.r; bounds = bounds.b; }
     for (let it = 0; it < 8; it++) {
       let moved = false; const mine = discsOf(sp);
-      for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + 1.6; if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
+      for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of mine) { const dx = d1[0] - d2[0], dz = d1[1] - d2[1], dd = Math.hypot(dx, dz), need = d1[2] + d2[2] + (sp.f || o.f ? .8 : 1.6); if (dd < need) { const u = dd > .01 ? 1 / dd : 1; sp.x += (dd > .01 ? dx * u : 1) * (need - dd); sp.z += (dd > .01 ? dz * u : 0) * (need - dd); moved = true; break; } }
       if (bounds) { const R = spotRadius(sp) + .3, nx = Math.max(-bounds[0] + R, Math.min(bounds[0] - R, sp.x)), nz = Math.max(-bounds[1] + R, Math.min(bounds[1] - R, sp.z)); if (nx !== sp.x || nz !== sp.z) { sp.x = nx; sp.z = nz; moved = true; } }
       if (!moved) break;
     }
-    for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of discsOf(sp)) if (Math.hypot(d1[0] - d2[0], d1[1] - d2[1]) < d1[2] + d2[2] + 1.3) return { ok: false, msg: 'Pas la place ici : choisis un endroit plus dégagé.' };
+    for (const o of s.spots) for (const d2 of discsOf(o)) for (const d1 of discsOf(sp)) if (Math.hypot(d1[0] - d2[0], d1[1] - d2[1]) < d1[2] + d2[2] + (sp.f || o.f ? .5 : 1.3)) return { ok: false, msg: 'Pas la place ici : choisis un endroit plus dégagé.' };
     s.spots.push(sp); bump(s); return { ok: true, spot: sp };
   }
   function removeSpot(s, id, force) {

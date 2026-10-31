@@ -899,7 +899,7 @@ function spadeTap(x, z, a, bounds) {
 function rotSpot(id, da, fin) { const sp = (S.spots || []).find(o => o.id === id); if (!sp) return; sp.a = (sp.a || 0) + da; if (fin) { save(); render(); } else if (window.V3D && V3D.sync) V3D.sync(); }
 function furnTap(x, z, bounds) {
   if (!(ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k))) return false; const k = ui.mode.k;
-  const r = G.addSpot(S, 'single', 1, x, z, 0, { f: 1, b: bounds }); if (!r.ok) { toast(r.msg); return true; }
+  const FR = { boismort: 1.1, pierres: 1.0, hotel: 1.0, prairie: 1.5, hamac: 1.7 }, r = G.addSpot(S, 'single', 1, x, z, 0, { f: 1, b: bounds, r: FR[k] }); if (!r.ok) { toast(r.msg); return true; }
   const ci = r.spot.cells[0]; if (!G.placeFurn(S, ci, k)) { G.removeSpot(S, r.spot.id); toast('Impossible de poser cet aménagement ici.'); return true; }
   if (!(S.mats[k] > 0)) ui.mode = null; ui.sel = ci; save(); render(); return true;
 }

@@ -11,6 +11,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (n, d) => Number(n).toFixed(d == null ? 1 : d).replace('.', ',');
 function withFamily(o) { if (!o.family) o.family = G.defaultFamily(); return G.fixSave(o); }
 const LIVE = !window.__JV_INSTANT && !/[?&]dev\b/.test(location.search);
+G.setRhythm(LIVE);
 if (LIVE) document.body.classList.add('live');
 function realDay() { const d = new Date(); return G.dayOfDate(d.getFullYear(), d.getMonth(), d.getDate()); }
 function catchUp() {
@@ -929,7 +930,7 @@ function openSpot(id) {
     h += '<div class="gslot"><b>Libre</b><span>' + prLb(sl[k][2]) + '</span></div>';
   });
   h += '</div>';
-  const fx = G.spotFx(S, sp.cells[0]); h += '<p class="note-p">' + (sp.t === 'single' ? 'Plante isolée : elle occupe environ 11 m² pour une seule plante, croît ' + Math.abs(Math.round((fx.g - 1) * 100)) + ' % moins vite, demande plus d’arrosage et craint davantage le gel, la chaleur et les tempêtes. Une guilde fait mieux sur moins de place.' : (sp.t === 'hedge' ? 'Haie' : 'Guilde') + ' : croissance ' + (fx.g >= 1 ? '+' : '') + Math.round((fx.g - 1) * 100) + ' %, résistance aux aléas ' + (fx.r >= 0 ? '+' : '') + Math.round(fx.r * 100) + ' %' + (sp.t === 'guild' ? ' (plus la guilde est complète et variée, plus c’est fort).' : '.')) + '</p>';
+  const fx = G.spotFx(S, sp.cells[0]); h += '<p class="note-p">' + (sp.t === 'single' ? 'Plante isolée : elle occupe environ 11 m² pour une seule plante, croît ' + Math.abs(Math.round((fx.g - 1) * 100)) + ' % moins vite, demande plus d’arrosage et craint davantage le gel, la chaleur et les tempêtes. Une guilde fait mieux sur moins de place.' : (sp.t === 'hedge' ? 'Haie' : 'Guilde') + ' : pousse ×' + fx.g.toFixed(1).replace('.', ',') + ' (' + (fx.g >= 1 ? '+' : '') + Math.round((fx.g - 1) * 100) + ' %), résistance aux aléas ' + (fx.r >= 0 ? '+' : '') + Math.round(fx.r * 100) + ' %' + (sp.t === 'guild' ? ' (plus la guilde est complète et variée, plus c’est fort).' : '.')) + '</p>';
   const need = new Set(), miss = []; sp.cells.forEach((i, k) => { if (!S.grid[i] && !(S.pq || []).some(q => q.i === i) && sl[k][2]) { sl[k][2].forEach(s => need.add(s)); miss.push(prLb(sl[k][2]).toLowerCase()); } });
   const mc = {}; miss.forEach(x => { mc[x] = (mc[x] || 0) + 1; });
   if (sp.t === 'guild' && miss.length) h += '<p class="note-p">Il manque : <b>' + Object.keys(mc).map(x => (mc[x] > 1 ? mc[x] + ' ' : '') + x + (mc[x] > 1 ? 's' : '')).join(', ') + '</b>.</p>';
@@ -937,7 +938,7 @@ function openSpot(id) {
   const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
   { const am = []; filled.forEach(i => { amenTags(S.grid[i]).forEach(x => am.push(x + ' · ' + P[S.grid[i].pid].name)); }); sp.cells.forEach(i => { const c = S.grid[i]; if (c && c.treille) am.push((FURN_INFO[c.furn || 'treille'] || {}).n || 'Aménagement'); });
-    h += '<h3 class="gh">Aménagements</h3>' + (am.length ? '<ul class="amlist">' + am.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p class="note-p">Aucun pour l’instant. Pose un nichoir sur un arbre, une oya près d’une plante, du paillage… depuis ton matériel.</p>'); }
+    h += '<p class="note-p">Soin du jour : une plante arrosée aujourd’hui pousse 25 % plus vite cette nuit.</p>' + '<h3 class="gh">Aménagements</h3>' + (am.length ? '<ul class="amlist">' + am.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p class="note-p">Aucun pour l’instant. Pose un nichoir sur un arbre, une oya près d’une plante, du paillage… depuis ton matériel.</p>'); }
   if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
   modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }

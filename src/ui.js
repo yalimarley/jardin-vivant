@@ -944,7 +944,7 @@ function openSpot(id) {
 }
 function openFauna() {
   const seen = S.fauna || {}, n = Object.keys(seen).length;
-  let h = '<p class="note-p"><b>' + n + ' / ' + G.FAUNA.length + '</b> visiteurs découverts. Chaque habitat (mare, hôtel à insectes, bois mort, tas de pierres, prairie fleurie, nichoir) attire de nouveaux animaux.</p><div class="faunalist">';
+  let h = '<p class="note-p"><b>' + n + ' / ' + G.FAUNA.length + '</b> visiteurs découverts. Les pollinisateurs augmentent les récoltes, les prédateurs réduisent limaces et maladies. Chaque habitat (mare, hôtel à insectes, bois mort, tas de pierres, prairie fleurie, nichoir) attire de nouveaux animaux.</p><div class="faunalist">';
   G.FAUNA.forEach(a => { h += seen[a.id] ? '<div class="fa on"><b>' + a.n + '</b><span>' + a.d + '</span><em>Vu le ' + dateStr(seen[a.id]) + '</em></div>' : '<div class="fa off"><b>? ? ?</b><span>Indice : ' + a.h + '</span></div>'; });
   modal('Faune du jardin', h + '</div>', true);
 }

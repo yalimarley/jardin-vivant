@@ -135,23 +135,23 @@ function make(P) {
   }
   // ----- faune : visiteurs attirés par les habitats et la biodiversité -----
   const FAUNA = [
-    { id: 'abeille', n: 'Abeille mellifère', d: 'Elle butine tes fleurs et pollinise les vergers.', h: 'Biodiversité ≥ 15 %', ok: x => x.bio >= 15 },
-    { id: 'bourdon', n: 'Bourdon', d: 'Gros pollinisateur, actif même par temps frais.', h: 'Biodiversité ≥ 25 %', ok: x => x.bio >= 25 },
-    { id: 'papillon', n: 'Papillon', d: 'Il vient sur les fleurs sauvages.', h: 'Une prairie fleurie ou biodiversité ≥ 30 %', ok: x => x.prairie >= 1 || x.bio >= 30 },
-    { id: 'syrphe', n: 'Syrphe', d: 'Sa larve dévore les pucerons.', h: '2 prairies fleuries', ok: x => x.prairie >= 2 },
-    { id: 'coccinelle', n: 'Coccinelle', d: 'Grande mangeuse de pucerons.', h: 'Un hôtel à insectes', ok: x => x.hotel >= 1 },
-    { id: 'solitaire', n: 'Abeille solitaire', d: 'Elle niche dans les tiges et les petits trous du bois.', h: 'Un hôtel à insectes et biodiversité ≥ 20 %', ok: x => x.hotel >= 1 && x.bio >= 20 },
+    { id: 'abeille', fx: 'Pollinise : récoltes +3 %', n: 'Abeille mellifère', d: 'Elle butine tes fleurs et pollinise les vergers.', h: 'Biodiversité ≥ 15 %', ok: x => x.bio >= 15 },
+    { id: 'bourdon', fx: 'Pollinise : récoltes +3 %', n: 'Bourdon', d: 'Gros pollinisateur, actif même par temps frais.', h: 'Biodiversité ≥ 25 %', ok: x => x.bio >= 25 },
+    { id: 'papillon', fx: 'Pollinise : récoltes +3 %', n: 'Papillon', d: 'Il vient sur les fleurs sauvages.', h: 'Une prairie fleurie ou biodiversité ≥ 30 %', ok: x => x.prairie >= 1 || x.bio >= 30 },
+    { id: 'syrphe', fx: 'Moins de maladies : −10 %', n: 'Syrphe', d: 'Sa larve dévore les pucerons.', h: '2 prairies fleuries', ok: x => x.prairie >= 2 },
+    { id: 'coccinelle', fx: 'Moins de maladies : −15 %', n: 'Coccinelle', d: 'Grande mangeuse de pucerons.', h: 'Un hôtel à insectes', ok: x => x.hotel >= 1 },
+    { id: 'solitaire', fx: 'Pollinise : récoltes +3 %', n: 'Abeille solitaire', d: 'Elle niche dans les tiges et les petits trous du bois.', h: 'Un hôtel à insectes et biodiversité ≥ 20 %', ok: x => x.hotel >= 1 && x.bio >= 20 },
     { id: 'vers', n: 'Ver de terre', d: 'Il aère et enrichit ton sol.', h: 'Sol vivant ≥ 45 %', ok: x => x.soil >= 45 },
-    { id: 'carabe', n: 'Carabe', d: 'Chasseur nocturne de limaces.', h: '5 plantes paillées', ok: x => x.mulch >= 5 },
-    { id: 'grenouille', n: 'Grenouille', d: 'Elle s’installe près de l’eau et mange les limaces.', h: 'Une mare', ok: x => x.mare >= 1 },
+    { id: 'carabe', fx: 'Moins de limaces : −20 %', n: 'Carabe', d: 'Chasseur nocturne de limaces.', h: '5 plantes paillées', ok: x => x.mulch >= 5 },
+    { id: 'grenouille', fx: 'Moins de limaces : −15 %', n: 'Grenouille', d: 'Elle s’installe près de l’eau et mange les limaces.', h: 'Une mare', ok: x => x.mare >= 1 },
     { id: 'libellule', n: 'Libellule', d: 'Prédatrice de moustiques, signe d’une eau saine.', h: 'Une mare et biodiversité ≥ 30 %', ok: x => x.mare >= 1 && x.bio >= 30 },
-    { id: 'crapaud', n: 'Crapaud', d: 'Il chasse la nuit entre tes plantes.', h: 'Une mare et un tas de bois mort', ok: x => x.mare >= 1 && x.bois >= 1 },
+    { id: 'crapaud', fx: 'Moins de limaces : −15 %', n: 'Crapaud', d: 'Il chasse la nuit entre tes plantes.', h: 'Une mare et un tas de bois mort', ok: x => x.mare >= 1 && x.bois >= 1 },
     { id: 'lezard', n: 'Lézard des murailles', d: 'Il se chauffe au soleil sur les pierres.', h: 'Un tas de pierres', ok: x => x.pierres >= 1 },
-    { id: 'orvet', n: 'Orvet', d: 'Un lézard sans pattes, très discret.', h: 'Tas de pierres et tas de bois mort', ok: x => x.pierres >= 1 && x.bois >= 1 },
-    { id: 'herisson', n: 'Hérisson', d: 'Il dort dans le bois mort et mange les limaces.', h: 'Bois mort et biodiversité ≥ 35 %', ok: x => x.bois >= 1 && x.bio >= 35 },
-    { id: 'mesange', n: 'Mésange charbonnière', d: 'Une famille mange des centaines de chenilles.', h: 'Un nichoir', ok: x => x.nich >= 1 },
+    { id: 'orvet', fx: 'Moins de limaces : −10 %', n: 'Orvet', d: 'Un lézard sans pattes, très discret.', h: 'Tas de pierres et tas de bois mort', ok: x => x.pierres >= 1 && x.bois >= 1 },
+    { id: 'herisson', fx: 'Moins de limaces : −25 %', n: 'Hérisson', d: 'Il dort dans le bois mort et mange les limaces.', h: 'Bois mort et biodiversité ≥ 35 %', ok: x => x.bois >= 1 && x.bio >= 35 },
+    { id: 'mesange', fx: 'Moins de maladies : −15 %', n: 'Mésange charbonnière', d: 'Une famille mange des centaines de chenilles.', h: 'Un nichoir', ok: x => x.nich >= 1 },
     { id: 'rougegorge', n: 'Rouge-gorge', d: 'Il suit le jardinier qui bêche.', h: 'Un arbre ou arbuste arrivé à maturité', ok: x => x.woodyMat >= 1 },
-    { id: 'salamandre', n: 'Salamandre', d: 'Rare, elle aime les coins frais et humides.', h: 'Mare, bois mort et biodiversité ≥ 55 %', ok: x => x.mare >= 1 && x.bois >= 1 && x.bio >= 55 },
+    { id: 'salamandre', fx: 'Moins de limaces : −10 %', n: 'Salamandre', d: 'Rare, elle aime les coins frais et humides.', h: 'Mare, bois mort et biodiversité ≥ 55 %', ok: x => x.mare >= 1 && x.bois >= 1 && x.bio >= 55 },
     { id: 'chauve', n: 'Chauve-souris', d: 'Elle mange des milliers de moustiques par nuit.', h: '3 arbres ou arbustes matures et biodiversité ≥ 60 %', ok: x => x.woodyMat >= 3 && x.bio >= 60 },
     { id: 'chouette', n: 'Chouette chevêche', d: 'Chasse les campagnols dans ton jardin.', h: '2 nichoirs et biodiversité ≥ 80 %', ok: x => x.nich >= 2 && x.bio >= 80 },
   ];
@@ -269,7 +269,7 @@ function make(P) {
     let kg = (p.kind === 'continue' ? p.kg * .3 : p.kg) * (KGM[p.kind] || 1);
     if (p.kind === 'vivace' && p.juv > 0) { const yrs = (c.g - totalDays(p)) / 365; kg *= Math.min(1, .35 + .65 * Math.max(0, yrs) / 4); }
     const late = c.ready && c.readyDay != null ? s.day - c.readyDay : 0, fresh = late <= 3 ? 1 : Math.max(.5, 1 - (late - 3) * .04), cared = s.day - (c.care == null ? -99 : c.care) <= 3 ? 1.2 : 1;
-    return Math.max(0, r2(kg * fresh * cared * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1) * (c.grafted ? 1 + .1 * c.grafted : 1)));
+    return Math.max(0, r2(kg * fresh * cared * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1) * (c.grafted ? 1 + .1 * c.grafted : 1) * faunaYield(s)));
   }
   function harvest(s, i) {
     const c = s.grid[i]; if (!ready(s, c)) return { ok: false };
@@ -367,6 +367,11 @@ function make(P) {
   function duckNear(s, i) { const r = (i / COLS) | 0, cc = i % COLS; return s.grid.some((c, j) => c && c.ducks && Math.max(Math.abs(((j / COLS) | 0) - r), Math.abs(j % COLS - cc)) <= 3); }
   function resistance(s, i) { const sy = synergy(s, i), links = new Set(sy.notes.filter(n => n.t === 'good').flatMap(n => n.froms).filter(j => j >= 0)).size; return { links, pct: Math.round(Math.min(.85, links * .1 + (hasAdv(s, 'resilient') ? .1 : 0)) * 100) }; }
   function heal(s, i) { const c = s.grid[i]; if (!c || c.treille || !c.sick) return false; c.sick = null; c.health = Math.min(100, c.health + 4); bump(s); return true; }
+  // effets de la faune : fraction d'attaques évitées / bonus de récolte
+  const FSHIELD = { limaces: { herisson: .25, carabe: .2, grenouille: .15, crapaud: .15, orvet: .1, salamandre: .1 }, fongique: { coccinelle: .15, syrphe: .1, mesange: .15 } };
+  function faunaShield(s, k) { let v = 0; for (const id in (FSHIELD[k] || {})) if (s.fauna && s.fauna[id]) v += FSHIELD[k][id]; return Math.min(.7, v); }
+  const POLL = ['abeille', 'bourdon', 'solitaire', 'papillon'];
+  function faunaYield(s) { return 1 + .03 * POLL.filter(id => s.fauna && s.fauna[id]).length; }
   function pests(s, w, m, ev) {
     const rn = mulberry(s.day * 977 + 13), kinds = [];
     const pS = (w.rain >= 2 ? .22 : w.rain >= .5 ? .08 : .005) * (s.poulailler ? .85 : 1), pF = (w.rain >= 1 && w.tmax >= 14 && w.tmax <= 28 && m >= 3 && m <= 10) ? .12 : .004;
@@ -376,7 +381,7 @@ function make(P) {
     const BS = { Herbacée: .5, Racine: .5, 'Couvre-sol': .4, Grimpante: .25, Arbuste: .1, Arbre: .03 }, BF = { Herbacée: .3, Racine: .2, 'Couvre-sol': .08, Grimpante: .4, Arbuste: .2, Arbre: .15 };
     for (const k of kinds) {
       let n = 0;
-      for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (!c || c.treille || c.sick) continue; if ((k === 'limaces' && (c.shieldL || -1) >= s.day) || (k === 'fongique' && (c.shieldF || -1) >= s.day)) continue; const p = P[c.pid]; let b = (k === 'limaces' ? BS : BF)[p.strate] || .2; if (nichoirNear(s, i)) b *= .5; if (k === 'limaces' && duckNear(s, i)) b *= .08; if (c.supp === 'pergola' && k === 'fongique') b *= .8; const hit = b * (1 - resistance(s, i).pct / 100); if (rn() < hit) { c.sick = { k, day: s.day }; n++; } }
+      for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (!c || c.treille || c.sick) continue; if ((k === 'limaces' && (c.shieldL || -1) >= s.day) || (k === 'fongique' && (c.shieldF || -1) >= s.day)) continue; const p = P[c.pid]; let b = (k === 'limaces' ? BS : BF)[p.strate] || .2; b *= 1 - faunaShield(s, k); if (nichoirNear(s, i)) b *= .5; if (k === 'limaces' && duckNear(s, i)) b *= .08; if (c.supp === 'pergola' && k === 'fongique') b *= .8; const hit = b * (1 - resistance(s, i).pct / 100); if (rn() < hit) { c.sick = { k, day: s.day }; n++; } }
       if (n) ev.push({ t: 'warn', text: (k === 'limaces' ? 'Attaque de limaces : ' : 'Maladie fongique : ') + n + ' plante' + (n > 1 ? 's' : '') + ' touchée' + (n > 1 ? 's' : '') + '. Soigne-les vite.' });
     }
   }
@@ -1058,7 +1063,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

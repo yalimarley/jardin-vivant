@@ -907,6 +907,10 @@ function spotPickSlot(sp, p) {
   const free = sp.cells.filter(i => !S.grid[i] && !(S.pq || []).some(q => q.i === i)), sl = G.slotsOf(sp);
   return free.find(i => { const pr = sl[sp.cells.indexOf(i)][2]; return !pr || pr.includes(p.strate); });
 }
+function amenTags(c) {
+  const t = []; if (c.nichoir) t.push('Nichoir à mésanges'); if ((c.oyaUntil || -1) >= S.day) t.push('Oya (' + (c.oyaUntil - S.day + 1) + ' j)'); if (c.mulch) t.push('Paillée'); if ((c.compostUntil || -1) >= S.day) t.push('Compost'); if ((c.voileUntil || -1) >= S.day) t.push('Voile d’hivernage'); if (c.supp) t.push((FURN_INFO[c.supp] || {}).n || 'Support');
+  return t;
+}
 function openSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
   const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
@@ -920,7 +924,7 @@ function openSpot(id) {
   sp.cells.forEach((i, k) => {
     const c = S.grid[i], q = (S.pq || []).find(o => o.i === i);
     if (c && c.treille) { h += '<div class="gslot"><b>' + ((FURN_INFO[c.furn || 'treille'] || {}).n || 'Meuble') + '</b><span>Aménagement</span></div>'; return; }
-    if (c && P[c.pid]) { const ph = G.phase(c); h += '<div class="gone">' + cardHtml(P[c.pid], {}) + '<p class="gst">' + (c.ready ? 'Prête à récolter' : ph.stage === 'graine' ? 'Graine en terre' : 'Croissance ' + Math.round(ph.prog * 100) + ' %') + ' · eau ' + Math.round(c.water) + ' %</p></div>'; return; }
+    if (c && P[c.pid]) { const ph = G.phase(c); h += '<div class="gone">' + cardHtml(P[c.pid], {}) + '<p class="gst">' + (c.ready ? 'Prête à récolter' : ph.stage === 'graine' ? 'Graine en terre' : 'Croissance ' + Math.round(ph.prog * 100) + ' %') + ' · eau ' + Math.round(c.water) + ' %</p>' + (amenTags(c).length ? '<p class="gst gam">' + amenTags(c).map(x => '<span class="amtag">' + x + '</span>').join('') + '</p>' : '') + '</div>'; return; }
     if (q) { h += '<div class="gslot on"><b>' + P[q.pid].name + '</b><span>Plantation en cours…</span></div>'; return; }
     h += '<div class="gslot"><b>Libre</b><span>' + prLb(sl[k][2]) + '</span></div>';
   });
@@ -932,6 +936,8 @@ function openSpot(id) {
   const ids = Object.keys(S.cards || {}).map(Number).filter(x => P[x] && S.cards[x] > 0);
   const ck = {}; ids.forEach(id => { const ci = spotPickSlot(sp, P[id]); ck[id] = ci === undefined ? { ok: false, msg: 'Pas d’emplacement libre pour cette strate (' + P[id].strate.toLowerCase() + ').' } : G.plantCheck(S, ci, id); });
   ids.sort((a, b) => (ck[b].ok - ck[a].ok) || (need.has(P[b].strate) - need.has(P[a].strate)) || P[a].name.localeCompare(P[b].name));
+  { const am = []; filled.forEach(i => { amenTags(S.grid[i]).forEach(x => am.push(x + ' · ' + P[S.grid[i].pid].name)); }); sp.cells.forEach(i => { const c = S.grid[i]; if (c && c.treille) am.push((FURN_INFO[c.furn || 'treille'] || {}).n || 'Aménagement'); });
+    h += '<h3 class="gh">Aménagements</h3>' + (am.length ? '<ul class="amlist">' + am.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p class="note-p">Aucun pour l’instant. Pose un nichoir sur un arbre, une oya près d’une plante, du paillage… depuis ton matériel.</p>'); }
   if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
   modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }

@@ -609,8 +609,8 @@ function buildSpot(sp, S, m, sk) {
       else { const pl = buildPlant(p, cell, st); pl.scale.multiplyScalar(.85); pl.userData.base = pl.scale.x; w.add(pl); g.userData.plants.push(pl); }
       if (cell.mulch) w.add(mesh(new T.CylinderGeometry(.62, .68, .05, 10), L(0xb4894f), 0, .02, 0, false));
       if (cell.supp) { const f = furn(cell.supp, cell); f.position.set(0, 0, -.5); f.scale.setScalar(.7); w.add(f); }
-      if (cell.nichoir) { w.add(mesh(geo.cyl(.025, .025, 1.2, 4), mat.trunk, .6, .6, .3)); w.add(mesh(geo.box(.3, .3, .3), L(0xc9a574), .6, 1.3, .3)); const rf = mesh(geo.cone(.28, .22, 4), mat.roof, .6, 1.56, .3); rf.rotation.y = Math.PI / 4; w.add(rf); }
-      if (cell.oyaUntil > S.day) { const oy = mesh(geo.ico(.2, 0), L(0xc8764a), -.55, .22, .45); oy.scale.y = 1.15; w.add(oy); }
+      if (cell.nichoir) { const hy = ({ 'Arbre': 2.1, 'Arbuste': 1.15, 'Grimpante': 1.2 })[p.strate] || .9, nb = new T.Group(); nb.position.set(.62, hy, .15); nb.add(mesh(geo.cyl(.012, .012, .5, 3), L(0x6b4a2e), 0, .35, 0, false)); nb.add(mesh(geo.box(.4, .46, .38), L(0xd9a35a), 0, 0, 0)); nb.add(mesh(geo.box(.1, .12, .02), L(0x2a1d14), 0, .04, .2, false)); const rf = mesh(geo.cone(.36, .26, 4), L(0xb5503c), 0, .35, 0); rf.rotation.y = Math.PI / 4; nb.add(rf); nb.add(mesh(geo.box(.2, .03, .06), L(0x6b4a2e), 0, -.12, .22, false)); w.add(nb); }
+      if (cell.oyaUntil > S.day) { const oy = new T.Group(); oy.position.set(-.5, 0, .5); const bd = mesh(geo.ico(.26, 0), L(0xc8764a), 0, .16, 0); bd.scale.set(1, 1.1, 1); oy.add(bd); oy.add(mesh(geo.cyl(.1, .13, .14, 8), L(0xb9663c), 0, .42, 0)); oy.add(mesh(geo.cyl(.15, .15, .04, 8), L(0x8a4a2a), 0, .5, 0)); const rg = mesh(new T.RingGeometry(.3, .42, 14), new T.MeshBasicMaterial({ color: 0x6fb7e0, transparent: true, opacity: .5, side: T.DoubleSide }), 0, .04, 0, false); rg.rotation.x = -Math.PI / 2; oy.add(rg); w.add(oy); }
     }
     g.add(w);
   });
@@ -619,15 +619,25 @@ function buildSpot(sp, S, m, sk) {
 function soilColor(w) { return new T.Color(0x5c4433).lerp(new T.Color(0xb09a74), 1 - Math.min(1, Math.max(0, w / 100))); }
 let sigPaths = '';
 const hedgeM = new T.MeshLambertMaterial({ color: 0x6e5035 });
+const borderM = new T.MeshLambertMaterial({ color: 0x9a6b3e, side: T.DoubleSide }), postM = new T.MeshLambertMaterial({ color: 0x6f4a28 }), postG = new T.CylinderGeometry(.05, .06, .26, 5);
 const trackM = new T.MeshLambertMaterial({ color: 0xd2b27c, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 function ribbon(a, b, seed, w0, obst) {
   w0 = w0 || .78; const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len, N = Math.max(8, Math.round(len * 2.2)), pos = [], idx = [];
   const base = (hj(seed, 1.7) - .5) * Math.min(2.4, len * .55); let wob = base, bestC = -1e9;
   [base, -base, base * .4, -base * .4, 0].some(cw => { const cx0 = (a[0] + b[0]) / 2 + nx * cw, cz0 = (a[1] + b[1]) / 2 + nz * cw; let cl = 1e9; for (let k = 1; k < 8; k++) { const t = k / 8, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx0 + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz0 + t * t * b[1]; (obst || []).forEach(o => { cl = Math.min(cl, Math.hypot(x - o[0], z - o[1]) - o[2] - w0); }); } if (cl > bestC) { bestC = cl; wob = cw; } return cl >= .15; });
-  const cx = (a[0] + b[0]) / 2 + nx * wob, cz = (a[1] + b[1]) / 2 + nz * wob;
+  const cx = (a[0] + b[0]) / 2 + nx * wob, cz = (a[1] + b[1]) / 2 + nz * wob, cl = [];
   for (let k = 0; k <= N; k++) { const t = k / N, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz + t * t * b[1], tx = 2 * u * (cx - a[0]) + 2 * t * (b[0] - cx), tz = 2 * u * (cz - a[1]) + 2 * t * (b[1] - cz), tl = Math.hypot(tx, tz) || 1, px = -tz / tl, pz = tx / tl, w = w0 + (hj(seed + k, 3.1) - .5) * .26 * (w0 / .78) + Math.sin(t * Math.PI) * .08;
-    pos.push(x + px * w, .04, z + pz * w, x - px * w, .04, z - pz * w); if (k < N) { const q = k * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, trackM); m.receiveShadow = true; return m;
+    pos.push(x + px * w, .04, z + pz * w, x - px * w, .04, z - pz * w); cl.push([x, z, px, pz, w, t]); if (k < N) { const q = k * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, trackM); m.receiveShadow = true;
+  const grp = new T.Group(); grp.add(m); const t0 = cl.findIndex(q => q[5] > .09), t1 = cl.length - 1 - [...cl].reverse().findIndex(q => q[5] < .91);
+  if (t0 >= 0 && t1 - t0 >= 2) [1, -1].forEach(sd => {
+    const bp = [], bi = [], hb = .17, wb = .13; let n = 0;
+    for (let k = t0; k <= t1; k++) { const [x, z, px, pz, w] = cl[k], o = w + .06, i0 = o - wb / 2, o0 = o + wb / 2; bp.push(x + px * sd * i0, hb, z + pz * sd * i0, x + px * sd * o0, hb, z + pz * sd * o0, x + px * sd * i0, .02, z + pz * sd * i0, x + px * sd * o0, .02, z + pz * sd * o0);
+      if (k < t1) { const q = n * 4; n++; bi.push(q, q + 1, q + 4, q + 1, q + 5, q + 4, q, q + 4, q + 2, q + 4, q + 6, q + 2, q + 1, q + 3, q + 5, q + 5, q + 3, q + 7); } }
+    const bg = new T.BufferGeometry(); bg.setAttribute('position', new T.Float32BufferAttribute(bp, 3)); bg.setIndex(bi); bg.computeVertexNormals(); const bm = new T.Mesh(bg, borderM); bm.castShadow = false; grp.add(bm);
+    let acc = 0, pl = null; for (let k = t0; k <= t1; k++) { const [x, z, px, pz, w] = cl[k]; if (pl) acc += Math.hypot(x - pl[0], z - pl[1]); pl = [x, z]; if (k === t0 || k === t1 || acc > 1.7) { acc = 0; const o = w + .11, pst = new T.Mesh(postG, postM); pst.position.set(x + px * sd * o, .1, z + pz * sd * o); grp.add(pst); } }
+  });
+  return grp;
 }
 let net = null, netVer = 0;
 function routeTo(from, to) {

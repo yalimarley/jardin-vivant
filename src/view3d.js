@@ -424,7 +424,7 @@ function dog() {
 }
 
 /* ---------- initialisation ---------- */
-let hemi, sun, terrain, tg, tvar, gTerr, gBeds, gDecor, gPaths, gOver, gChars, gFauna, gAmb, gPlate;
+let hemi, sun, terrain, tg, tvar, gTerr, gBeds, gDecor, gPaths, gOver, gChars, gFauna, gAmb, gPlate, gBloom, bloomSig = '';
 let gardener, dogM, fam = {}, cg = {}, deco = {}, pickRoots = [];
 const butter = [], beesA = [], birdsA = [], clouds = [], fx = [], pulse = [], rainL = { m: null };
 let parts, pg, pm, NP = 140, pp, pvel;
@@ -447,7 +447,7 @@ function setup() {
   const sc = sun.shadow.camera; sc.left = -26; sc.right = 26; sc.top = 26; sc.bottom = -26; sc.near = 1; sc.far = 100; sun.shadow.bias = -.0006; scene.add(sun); scene.add(sun.target);
   const skyCv = document.createElement('canvas'); skyCv.width = 4; skyCv.height = 256; skyCx = skyCv.getContext('2d'); skyTex = new T.CanvasTexture(skyCv); scene.background = skyTex;
   gTerr = new T.Group(); gBeds = new T.Group(); gDecor = new T.Group(); gPaths = new T.Group(); gOver = new T.Group(); gChars = new T.Group(); gFauna = new T.Group(); gAmb = new T.Group();
-  [gTerr, gPlate = new T.Group(), gPaths, gBeds, gDecor, gOver, gChars, gFauna, gAmb].forEach(g => scene.add(g));
+  gBloom = new T.Group(); [gTerr, gPlate = new T.Group(), gPaths, gBloom, gBeds, gDecor, gOver, gChars, gFauna, gAmb].forEach(g => scene.add(g));
   // terrain
   const SIZE = 150, SEG = 100; tg = new T.PlaneGeometry(SIZE, SIZE, SEG, SEG); tg.rotateX(-Math.PI / 2);
   tvar = new Float32Array(tg.attributes.position.count); for (let i = 0; i < tvar.length; i++) tvar[i] = rng();
@@ -641,10 +641,29 @@ function routeTo(from, to) {
   for (let it = 0; it < nn.length; it++) { let u = -1; for (let k = 0; k < nn.length; k++) if (!done[k] && (u < 0 || D[k] < D[u])) u = k; if (u < 0 || D[u] >= 1e9) break; done[u] = true; adj[u].forEach(([w, d]) => { if (D[u] + d < D[w]) { D[w] = D[u] + d; prev[w] = u; } }); }
   if (D[g] >= 1e9) return [to]; const pts = []; for (let k = g; k >= 0; k = prev[k]) { pts.unshift([nn[k].x, nn[k].z]); if (k === s) break; } pts.push(to); return pts;
 }
+/* prairie fleurie : remplit tout l'espace libre entre les guildes */
+function syncPrairie(S) {
+  const np = S.grid.filter(c => c && c.furn === 'prairie').length, sp = S.spots || [];
+  const sg = np + '|' + sp.map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1)).join(';') + '|' + HW + 'x' + HH + '|' + season;
+  if (sg === bloomSig) return; bloomSig = sg;
+  while (gBloom.children.length) { const c = gBloom.children[0]; gBloom.remove(c); if (c.geometry) c.geometry.dispose(); }
+  if (!np) return;
+  const dens = np === 1 ? 1.3 : np === 2 ? 2.2 : 3.2, discs = []; sp.forEach(o => A.G.discsOf(o).forEach(q => discs.push([q[0], q[1], q[2] + (o.f ? .2 : .6)])));
+  const segs = []; if (net) net.adj.forEach((l, p) => l.forEach(([q]) => { if (q > p) segs.push([net.nn[p], net.nn[q]]); }));
+  const dseg = (px, pz, a, b) => { const dx = b.x - a.x, dz = b.z - a.z, L = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((px - a.x) * dx + (pz - a.z) * dz) / L)); return Math.hypot(px - a.x - t * dx, pz - a.z - t * dz); };
+  const free = (x, z) => { for (const d of discs) if (Math.hypot(x - d[0], z - d[1]) < d[2]) return false; for (const [a, b] of segs) if (dseg(x, z, a, b) < .75) return false; return true; };
+  const r0 = rng; rng = rngMaker(9091); const pts = [], W = HW - .6, H = HH - .6, N = Math.round(4 * W * H * dens);
+  for (let i = 0; i < N * 1.6 && pts.length < N; i++) { const x = (rng() * 2 - 1) * W, z = (rng() * 2 - 1) * H; if (free(x, z)) pts.push([x, z]); }
+  rng = r0; if (!pts.length) return;
+  const sea = season, pal = (sea === 'autumn' ? [0xc9873a, 0xa8642c, 0xd9a14a, 0x8a5a34, 0xe0b868] : sea === 'winter' ? [0xcdb98c, 0xb8a479, 0xd9c9a2, 0xa8956a] : [0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xb48be0, 0xf08a5a]).map(c => new T.Color(c));
+  const stems = new T.InstancedMesh(geo.cyl(.012, .016, 1, 3), new T.MeshLambertMaterial({ color: sea === 'autumn' ? 0x8a8a3c : sea === 'winter' ? 0x9a8a5a : 0x5b8a3c }), pts.length), heads = new T.InstancedMesh(geo.ico(.075, 0), new T.MeshLambertMaterial(), pts.length), dm = new T.Object3D();
+  const r1 = rngMaker(77); pts.forEach(([x, z], i) => { const h = .3 + r1() * .5, y = hAt(x, z); dm.position.set(x, y + h / 2, z); dm.rotation.set(0, 0, 0); dm.scale.set(1, h, 1); dm.updateMatrix(); stems.setMatrixAt(i, dm.matrix); dm.position.set(x, y + h, z); dm.scale.set(1, .8 + r1() * .5, 1); dm.updateMatrix(); heads.setMatrixAt(i, dm.matrix); heads.setColorAt(i, pal[(r1() * pal.length) | 0]); });
+  heads.instanceColor.needsUpdate = true; gBloom.add(stems, heads);
+}
 function plate(x, z, r) { const m = new T.Mesh(new T.CylinderGeometry(r, r, .03, 14), trackM); m.position.set(x, .045, z); m.receiveShadow = true; return m; }
 function syncTracks(S) {
-  const sps = S.spots || [], y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2];
-  const sg = sps.map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1)).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
+  const fsp = (S.spots || []).filter(o => o.f), sps = (S.spots || []).filter(o => !o.f), y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2];
+  const sg = (S.spots || []).map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1) + (o.f ? 'f' : '')).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
   while (gPaths.children.length) gPaths.remove(gPaths.children[0]);
   if (!sps.length) { net = null; netVer++; return; }
   const nodes = [{ d: [[root[0], root[1], 0]] }].concat(sps.map(o => ({ d: A.G.discsOf(o) })));
@@ -662,7 +681,7 @@ function syncTracks(S) {
     net = { nn, adj }; netVer++; }
   const allD = nodes.map((n, k) => n.d.map(q => [q[0], q[1], q[2], k]));
   edges.forEach((e, n) => {
-    const obst = []; allD.forEach((ds, k) => { if (k !== e.i && k !== e.j) ds.forEach(q => obst.push(q)); });
+    const obst = []; allD.forEach((ds, k) => { if (k !== e.i && k !== e.j) ds.forEach(q => obst.push(q)); }); fsp.forEach(o => A.G.discsOf(o).forEach(q => obst.push(q)));
     const w = e.i === 0 ? 1.05 : depth[e.j] <= 2 ? .88 : .72;
     gPaths.add(ribbon(e.a, e.b, e.i * 31 + e.j * 7 + n, w, obst)); gPaths.add(plate(e.a[0], e.a[1], w * .98)); gPaths.add(plate(e.b[0], e.b[1], w * .98));
   });
@@ -781,7 +800,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
+  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
 }

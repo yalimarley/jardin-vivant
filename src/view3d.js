@@ -811,12 +811,37 @@ function sync() {
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
   syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
+  { const fl = []; S.grid.forEach((c, i) => { if (c && c.furn && ['mare', 'boismort', 'pierres', 'hotel'].indexOf(c.furn) >= 0) fl.push({ k: c.furn, i }); }); deco.furn = fl; deco.seen = S.fauna || {}; }
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
 }
 
 /* ---------- boucle d'animation ---------- */
 let clock = null, raf = 0; const reduceM = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+const crit = [];
+function mkCritter(kind) {
+  const g = new T.Group(), M = c => new T.MeshLambertMaterial({ color: c });
+  if (kind === 'mare') { const b = new T.Mesh(geo.ico(.09, 0), M(0x5f9e3d)); b.scale.set(1, .6, 1.3); g.add(b); [-.045, .045].forEach(x => { const e = new T.Mesh(geo.ico(.025, 0), M(0xe8e070)); e.position.set(x, .06, .09); g.add(e); }); }
+  else if (kind === 'boismort') { const b = new T.Mesh(geo.ico(.15, 0), M(0x6b4a2f)); b.scale.set(1, .75, 1.35); b.position.y = .1; g.add(b); const n = new T.Mesh(geo.ico(.06, 0), M(0xd8b48a)); n.position.set(0, .07, .2); g.add(n); const sp = new T.Mesh(geo.ico(.13, 0), M(0x3b2a1c)); sp.scale.set(1, .6, 1.1); sp.position.set(0, .15, -.03); g.add(sp); }
+  else if (kind === 'pierres') { const b = new T.Mesh(geo.box(.07, .025, .22), M(0x7a8a4a)); b.position.y = .03; g.add(b); const h = new T.Mesh(geo.ico(.04, 0), M(0x8a9a55)); h.position.set(0, .035, .13); g.add(h); const tl = new T.Mesh(geo.box(.025, .015, .2), M(0x7a8a4a)); tl.position.set(0, .025, -.2); g.add(tl); }
+  else { const b = new T.Mesh(geo.ico(.035, 0), M(0xd8352a)); b.scale.set(1, .7, 1.1); g.add(b); const d = new T.Mesh(geo.ico(.015, 0), M(0x222222)); d.position.set(0, .03, 0); g.add(d); }
+  gFauna.add(g); return { g, kind, ph: Math.random() * 6.28, st: 0 };
+}
+function critters(t, dt) {
+  const fl = deco.furn || [], seen = deco.seen || {}, sig = fl.map(f => f.k + f.i).join();
+  if (crit.sig !== sig) { crit.forEach(c => gFauna.remove(c.g)); crit.length = 0; crit.sig = sig; fl.forEach(f => { if (f.k === 'hotel') { for (let n = 0; n < 2; n++) { const c = mkCritter('hotel'); c.f = f; c.n = n; crit.push(c); } } else { const c = mkCritter(f.k); c.f = f; crit.push(c); } }); }
+  const warm = season === 'spring' || season === 'summer' || season === 'autumn', night = hour < 7 || hour > 18.5;
+  crit.forEach(c => {
+    const need = { mare: 'grenouille', boismort: 'herisson', pierres: 'lezard', hotel: 'coccinelle' }[c.kind];
+    const vis = !!seen[need] && !rainOn && (c.kind === 'boismort' ? warm : c.kind === 'pierres' ? (warm && !night && hour > 9) : c.kind === 'hotel' ? (warm && !night) : (season !== 'winter')); c.g.visible = vis; if (!vis) return;
+    const q = cellXZ(c.f.i), r = c.kind === 'hotel' ? .35 : c.kind === 'mare' ? 1.05 : .9, p = t * (c.kind === 'boismort' ? .25 : .5) + c.ph + (c.n || 0) * 3;
+    let x = q[0] + Math.cos(p) * r, z = q[1] + Math.sin(p) * r, y = .02;
+    if (c.kind === 'mare') { const hop = Math.max(0, Math.sin(t * 1.3 + c.ph)); y = .05 + hop * .12; x = q[0] + Math.cos(p * .4) * r; z = q[1] + Math.sin(p * .4) * r; }
+    if (c.kind === 'pierres') { x = q[0] + Math.cos(p * .3) * r * .6; z = q[1] + Math.sin(p * .3) * r * .6; y = .1; }
+    if (c.kind === 'hotel') { y = .35 + Math.abs(Math.sin(p * 2)) * .25; }
+    c.g.rotation.y = Math.atan2(x - c.g.position.x, z - c.g.position.z); c.g.position.set(x, y, z);
+  });
+}
 function fauna(t) {
   const cl = deco.cells || [], warm = season === 'spring' || season === 'summer', nB = Math.min(7, Math.floor((deco.biodiv || 0) / 22)), nBee = Math.min(6, (deco.ruches || 0) * 2 + Math.floor((deco.biodiv || 0) / 45));
   const anchor = u => { if (!u.c || (u.c.t !== undefined && t > u.c.t)) { const i = cl.length ? cl[Math.floor(Math.random() * cl.length)] : 0, q = cellXZ(i); u.c = { x: q[0], z: q[1], t: t + 8 + Math.random() * 10 }; } return u.c; };
@@ -864,7 +889,7 @@ function frame() {
   mists.forEach(m => { m.position.x += dt * m.userData.sp; if (m.position.x > 40) m.position.x = -40; });
   const ag = A.agents; moveChar(gardener, ag.g, dt, t, 'g'); moveChar(dogM, ag.d, dt, t, 'd'); ['f0', 'f1'].forEach(k => { if (ag[k]) moveChar(fam[k], ag[k], dt, t, 'f'); });
   for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.life -= dt; if (f.life <= 0) { gAmb.remove(f.m); fx.splice(i, 1); continue; } f.v.y -= 9 * dt; f.m.position.addScaledVector(f.v, dt); }
-  fauna(t);
+  fauna(t); critters(t, dt);
   pulse.forEach((o, i) => { if (o.userData.bob) { o.position.y = .75 + Math.sin(t * 3 + i) * .1; o.rotation.y = t * 1.2; } else o.scale.setScalar(1 + Math.sin(t * 4) * .06); });
   if (cam.taz !== null) { cam.az += (cam.taz - cam.az) * Math.min(1, dt * 6); if (Math.abs(cam.taz - cam.az) < .003) { cam.az = cam.taz; cam.taz = null; } }
   if (cam.tdist !== null) { cam.dist += (cam.tdist - cam.dist) * Math.min(1, dt * 6); if (Math.abs(cam.tdist - cam.dist) < .05) { cam.tdist = null; } }

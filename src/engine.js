@@ -133,6 +133,35 @@ function make(P) {
     if (p.juv > 0 && (p.strate === 'Arbuste' || p.strate === 'Grimpante')) return clamp(tot / 25, 28, 60) * 1.8;
     return clamp(tot / 12, 5, 21) * 1.2;
   }
+  // ----- faune : visiteurs attirés par les habitats et la biodiversité -----
+  const FAUNA = [
+    { id: 'abeille', n: 'Abeille mellifère', d: 'Elle butine tes fleurs et pollinise les vergers.', h: 'Biodiversité ≥ 15 %', ok: x => x.bio >= 15 },
+    { id: 'bourdon', n: 'Bourdon', d: 'Gros pollinisateur, actif même par temps frais.', h: 'Biodiversité ≥ 25 %', ok: x => x.bio >= 25 },
+    { id: 'papillon', n: 'Papillon', d: 'Il vient sur les fleurs sauvages.', h: 'Une prairie fleurie ou biodiversité ≥ 30 %', ok: x => x.prairie >= 1 || x.bio >= 30 },
+    { id: 'syrphe', n: 'Syrphe', d: 'Sa larve dévore les pucerons.', h: '2 prairies fleuries', ok: x => x.prairie >= 2 },
+    { id: 'coccinelle', n: 'Coccinelle', d: 'Grande mangeuse de pucerons.', h: 'Un hôtel à insectes', ok: x => x.hotel >= 1 },
+    { id: 'solitaire', n: 'Abeille solitaire', d: 'Elle niche dans les tiges et les petits trous du bois.', h: 'Un hôtel à insectes et biodiversité ≥ 20 %', ok: x => x.hotel >= 1 && x.bio >= 20 },
+    { id: 'vers', n: 'Ver de terre', d: 'Il aère et enrichit ton sol.', h: 'Sol vivant ≥ 45 %', ok: x => x.soil >= 45 },
+    { id: 'carabe', n: 'Carabe', d: 'Chasseur nocturne de limaces.', h: '5 plantes paillées', ok: x => x.mulch >= 5 },
+    { id: 'grenouille', n: 'Grenouille', d: 'Elle s’installe près de l’eau et mange les limaces.', h: 'Une mare', ok: x => x.mare >= 1 },
+    { id: 'libellule', n: 'Libellule', d: 'Prédatrice de moustiques, signe d’une eau saine.', h: 'Une mare et biodiversité ≥ 30 %', ok: x => x.mare >= 1 && x.bio >= 30 },
+    { id: 'crapaud', n: 'Crapaud', d: 'Il chasse la nuit entre tes plantes.', h: 'Une mare et un tas de bois mort', ok: x => x.mare >= 1 && x.bois >= 1 },
+    { id: 'lezard', n: 'Lézard des murailles', d: 'Il se chauffe au soleil sur les pierres.', h: 'Un tas de pierres', ok: x => x.pierres >= 1 },
+    { id: 'orvet', n: 'Orvet', d: 'Un lézard sans pattes, très discret.', h: 'Tas de pierres et tas de bois mort', ok: x => x.pierres >= 1 && x.bois >= 1 },
+    { id: 'herisson', n: 'Hérisson', d: 'Il dort dans le bois mort et mange les limaces.', h: 'Bois mort et biodiversité ≥ 35 %', ok: x => x.bois >= 1 && x.bio >= 35 },
+    { id: 'mesange', n: 'Mésange charbonnière', d: 'Une famille mange des centaines de chenilles.', h: 'Un nichoir', ok: x => x.nich >= 1 },
+    { id: 'rougegorge', n: 'Rouge-gorge', d: 'Il suit le jardinier qui bêche.', h: 'Un arbre ou arbuste arrivé à maturité', ok: x => x.woodyMat >= 1 },
+    { id: 'salamandre', n: 'Salamandre', d: 'Rare, elle aime les coins frais et humides.', h: 'Mare, bois mort et biodiversité ≥ 55 %', ok: x => x.mare >= 1 && x.bois >= 1 && x.bio >= 55 },
+    { id: 'chauve', n: 'Chauve-souris', d: 'Elle mange des milliers de moustiques par nuit.', h: '3 arbres ou arbustes matures et biodiversité ≥ 60 %', ok: x => x.woodyMat >= 3 && x.bio >= 60 },
+    { id: 'chouette', n: 'Chouette chevêche', d: 'Chasse les campagnols dans ton jardin.', h: '2 nichoirs et biodiversité ≥ 80 %', ok: x => x.nich >= 2 && x.bio >= 80 },
+  ];
+  function faunaCheck(s, st, ev) {
+    const f = s.grid.filter(Boolean), cnt = k => f.filter(c => c.furn === k).length, pl = f.filter(c => !c.treille && P[c.pid]);
+    const x = { bio: st.biodiv, soil: st.soil, prairie: cnt('prairie'), hotel: cnt('hotel'), mare: cnt('mare'), pierres: cnt('pierres'), bois: cnt('boismort'), mulch: pl.filter(c => c.mulch).length, nich: pl.filter(c => c.nichoir).length, woodyMat: pl.filter(c => isWoody(P[c.pid]) && c.stage === 'mature').length };
+    s.fauna = s.fauna || {}; let n = 0;
+    FAUNA.forEach(a => { if (!s.fauna[a.id] && a.ok(x)) { s.fauna[a.id] = s.day; n++; ev.push({ t: 'good', text: 'Nouvelle visite dans ton jardin : ' + a.n.toLowerCase() + ' !' }); } });
+    if (n) s.xp = (s.xp || 0), gainXp(s, 60 * n);
+  }
   const rhythmMul = p => RHYTHM ? totalDays(p) / targetDays(p) : 1;
 
   function blank() {
@@ -605,7 +634,7 @@ function make(P) {
     { const hungry = (s.family || []).filter(f => f.joy < 25); if (hungry.length && s.day % 3 === 0) ev.push({ t: 'warn', text: hungry.map(f => f.n).join(', ') + (hungry.length > 1 ? ' ont faim' : ' a faim') + ' : cuisine avec ta récolte.' }); }
     { s.waste = (s.waste || 0) + s.grid.filter(c => c && c.furn === 'mare' && c.ducks).length * .25; if (s.poulailler) { const hm = dateOf(s.day).m, per = (hm >= 3 && hm <= 8) ? .75 : (hm === 2 || hm === 9) ? .5 : .2, ate = Math.min(s.waste, .3), fed = ate >= .25 ? 1 : .5, lay = (s.poules || 3) * per * fed; s.waste = r2(s.waste - ate + (s.poules || 3) * .12); const before = s.eggs || 0; s.eggs = Math.min(EGG_CAP, r2(before + lay)); const got = s.eggs - before; s.eggsMade = r2((s.eggsMade || 0) + got); if (got > 0) (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(got * EGG_KCAL) }); }
     const take = Math.min(s.waste, COMPOST_RATE); s.waste = r2(s.waste - take); s.compostPts = (s.compostPts || 0) + take; while (s.compostPts >= COMPOST_KG) { s.compostPts -= COMPOST_KG; s.mats.compost = (s.mats.compost || 0) + 1; s.compostMade = (s.compostMade || 0) + 1; } }
-    const st = stats(s); s.soil += (st.soilTarget - s.soil) * .02; s.soil = Math.min(s.soil, 70 + 25 * clamp((s.day || 0) / 730, 0, 1));
+    const st = stats(s); s.soil += (st.soilTarget - s.soil) * .02; faunaCheck(s, st, ev); s.soil = Math.min(s.soil, 70 + 25 * clamp((s.day || 0) / 730, 0, 1));
     if (s.day % 30 === 0) { s.eaten = s.eaten.filter(e => s.day - e.day <= 60); s.prod = (s.prod || []).filter(e => s.day - e.day <= 120); }
     ev.forEach(e => log(s, e.t, e.text));
     return ev;
@@ -1029,7 +1058,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

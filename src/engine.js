@@ -193,7 +193,7 @@ function make(P) {
     else if (c.g < mat) stage = 'croissance';
     else if (c.g < tot) stage = 'jeune';
     else stage = 'mature';
-    return { stage, prog: clamp(c.g / tot, 0, 1), total: tot, left: Math.max(0, tot - c.g) };
+    const rm = rhythmMul(p); return { stage, prog: clamp(c.g / tot, 0, 1), total: tot / rm, left: Math.max(0, tot - c.g) / rm };
   }
   function inWindow(p, m) { return p.recolte.indexOf(m + 1) >= 0; }
   const isWoody = p => !!p && (p.strate === 'Arbre' || p.strate === 'Arbuste') && p.kind !== 'annuelle';
@@ -266,7 +266,7 @@ function make(P) {
   }
   function yieldKg(s, i) {
     const c = s.grid[i], p = P[c.pid], sy = synergy(s, i);
-    let kg = (p.kind === 'continue' ? p.kg * .3 : p.kg) * (KGM[p.kind] || 1);
+    let kg = (p.kind === 'continue' ? p.kg * .3 : p.kg) * (KGM[p.kind] || 1) * (RHYTHM ? .5 : 1);
     if (p.kind === 'vivace' && p.juv > 0) { const yrs = (c.g - totalDays(p)) / 365; kg *= Math.min(1, .35 + .65 * Math.max(0, yrs) / 4); }
     const late = c.ready && c.readyDay != null ? s.day - c.readyDay : 0, fresh = late <= 3 ? 1 : Math.max(.5, 1 - (late - 3) * .04), cared = s.day - (c.care == null ? -99 : c.care) <= 3 ? 1.2 : 1;
     return Math.max(0, r2(kg * fresh * cared * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1) * (c.grafted ? 1 + .1 * c.grafted : 1) * faunaYield(s)));
@@ -667,7 +667,7 @@ function make(P) {
       if (p.tags.includes('azote')) azote++;
       if (p.tags.includes('mulch')) comp++;
       if (c.mulch) mul++;
-      if (p.kg > 0) { const k = p.kg * (KGM[p.kind] || 1) * (1 + synergy(s, i).yield) * (p.kind === 'continue' ? (p.recolte.length / 12) * 2.2 : 1); pk += k; pkc += k * 10 * p.kcal; }
+      if (p.kg > 0) { const k = p.kg * (KGM[p.kind] || 1) * (RHYTHM ? .5 : 1) * (1 + synergy(s, i).yield) * (p.kind === 'continue' ? (p.recolte.length / 12) * 2.2 : 1); pk += k; pkc += k * 10 * p.kcal; }
     });
     const mares = s.grid.filter(c => c && c.furn === 'mare').length;
     const ruches = s.grid.filter(c => c && c.furn === 'ruche').length + Math.min(2, s.grid.filter(c => c && c.ducks).length);

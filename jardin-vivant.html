@@ -1627,7 +1627,7 @@ function make(P) {
     else if (c.g < mat) stage = 'croissance';
     else if (c.g < tot) stage = 'jeune';
     else stage = 'mature';
-    return { stage, prog: clamp(c.g / tot, 0, 1), total: tot, left: Math.max(0, tot - c.g) };
+    const rm = rhythmMul(p); return { stage, prog: clamp(c.g / tot, 0, 1), total: tot / rm, left: Math.max(0, tot - c.g) / rm };
   }
   function inWindow(p, m) { return p.recolte.indexOf(m + 1) >= 0; }
   const isWoody = p => !!p && (p.strate === 'Arbre' || p.strate === 'Arbuste') && p.kind !== 'annuelle';
@@ -1700,7 +1700,7 @@ function make(P) {
   }
   function yieldKg(s, i) {
     const c = s.grid[i], p = P[c.pid], sy = synergy(s, i);
-    let kg = (p.kind === 'continue' ? p.kg * .3 : p.kg) * (KGM[p.kind] || 1);
+    let kg = (p.kind === 'continue' ? p.kg * .3 : p.kg) * (KGM[p.kind] || 1) * (RHYTHM ? .5 : 1);
     if (p.kind === 'vivace' && p.juv > 0) { const yrs = (c.g - totalDays(p)) / 365; kg *= Math.min(1, .35 + .65 * Math.max(0, yrs) / 4); }
     const late = c.ready && c.readyDay != null ? s.day - c.readyDay : 0, fresh = late <= 3 ? 1 : Math.max(.5, 1 - (late - 3) * .04), cared = s.day - (c.care == null ? -99 : c.care) <= 3 ? 1.2 : 1;
     return Math.max(0, r2(kg * fresh * cared * (c.health / 100) * (1 + sy.yield) * (c.pruned === pruneKey(s) ? 1.1 : 1) * (c.sick ? .7 : 1) * (c.grafted ? 1 + .1 * c.grafted : 1) * faunaYield(s)));
@@ -2101,7 +2101,7 @@ function make(P) {
       if (p.tags.includes('azote')) azote++;
       if (p.tags.includes('mulch')) comp++;
       if (c.mulch) mul++;
-      if (p.kg > 0) { const k = p.kg * (KGM[p.kind] || 1) * (1 + synergy(s, i).yield) * (p.kind === 'continue' ? (p.recolte.length / 12) * 2.2 : 1); pk += k; pkc += k * 10 * p.kcal; }
+      if (p.kg > 0) { const k = p.kg * (KGM[p.kind] || 1) * (RHYTHM ? .5 : 1) * (1 + synergy(s, i).yield) * (p.kind === 'continue' ? (p.recolte.length / 12) * 2.2 : 1); pk += k; pkc += k * 10 * p.kcal; }
     });
     const mares = s.grid.filter(c => c && c.furn === 'mare').length;
     const ruches = s.grid.filter(c => c && c.furn === 'ruche').length + Math.min(2, s.grid.filter(c => c && c.ducks).length);
@@ -3802,7 +3802,7 @@ const TUTO = [
   { t: 'Choisis une plante', x: 'Touche ta guilde : tu vois ses emplacements libres et la strate de chacun (arbre, arbuste, herbacées…). Choisis une carte : elle rejoint la liste du jardinier.', target: '#garden', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Le jardinier travaille', x: 'Il suit les sentiers et fait les tâches une par une : planter, puis arroser, pailler, récolter. Rien n’est instantané, il faut un peu de patience. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Arrose et soigne', x: 'Chaque guilde a une goutte bleue : touche-la pour demander l’arrosage de toutes ses plantes. Les pastilles sur les plantes (goutte, panier, paillage…) sont d’autres tâches à confier au jardinier.', target: '#garden', next: true },
-  { t: 'Un jardin en temps réel', x: 'Le jardin vit au rythme du vrai calendrier : un jour de jeu par jour réel, saisons comprises. Chaque nuit, tes plantes poussent et la météo change. Reviens chaque jour pour arroser, pailler et récolter : si tu t’absentes plus de trois jours, le jardin se met à dépérir.', target: '#garden', next: true },
+  { t: 'Un jardin en temps réel', x: 'Le jardin vit au rythme du vrai calendrier : un jour de jeu par jour réel, saisons comprises. Chaque nuit, tes plantes poussent et la météo change : une annuelle donne en quelques jours, un arbre en deux mois environ, et une plante arrosée dans la journée pousse plus vite. Reviens chaque jour pour arroser, pailler et récolter : si tu t’absentes plus de trois jours, le jardin se met à dépérir.', target: '#garden', next: true },
   { t: 'Lis ton jardin', x: 'Une goutte bleue veut dire « j’ai soif », un panier « prête à récolter ». Un bandeau coloré t’annonce la veille gel, canicule, sécheresse, tempête ou orage : prépare-toi, les guildes résistent mieux.', target: '#garden', next: true },
   { t: 'XP et compétences', x: 'Chaque geste (planter, tondre, cuisiner, réussir un objectif) te donne de l’XP. À chaque niveau, tu gagnes 1 point à dépenser dans « Compétences » pour débloquer ou améliorer un savoir-faire. Tu as déjà 1 point offert.', target: '[data-act="skills"]', next: true },
   { t: 'Ginkgos et boutique', x: 'Tu gagnes des ginkgos en ouvrant le booster et en réussissant les objectifs de Guildéon. À la boutique, tu les dépenses en paillage, compost, atelier, poulailler et plus encore.', target: '[data-act="shop"]', next: true },

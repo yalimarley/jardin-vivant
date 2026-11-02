@@ -400,26 +400,56 @@ function lawnPatch(ready) {
 /* ---------- personnages ---------- */
 function human(k, gardener) {
   const g = new T.Group(), body = new T.Group(); g.add(body);
-  const sh = gardener ? mat.shirt : L(SH[k % 4]), pa = L(gardener ? 0x3d4a5c : PA[k % 4]), sk = L(gardener ? 0xe8b890 : SK[k % 4]);
-  body.add(mesh(geo.cyl(.2, .26, .55, 6), sh, 0, .64, 0)); body.add(mesh(geo.ico(.19, 0), sk, 0, 1.08, 0));
-  if (gardener) { body.add(mesh(geo.cyl(.38, .38, .04, 8), mat.straw, 0, 1.2, 0)); body.add(mesh(geo.cyl(.17, .2, .14, 8), mat.straw, 0, 1.27, 0)); }
-  else { const hr = mesh(geo.ico(.2, 0), L(HR[k % 4]), 0, 1.14, -.03); hr.scale.y = .7; body.add(hr); }
+  const sh = gardener ? L(0x4f7a9a) : L(SH[k % 4]), pa = L(gardener ? 0x4a4f5e : PA[k % 4]), sk = L(gardener ? 0xe8b890 : SK[k % 4]), boot = L(0x4a3424), dark = L(0x2a1f18);
+  const child = !gardener && k >= 2;
+  // torse (taille évasée) + cou
+  body.add(mesh(geo.cyl(.19, .24, .5, 8), sh, 0, .66, 0)); body.add(mesh(geo.cyl(.065, .075, .08, 6), sk, 0, .96, 0, false));
+  if (gardener) { body.add(mesh(geo.box(.34, .3, .05), L(0x8a6238), 0, .62, .2)); body.add(mesh(geo.box(.5, .05, .46), L(0x3a2c20), 0, .42, 0)); body.add(mesh(geo.box(.1, .1, .04), L(0x6b4a2c), .1, .52, .23, false)); body.add(mesh(geo.box(.3, .22, .12), mat.wood, 0, .68, -.26)); }
+  else if (k === 0) { body.add(mesh(geo.cyl(.24, .38, .34, 8), L(0x7a4a6a), 0, .42, 0)); }
+  else body.add(mesh(geo.box(.46, .06, .3), L(0x3a2c20), 0, .42, 0, false));
+  // tête : crâne lissé, oreilles, nez, yeux
+  const head = new T.Group(); head.position.set(0, 1.12, 0); body.add(head);
+  head.add(mesh(geo.ico(.185, 1), sk, 0, 0, 0)); [-1, 1].forEach(s => head.add(mesh(geo.ico(.04, 0), sk, s * .18, -.01, 0, false)));
+  head.add(mesh(geo.box(.04, .06, .05), L(0xd9a47a), 0, -.02, .185, false));
+  [-1, 1].forEach(s => { head.add(mesh(geo.box(.036, .045, .02), dark, s * .07, .035, .172, false)); head.add(mesh(geo.box(.06, .014, .02), dark, s * .07, .085, .165, false)); });
+  head.add(mesh(geo.box(.08, .014, .02), L(0xb8605a), 0, -.07, .17, false));
+  if (gardener) {
+    head.add(mesh(geo.cyl(.4, .4, .03, 12), mat.straw, 0, .1, 0)); head.add(mesh(geo.cyl(.19, .22, .15, 10), mat.straw, 0, .2, 0)); head.add(mesh(geo.cyl(.222, .222, .04, 10), L(0xb5503c), 0, .15, 0, false));
+    const bd = mesh(geo.ico(.14, 0), L(0x3a2b20), 0, -.09, .06, false); bd.scale.set(1, .62, .8); head.add(bd);
+  } else {
+    const hr = mesh(geo.ico(.2, 1), L(HR[k % 4]), 0, .045, -.04); hr.scale.set(1, .78, 1); head.add(hr);
+    if (k === 0) { head.add(mesh(geo.ico(.12, 0), L(HR[k % 4]), 0, -.08, -.17)); }
+    if (k === 3) [-1, 1].forEach(s => head.add(mesh(geo.ico(.07, 0), L(HR[k % 4]), s * .2, -.03, -.05)));
+    if (k === 2) head.add(mesh(geo.cyl(.19, .21, .05, 10), L(0x3f7fb5), 0, .14, 0));
+  }
+  // jambes (pivot à la hanche) + chaussures
   const legL = new T.Group(), legR = new T.Group(), armL = new T.Group(), armR = new T.Group();
-  [[legL, -.1], [legR, .1]].forEach(a => { a[0].position.set(a[1], .38, 0); a[0].add(mesh(geo.cyl(.07, .06, .38, 5), pa, 0, -.19, 0)); body.add(a[0]); });
-  [[armL, -.27], [armR, .27]].forEach(a => { a[0].position.set(a[1], .86, 0); a[0].add(mesh(geo.cyl(.055, .045, .36, 5), sh, 0, -.18, 0)); body.add(a[0]); });
-  const can = new T.Group(); can.add(mesh(geo.box(.2, .16, .18), L(0x7aa0b8), 0, 0, 0)); const sp = mesh(geo.cyl(.025, .035, .3, 4), L(0x7aa0b8), 0, .02, .22); sp.rotation.x = Math.PI / 2.4; can.add(sp); can.position.set(0, -.4, .12); can.visible = false; armR.add(can);
-  const bask = mesh(geo.cyl(.14, .1, .14, 6), L(0xb98a4c), 0, -.38, .1); bask.visible = false; armL.add(bask);
-  if (gardener) body.add(mesh(geo.box(.3, .22, .14), mat.wood, 0, .66, -.27));
-  if (!gardener && k >= 2) g.scale.setScalar(k === 3 ? .62 : .78);
-  g.userData = { body, legL, legR, armL, armR, can, bask, heading: 0, lx: 0, lz: 0 }; return g;
+  [[legL, -.1], [legR, .1]].forEach(a => { a[0].position.set(a[1], .4, 0); a[0].add(mesh(geo.cyl(.075, .062, .34, 6), pa, 0, -.17, 0)); a[0].add(mesh(geo.box(.12, .08, .2), boot, 0, -.37, .04)); body.add(a[0]); });
+  // bras (pivot à l'épaule) + mains/gants
+  [[armL, -.27], [armR, .27]].forEach(a => { a[0].position.set(a[1], .88, 0); a[0].add(mesh(geo.cyl(.058, .05, .3, 6), sh, 0, -.15, 0)); a[0].add(mesh(geo.ico(.055, 0), gardener ? L(0xc9a46a) : sk, 0, -.33, 0, false)); body.add(a[0]); });
+  const can = new T.Group(); can.add(mesh(geo.cyl(.11, .12, .2, 8), L(0x7aa0b8), 0, 0, 0)); const spt = mesh(geo.cyl(.026, .036, .32, 5), L(0x7aa0b8), 0, .03, .24); spt.rotation.x = Math.PI / 2.4; can.add(spt); const rose = mesh(geo.cyl(.07, .05, .04, 8), L(0x5a7a90), 0, .13, .37, false); rose.rotation.x = Math.PI / 2.4; can.add(rose); can.position.set(0, -.4, .12); can.visible = false; armR.add(can);
+  const bask = new T.Group(); bask.add(mesh(geo.cyl(.15, .11, .15, 8), L(0xb98a4c), 0, 0, 0)); bask.add(mesh(geo.ico(.07, 0), mat.red, .04, .09, 0, false)); bask.add(mesh(geo.ico(.06, 0), L(0x8bc34a), -.05, .08, .03, false)); bask.position.set(0, -.38, .1); bask.visible = false; armL.add(bask);
+  if (child) g.scale.setScalar(k === 3 ? .66 : .8);
+  g.userData = { body, head, legL, legR, armL, armR, can, bask, heading: 0, lx: 0, lz: 0 }; return g;
 }
 function dog() {
-  const g = new T.Group(), body = new T.Group(); g.add(body); const c = L(0xdca468), c2 = L(0xf3e2c4);
-  body.add(mesh(geo.box(.62, .28, .26), c, 0, .42, 0)); body.add(mesh(geo.box(.3, .12, .2), c2, .08, .3, 0, false));
-  const head = new T.Group(); head.position.set(.36, .6, 0); head.add(mesh(geo.box(.22, .2, .2), c, 0, 0, 0)); head.add(mesh(geo.box(.12, .09, .13), c2, .15, -.04, 0, false)); head.add(mesh(geo.box(.04, .06, .04), mat.dark, .22, -.01, 0, false));
-  [-1, 1].forEach(s => { const e = mesh(geo.box(.06, .11, .05), L(0xa8672f), -.02, .13, s * .1, false); head.add(e); }); body.add(head);
-  const legs = [[.22, .1], [.22, -.1], [-.22, .1], [-.22, -.1]].map(p => { const l = new T.Group(); l.position.set(p[0], .3, p[1]); l.add(mesh(geo.box(.07, .3, .07), c, 0, -.15, 0)); body.add(l); return l; });
-  const tail = new T.Group(); tail.position.set(-.32, .52, 0); tail.add(mesh(geo.box(.22, .05, .05), c, -.1, .04, 0, false)); body.add(tail);
+  const g = new T.Group(), body = new T.Group(); g.add(body); const c = L(0xd9a066), c2 = L(0xf3e2c4), c3 = L(0xa8672f), dk = L(0x2a1f18);
+  // corps allongé orienté +z : poitrail, dos, croupe, taches
+  const ch = mesh(geo.ico(.2, 1), c, 0, .44, .16); ch.scale.set(.95, 1, 1.15); body.add(ch);
+  const rp = mesh(geo.ico(.19, 1), c, 0, .43, -.17); rp.scale.set(.95, .98, 1.1); body.add(rp);
+  body.add(mesh(geo.box(.25, .2, .34), c, 0, .45, 0)); body.add(mesh(geo.ico(.16, 0), c2, 0, .33, .2, false));
+  const sp = mesh(geo.ico(.1, 0), c3, .1, .55, -.05, false); sp.scale.set(1, .5, 1.2); body.add(sp);
+  // cou + tête
+  body.add(mesh(geo.box(.18, .2, .16), c, 0, .6, .3));
+  const head = new T.Group(); head.position.set(0, .68, .38); body.add(head);
+  head.add(mesh(geo.ico(.13, 1), c, 0, 0, 0)); head.add(mesh(geo.box(.12, .09, .15), c2, 0, -.04, .13, false)); head.add(mesh(geo.ico(.035, 0), dk, 0, -.01, .21, false));
+  [-1, 1].forEach(s => { head.add(mesh(geo.ico(.022, 0), dk, s * .06, .04, .11, false)); const ear = mesh(geo.box(.04, .15, .09), c3, s * .11, .02, -.03, false); ear.rotation.z = -s * .35; head.add(ear); });
+  // collier rouge
+  body.add(mesh(geo.cyl(.1, .1, .05, 8), L(0xc9453a), 0, .6, .26, false));
+  // pattes (pivot à l'épaule/hanche) + pattes blanches
+  const legs = [[.11, .24], [-.11, .24], [.11, -.2], [-.11, -.2]].map(p => { const l = new T.Group(); l.position.set(p[0], .34, p[1]); l.add(mesh(geo.box(.075, .22, .085), c, 0, -.11, 0)); l.add(mesh(geo.box(.085, .1, .1), c2, 0, -.27, .01, false)); body.add(l); return l; });
+  // queue en deux segments
+  const tail = new T.Group(); tail.position.set(0, .52, -.34); tail.rotation.x = -.7; tail.add(mesh(geo.box(.055, .055, .2), c, 0, 0, -.1)); tail.add(mesh(geo.box(.05, .05, .12), c2, 0, .03, -.24, false)); body.add(tail);
   g.userData = { body, legs, tail, head, heading: 0, lx: 0, lz: 0 }; return g;
 }
 
@@ -673,14 +703,16 @@ function syncPrairie(S) {
 function plate(x, z, r) { const m = new T.Mesh(new T.CylinderGeometry(r, r, .03, 14), trackM); m.position.set(x, .045, z); m.receiveShadow = true; return m; }
 function syncTracks(S) {
   const fsp = (S.spots || []).filter(o => o.f), sps = (S.spots || []).filter(o => !o.f), y0 = A.walk().N.y0, root = y0 ? cr2xz(y0.c, y0.r) : [-HW, HH * .2];
-  const sg = (S.spots || []).map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1) + (o.f ? 'f' : '')).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
+  let lead = S.pathLead; if (!lead || !sps.some(o => o.id === lead)) { lead = null; let bs = 0; sps.forEach(o => { const sc = o.cells.reduce((q, i) => { const c = S.grid[i]; return !c || c.treille ? q : q + 1 + (c.ready ? 3 : 0) + (c.stage === 'mature' || c.stage === 'jeune' ? 2 : 0); }, 0); if (sc > bs) { bs = sc; lead = o.id; } }); if (lead && bs >= 3) S.pathLead = lead; }
+  const sg = lead + '#' + (S.spots || []).map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1) + (o.f ? 'f' : '')).join(';') + '|' + COLS + 'x' + ROWS + '|' + (y0 ? 1 : 0); if (sg === sigPaths) return; sigPaths = sg;
   while (gPaths.children.length) gPaths.remove(gPaths.children[0]);
   if (!sps.length) { net = null; netVer++; return; }
   const nodes = [{ d: [[root[0], root[1], 0]] }].concat(sps.map(o => ({ d: A.G.discsOf(o) })));
   const link = (i, j) => { let best = null; for (const da of nodes[i].d) for (const db of nodes[j].d) { const dx = db[0] - da[0], dz = db[1] - da[1], dd = Math.hypot(dx, dz) || .01, rim = dd - da[2] - db[2]; if (!best || rim < best.rim) best = { rim, da, db, ux: dx / dd, uz: dz / dd }; }
     const pa = i ? .22 : 0, pb = .22; return { i, j, rim: best.rim, a: [best.da[0] + best.ux * (best.da[2] + pa), best.da[1] + best.uz * (best.da[2] + pa)], b: [best.db[0] - best.ux * (best.db[2] + pb), best.db[1] - best.uz * (best.db[2] + pb)] }; };
   const done = [0], rest = nodes.map((_, k) => k).slice(1), edges = [], deg = nodes.map(() => 0), depth = [0];
-  while (rest.length) { let best = null, bj = -1; rest.forEach((j, jj) => done.forEach(i => { const l = link(i, j); if (!best || l.rim < best.rim) { best = l; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); edges.push(best); deg[best.i]++; deg[j]++; depth[j] = depth[best.i] + 1; }
+  const leadK = lead ? sps.findIndex(o => o.id === lead) + 1 : 0;
+  while (rest.length) { let best = null, bj = -1; if (!edges.length && leadK > 0) { bj = rest.indexOf(leadK); best = link(0, leadK); } else rest.forEach((j, jj) => done.forEach(i => { const l = link(i, j); if (!best || l.rim < best.rim) { best = l; bj = jj; } })); const j = rest.splice(bj, 1)[0]; done.push(j); edges.push(best); deg[best.i]++; deg[j]++; depth[j] = depth[best.i] + 1; }
   // boucles de promenade : un second lien pour les voisins proches
   const has = (i, j) => edges.some(e => (e.i === i && e.j === j) || (e.i === j && e.j === i));
   for (let i = 1; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) { if (has(i, j) || deg[i] >= 3 || deg[j] >= 3) continue; const l = link(i, j); if (l.rim < 4.2) { edges.push(l); deg[i]++; deg[j]++; } }
@@ -852,28 +884,58 @@ function fauna(t) {
 const WORKS = { water: 1, harvest: 1, prune: 1, mulch: 1, compost: 1, plant: 1 };
 const dropGeo = new T.IcosahedronGeometry(.045, 0), dropMat = new T.MeshLambertMaterial({ color: 0x6fb6e8 });
 function spawn(geom, m, pos, v, life) { const o = new T.Mesh(geom, m); o.position.copy(pos); gAmb.add(o); fx.push({ m: o, v, life }); }
-function moveChar(obj, a, dt, t, kind) {
-  const xz0 = cr2xz(a.c, a.r), x = xz0[0], z = xz0[1], u = obj.userData; obj.visible = !a.inside;
-  let px = obj.position.x, pz = obj.position.z, hx = x, hz = z;
-  if (!u.init) { px = x; pz = z; u.init = 1; }
-  else if (kind === 'd' || !net) { const d = Math.hypot(x - px, z - pz); if (d > .0005) { const st = Math.min(d, Math.min(9 * dt, Math.max(d * Math.min(1, dt * 10), 1.5 * dt))); px += (x - px) / d * st; pz += (z - pz) / d * st; } }
-  else {
-    if (!u.rt || u.rt.v !== netVer || Math.hypot(u.rt.tx - x, u.rt.tz - z) > .8) u.rt = { tx: x, tz: z, v: netVer, pts: routeTo([px, pz], [x, z]), k: 0 };
-    else if (u.rt.pts.length) { u.rt.pts[u.rt.pts.length - 1] = [x, z]; }
-    let rem = Math.min(10, Math.max(3.6, Math.hypot(x - px, z - pz) * 1.2)) * dt;
-    while (rem > 0 && u.rt.k < u.rt.pts.length) { const w = u.rt.pts[u.rt.k], dx0 = w[0] - px, dz0 = w[1] - pz, d = Math.hypot(dx0, dz0); if (d <= rem) { px = w[0]; pz = w[1]; rem -= d; u.rt.k++; } else { px += dx0 / d * rem; pz += dz0 / d * rem; hx = w[0]; hz = w[1]; rem = 0; } }
+function stepAlong(u, px, pz, tx, tz, speed, dt) {
+  if (!u.rt || u.rt.v !== netVer || Math.hypot(u.rt.tx - tx, u.rt.tz - tz) > .9) u.rt = { tx, tz, v: netVer, pts: routeTo([px, pz], [tx, tz]), k: 0 };
+  let rem = speed * dt;
+  while (rem > 0 && u.rt.k < u.rt.pts.length) { const w = u.rt.pts[u.rt.k], dx0 = w[0] - px, dz0 = w[1] - pz, d = Math.hypot(dx0, dz0); if (d <= rem) { px = w[0]; pz = w[1]; rem -= d; u.rt.k++; } else { px += dx0 / d * rem; pz += dz0 / d * rem; rem = 0; } }
+  return [px, pz];
+}
+function faceTo(u, ang, dt, k) { let df = ang - u.heading; df = Math.atan2(Math.sin(df), Math.cos(df)); u.heading += df * Math.min(1, dt * (k || 8)); }
+function dogAI(obj, dt, t) {
+  const u = obj.userData, gp = gardener.position, gu = gardener.userData, d = u.dg = u.dg || { mode: 'follow', until: 0, tx: gp.x, tz: gp.z, wait: 0 };
+  let px = obj.position.x, pz = obj.position.z; const dg = Math.hypot(gp.x - px, gp.z - pz);
+  if (!u.init) { px = gp.x - 1.2; pz = gp.z - 1.2; u.init = 1; }
+  let speed = 0, tx = px, tz = pz;
+  if (d.mode === 'follow') {
+    const fw = [Math.sin(gu.heading), Math.cos(gu.heading)];
+    tx = gp.x - fw[0] * 1.5 - fw[1] * .6; tz = gp.z - fw[1] * 1.5 + fw[0] * .6;
+    const dt2 = Math.hypot(tx - px, tz - pz);
+    if (gu.mv) { speed = dt2 > 5 ? 5.4 : dt2 > 1.8 ? 3.4 : dt2 > .5 ? 2 : 0; d.still = 0; }
+    else { d.still = (d.still || 0) + dt; speed = dt2 > 2.6 ? 3 : dt2 > 1.1 ? 1.6 : 0; if (d.still > 3 && speed === 0) { d.mode = Math.random() < .5 ? 'sit' : 'sniff'; d.until = t + 3 + Math.random() * 6; d.sn = 0; } }
+  } else if (d.mode === 'sit') { if (gu.mv || t > d.until || dg > 4) { d.mode = 'follow'; d.still = 0; } }
+  else if (d.mode === 'sniff') {
+    if (!d.sn) { const a = Math.random() * 6.28, r = 1.6 + Math.random() * 2.2; d.tx = gp.x + Math.cos(a) * r; d.tz = gp.z + Math.sin(a) * r; d.sn = 1; }
+    tx = d.tx; tz = d.tz; const dd = Math.hypot(tx - px, tz - pz); if (dd > .25 && d.sn === 1) speed = 2.2; else { if (d.sn === 1) { d.sn = 2; d.sat = t + 1.6 + Math.random(); } else if (t > d.sat) { d.sn = 0; if (t > d.until || Math.random() < .5) d.mode = 'follow'; } }
+    if (gu.mv) d.mode = 'follow';
   }
-  const mvd = Math.hypot(px - obj.position.x, pz - obj.position.z), moving = (!!a.path.length && a.pause <= 0) || mvd / Math.max(dt, .001) > .35;
-  if (mvd > .0004) { const want = Math.atan2(px - obj.position.x, pz - obj.position.z); let df = want - u.heading; df = Math.atan2(Math.sin(df), Math.cos(df)); u.heading += df * Math.min(1, dt * 10); }
+  const moving = speed > 0; if (moving) { const q = stepAlong(u, px, pz, tx, tz, speed, dt); const mvd = Math.hypot(q[0] - px, q[1] - pz); if (mvd > 1e-4) faceTo(u, Math.atan2(q[0] - px, q[1] - pz), dt, 9); px = q[0]; pz = q[1]; }
+  else if (d.mode === 'follow' || d.mode === 'sit') faceTo(u, Math.atan2(gp.x - px, gp.z - pz), dt, 3);
+  obj.position.set(px, hAt(px, pz) + .02, pz); obj.rotation.y = u.heading;
+  const sw = moving ? Math.sin(t * (speed > 4 ? 17 : speed > 2.6 ? 13 : 9)) : 0, sit = d.mode === 'sit', snf = d.mode === 'sniff' && d.sn === 2;
+  u.legs.forEach((l, i) => { const back = i > 1; l.rotation.x = sit ? (back ? -1.15 : .05) : (i % 3 ? -1 : 1) * sw * (speed > 4 ? 1 : .7); });
+  u.body.position.y = sit ? -.13 : moving ? Math.abs(Math.sin(t * (speed > 4 ? 17 : 9))) * (speed > 4 ? .07 : .03) : 0; u.body.rotation.x = sit ? -.4 : 0;
+  u.tail.rotation.y = Math.sin(t * (moving ? 12 : 7)) * (sit ? .7 : .5); u.tail.rotation.x = sit ? -.2 : -.7 + (moving ? .25 : 0);
+  u.head.rotation.x = snf ? .9 + Math.sin(t * 9) * .1 : sit ? -.25 : moving ? .05 : Math.sin(t * 1.3) * .08; u.head.rotation.y = (!moving && !snf) ? Math.sin(t * .7) * .3 : 0;
+}
+function moveChar(obj, a, dt, t, kind) {
+  if (kind === 'd') { obj.visible = true; dogAI(obj, dt, t); return; }
+  const N = A.walk().N, xz0 = cr2xz(a.c, a.r), u = obj.userData; obj.visible = !a.inside;
+  let px = obj.position.x, pz = obj.position.z;
+  const tn = a.path && a.path.length ? N[a.path[a.path.length - 1]] : null, tq = tn ? cr2xz(tn.c, tn.r) : xz0, tx = tq[0], tz = tq[1];
+  if (!u.init || a.inside) { px = tx; pz = tz; u.init = 1; }
+  let moving = false, speed = 0; const dist = Math.hypot(tx - px, tz - pz);
+  if (!(tn && a.pause > 0) && dist > (tn ? .12 : .3)) { speed = kind === 'g' ? (dist > 9 ? 3.1 : 2.2) : 1.5; const q = stepAlong(u, px, pz, tx, tz, speed, dt), mvd = Math.hypot(q[0] - px, q[1] - pz); if (mvd > 1e-4) { faceTo(u, Math.atan2(q[0] - px, q[1] - pz), dt, 9); moving = true; } px = q[0]; pz = q[1]; }
+  else if (tn && dist <= .12) a.arr = a.path[a.path.length - 1];
+  if (kind === 'g') obj.userData.mv = moving;
   obj.position.set(px, hAt(px, pz) + .06, pz); obj.rotation.y = u.heading;
-  const sw = moving ? Math.sin(t * (kind === 'd' ? 16 : 10)) : 0;
-  if (kind === 'd') { u.legs.forEach((l, i) => { l.rotation.z = (i % 3 ? -1 : 1) * sw * .8; }); u.tail.rotation.y = Math.sin(t * 9) * (moving ? .6 : .9); u.body.position.y = moving ? Math.abs(Math.sin(t * 8)) * .04 : 0; u.head.rotation.z = moving ? 0 : Math.sin(t * 1.3) * .12; return; }
-  u.legL.rotation.x = sw * .7; u.legR.rotation.x = -sw * .7; u.armL.rotation.x = -sw * .6; u.armR.rotation.x = sw * .6; u.body.position.y = moving ? Math.abs(Math.sin(t * 10)) * .06 : 0; u.body.rotation.x = 0;
+  const sw = moving ? Math.sin(t * (speed > 2.6 ? 11 : 7.5)) : 0;
+  u.legL.rotation.x = sw * .7; u.legR.rotation.x = -sw * .7; u.armL.rotation.x = -sw * .5; u.armR.rotation.x = sw * .5; u.body.position.y = moving ? Math.abs(Math.sin(t * (speed > 2.6 ? 11 : 7.5))) * .045 : 0; u.body.rotation.x = 0; u.body.rotation.z = moving ? Math.sin(t * (speed > 2.6 ? 11 : 7.5)) * .03 : 0;
+  if (u.head) u.head.rotation.y = moving ? 0 : Math.sin(t * .6 + (u.lx || 0)) * .25;
   if (u.can) { u.can.visible = false; u.bask.visible = false; }
   if (kind === 'g' && a.act && a.actT > 0 && !moving && !a.path.length) {
-    const ci = Math.max(0, Math.min(COLS - 1, Math.floor(a.c))), ri = Math.max(0, Math.min(ROWS - 1, Math.floor(a.r))), tq = cr2xz(ci + .5, ri + .5), tx = tq[0], tz = tq[1], want = Math.atan2(tx - x, tz - z); let df = want - u.heading; df = Math.atan2(Math.sin(df), Math.cos(df)); u.heading += df * Math.min(1, dt * 8);
+    const ci = Math.max(0, Math.min(COLS - 1, Math.floor(a.c))), ri = Math.max(0, Math.min(ROWS - 1, Math.floor(a.r))), tq2 = cr2xz(ci + .5, ri + .5), want = Math.atan2(tq2[0] - px, tq2[1] - pz); faceTo(u, want, dt, 8);
     if (a.act === 'water') { u.can.visible = true; u.armR.rotation.x = -1.3; u.can.rotation.x = .45; if (Math.random() < dt * 18) { const f = new T.Vector3(Math.sin(u.heading), 0, Math.cos(u.heading)), p = obj.position.clone().addScaledVector(f, .55); p.y += .5; spawn(dropGeo, dropMat, p, f.clone().multiplyScalar(1.3 + Math.random() * .4).add(new T.Vector3((Math.random() - .5) * .4, .6, (Math.random() - .5) * .4)), .6); } }
-    else if (a.act === 'harvest') { u.bask.visible = true; u.armR.rotation.x = -2.5 + Math.sin(t * 9) * .35; u.armL.rotation.x = -.5; }
+    else if (a.act === 'harvest') { u.bask.visible = true; u.armR.rotation.x = -2.5 + Math.sin(t * 9) * .35; u.armL.rotation.x = -.5; u.body.rotation.x = .25; }
     else { u.body.rotation.x = .55; u.armR.rotation.x = -1.1 + Math.sin(t * 14) * .5; u.armL.rotation.x = -.6; if (Math.random() < dt * 4) { const f = new T.Vector3(Math.sin(u.heading), 0, Math.cos(u.heading)), p = obj.position.clone().addScaledVector(f, .7); p.y += .2; for (let i = 0; i < 3; i++) spawn(dropGeo, mat.soil, p, new T.Vector3((Math.random() - .5) * 1.2, 1.6 + Math.random(), (Math.random() - .5) * 1.2), .5); } }
   }
 }
@@ -908,7 +970,7 @@ function setOn(on) {
 V.mount = function (api) {
   A = api;
   try { setup(); applySeason('summer', true); } catch (e) { try { console.warn('Vue 3D indisponible', e); } catch (_) {} document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); if (canvas && canvas.parentNode) canvas.remove(); if (bdiv && bdiv.parentNode) bdiv.remove(); R = null; return false; }
-  V.ok = true; V.gardenerPos = () => [gardener.position.x, gardener.position.z]; V.netInfo = () => net && { n: net.nn.length, nodes: net.nn.map(q => [q.x, q.z]) }; V.sync = sync; V.setOn = setOn; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
+  V.ok = true; V.dogPos = () => [dogM.position.x, dogM.position.z]; V.famPos = () => [fam.f0.position.x, fam.f0.position.z, fam.f0.visible]; V.gardenerPos = () => [gardener.position.x, gardener.position.z]; V.netInfo = () => net && { n: net.nn.length, nodes: net.nn.map(q => [q.x, q.z]) }; V.sync = sync; V.setOn = setOn; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
   window.addEventListener('click', e => {
     const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
     if (a === 'view3d') { e.stopPropagation(); e.preventDefault(); setOn(!V.on); A.rerender(); return; }

@@ -628,13 +628,17 @@ function pickRoam(a) {
   // le jardinier va vers une plante qui a besoin de soin, sinon flâne
   const need = []; S.grid.forEach((c, i) => { if (c && !c.treille && (c.ready || c.water < 35)) need.push(i); });
   if (need.length && Math.random() < .7) { const i = need[Math.floor(Math.random() * need.length)]; a.act = S.grid[i].ready ? 'harvest' : 'water'; a.actT = 2.2; setPop(a, a.act); return nearestNode(i % STR + .5, ((i / STR) | 0) + .5); }
+  if (window.V3D && V3D.on && (S.spots || []).length) { const sp = (S.spots || []).filter(o => !o.f && o.cells && o.cells.length); if (sp.length) { const o = sp[Math.floor(Math.random() * sp.length)], i = o.cells[Math.floor(Math.random() * o.cells.length)]; return nearestNode(i % STR + .5, ((i / STR) | 0) + .5); } }
   return walk.ring[Math.floor(Math.random() * walk.ring.length)];
 }
 function stepAgent(a, dt) {
+  const drive = !!(window.V3D && V3D.on);
+  if (drive && a.who === 'd') return;
   if (a.pause > 0) { a.pause -= dt; return; }
   if (a.act && !a.path.length && a.actT > 0) { a.actT -= dt; if (a.actT <= 0) { a.act = null; a.pause = .3; if (a.task) { const t = a.task; a.task = null; try { t.fn(); } catch (e) {} } } return; }
   if (a.who === 'g' && !a.path.length && !a.act && TQ.length && startTask(a)) return;
   if (!a.path.length) { const goal = pickRoam(a); a.path = goal && goal !== a.node ? bfs(a.node, goal) : []; if (!a.path.length) { a.pause = a.who === 'd' ? .4 + Math.random() * 1.2 : a.who === 'f' ? 1.5 + Math.random() * 3.5 : 1 + Math.random() * 2.2; return; } }
+  if (drive) { const last = a.path[a.path.length - 1], tn = walk.N[last]; if (!tn) { a.path = []; return; } if (a.arr === last) { a.arr = null; a.c = tn.c; a.r = tn.r; a.node = last; a.path = []; a.pause = a.act ? 0 : a.who === 'f' ? 1.5 + Math.random() * 3 : 3 + Math.random() * 5; } return; }
   const t = walk.N[a.path[0]]; if (!t) { a.path = []; return; }
   const dx = t.c - a.c, dy = t.r - a.r, d = Math.hypot(dx, dy), step = a.speed * dt;
   const sdx = dx - dy; if (Math.abs(sdx) > .01) a.face = sdx > 0 ? 1 : -1;
@@ -1653,7 +1657,7 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); claimDaily(); render(); startChars();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }

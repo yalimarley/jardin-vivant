@@ -15,11 +15,13 @@ const LIVE = !window.__JV_INSTANT && !/[?&]dev\b/.test(location.search);
 G.setRhythm(LIVE);
 if (LIVE) document.body.classList.add('live');
 function realDay() { const d = new Date(); return G.dayOfDate(d.getFullYear(), d.getMonth(), d.getDate()); }
+function claimDaily() { if (!LIVE || VIS || S.demo) return; const g = G.dailySeeds(S); if (g && g.length) { S.seedGot = { day: S.day, ids: g }; save(); } }
 function briefHtml() {
-  const pl = S.grid.filter(c => c && !c.treille && P[c.pid]); if (!pl.length) return '';
+  const pl = S.grid.filter(c => c && !c.treille && P[c.pid]); if (!pl.length && !(S.seedGot && S.seedGot.day === S.day)) return '';
   const ready = pl.filter(c => c.ready).length, dry = pl.filter(c => c.water < 30).length, sick = pl.filter(c => c.sick).length;
   S.briefFauna = S.briefFauna || {}; const nf = G.FAUNA.filter(a => (S.fauna || {})[a.id] && !S.briefFauna[a.id]); nf.forEach(a => { S.briefFauna[a.id] = 1; });
   const li = [];
+  if (S.seedGot && S.seedGot.day === S.day) li.unshift('graine du jour : <b>' + S.seedGot.ids.map(id => P[id].name.toLowerCase()).join(' et ') + '</b> offerte');
   if (ready) li.push('<b>' + ready + '</b> plante' + (ready > 1 ? 's sont prêtes' : ' est prête') + ' à récolter');
   if (dry) li.push('<b>' + dry + '</b> ' + (dry > 1 ? 'ont soif' : 'a soif'));
   if (sick) li.push('<b>' + sick + '</b> ' + (sick > 1 ? 'sont malades' : 'est malade'));
@@ -1653,6 +1655,6 @@ const trace = (function initTrace() {
 })();
 window.__jv = { enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
-catchUp(); render(); startChars();
-if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
+catchUp(); claimDaily(); render(); startChars();
+if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 })();

@@ -1875,6 +1875,14 @@ function make(P) {
   const boosterGap = s => s.boosters < 3 ? 3 : 7;
   function boosterIn(s) { return s.boosterDay < 0 ? 0 : Math.max(0, s.boosterDay + boosterGap(s) - s.day); }
   function boosterReady(s) { return boosterIn(s) === 0; }
+  // graines du jour : 2 cartes offertes à la première connexion de chaque jour (une culture rapide de saison + une plante au hasard)
+  function dailySeeds(s) {
+    if (!RHYTHM || s.seedClaim === s.day || !s.boosters) return null; s.seedClaim = s.day; if (Object.values(s.cards || {}).reduce((x, n) => x + n, 0) >= 3) return [];
+    const m = dateOf(s.day).m, rng = mulberry(s.day * 211 + (s.boosters || 0) * 5 + 3), got = [], u = unlocked(s);
+    const fp = fastPool(s, m); if (fp.length) got.push(fp[Math.floor(rng() * fp.length)].id);
+    got.forEach(id => { s.cards[id] = (s.cards[id] || 0) + 1; }); if (got.length) log(s, 'good', 'Graines du jour : ' + got.map(id => P[id].name.toLowerCase()).join(' et ') + '.');
+    return got;
+  }
   function openBooster(s) {
     if (!boosterReady(s)) return null; gainXp(s, 40);
     const rng = mulberry(s.day * 131 + s.boosters * 17 + 7), cards = [], m = dateOf(s.day).m;
@@ -2517,7 +2525,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -2543,11 +2551,13 @@ const LIVE = !window.__JV_INSTANT && !/[?&]dev\b/.test(location.search);
 G.setRhythm(LIVE);
 if (LIVE) document.body.classList.add('live');
 function realDay() { const d = new Date(); return G.dayOfDate(d.getFullYear(), d.getMonth(), d.getDate()); }
+function claimDaily() { if (!LIVE || VIS || S.demo) return; const g = G.dailySeeds(S); if (g && g.length) { S.seedGot = { day: S.day, ids: g }; save(); } }
 function briefHtml() {
-  const pl = S.grid.filter(c => c && !c.treille && P[c.pid]); if (!pl.length) return '';
+  const pl = S.grid.filter(c => c && !c.treille && P[c.pid]); if (!pl.length && !(S.seedGot && S.seedGot.day === S.day)) return '';
   const ready = pl.filter(c => c.ready).length, dry = pl.filter(c => c.water < 30).length, sick = pl.filter(c => c.sick).length;
   S.briefFauna = S.briefFauna || {}; const nf = G.FAUNA.filter(a => (S.fauna || {})[a.id] && !S.briefFauna[a.id]); nf.forEach(a => { S.briefFauna[a.id] = 1; });
   const li = [];
+  if (S.seedGot && S.seedGot.day === S.day) li.unshift('graine du jour : <b>' + S.seedGot.ids.map(id => P[id].name.toLowerCase()).join(' et ') + '</b> offerte');
   if (ready) li.push('<b>' + ready + '</b> plante' + (ready > 1 ? 's sont prêtes' : ' est prête') + ' à récolter');
   if (dry) li.push('<b>' + dry + '</b> ' + (dry > 1 ? 'ont soif' : 'a soif'));
   if (sick) li.push('<b>' + sick + '</b> ' + (sick > 1 ? 'sont malades' : 'est malade'));
@@ -4181,8 +4191,8 @@ const trace = (function initTrace() {
 })();
 window.__jv = { enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
-catchUp(); render(); startChars();
-if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
+catchUp(); claimDaily(); render(); startChars();
+if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 })();
 
 </script>

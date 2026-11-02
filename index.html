@@ -44,6 +44,8 @@ svg{display:block}
 .chip i{width:9px;height:9px;border-radius:50%;background:var(--leaf-2);display:block}
 .gauges{display:flex;gap:10px;flex-wrap:wrap}
 .gclick{cursor:pointer}.lbt{width:100%;border-collapse:collapse;font-size:.9rem}.lbt th,.lbt td{padding:5px 6px;text-align:left;border-bottom:1px solid var(--line)}.lbt tr.me{background:rgba(63,139,74,.14)}.btn.on{outline:2px solid var(--accent,#3f8b4a)}
+#visitbar{position:fixed;left:50%;transform:translateX(-50%);top:8px;z-index:60;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:8px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:94vw;font-size:.9rem}
+body.visiting #rail,body.visiting #spadefab,body.visiting #guil,body.visiting #hint,body.visiting #wxalert,body.visiting #res,body.visiting #today,body.visiting #gauges,body.visiting .v3b,body.visiting .v3drop,body.visiting #when{display:none!important}
 .scrow{margin:0 0 12px}.scrow .row{display:flex;justify-content:space-between}.faunalist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.fa{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-size:.85rem}.fa.off{opacity:.6;border-style:dashed}.fa em{color:var(--muted,#777);font-size:.75rem}
 .gauge{min-width:128px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px;box-shadow:var(--shadow)}
 .gauge .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -2530,6 +2532,7 @@ const G = Engine.make(PLANTS), P = G.P, STR = G.COLS, MONTHS = G.MONTHS;
 let COLS = 8, ROWS = 6;
 function syncDims() { const d = G.dims(S); COLS = d[0]; ROWS = d[1]; }
 const KEY = 'jardin-vivant-proto-v2';
+let VIS = null;
 let S = load() || G.newGame(), ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 };
 S.w = G.weather(S.day); syncDims();
 const $ = id => document.getElementById(id);
@@ -2566,7 +2569,7 @@ function catchUp() {
 }
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }
 function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && (o.grid.length === G.NCELL || o.grid.length === 120)) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
+function save() { if (VIS) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
 // ----- compte en ligne (projet Supabase « jardin-vivant », séparé de JF Lab) -----
 const CLOUD = { url: 'https://wbdduslvjqeersekxaxw.supabase.co', key: 'sb_publishable_m47WNomSZ0jqHim34mbc7A_vs6uCZVX', AK: 'jardin-vivant-auth', sess: null, timer: null, status: '', last: 0 };
 try { CLOUD.sess = JSON.parse(localStorage.getItem(CLOUD.AK) || 'null'); } catch (e) {}
@@ -2590,6 +2593,7 @@ async function cloudSignIn(email, pw) { const j = await cloudFetch('/auth/v1/tok
 async function cloudSignUp(email, pw) { const j = await cloudFetch('/auth/v1/signup', { method: 'POST', auth: false, body: { email, password: pw } }); if (j && j.access_token) { cloudStore(cloudMap(j, email)); return 'ok'; } return 'confirm'; }
 async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) {} cloudStore(null); clearTimeout(CLOUD.timer); CLOUD.status = ''; }
 async function cloudPush() {
+  if (VIS) return false;
   if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
   try { await cloudFetch('/rest/v1/saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; if (S.pub && S.pub.on && (!S.pub.last || Date.now() - S.pub.last > 300000)) gardenPush(); return true; }
   catch (e) { CLOUD.status = 'err'; return false; }
@@ -2599,9 +2603,10 @@ async function cloudPull() {
   const j = await cloudFetch('/rest/v1/saves?select=data,day,updated_at&user_id=eq.' + encodeURIComponent(CLOUD.sess.uid)); return j && j[0] ? j[0] : null;
 }
 async function gardenPush() {
+  if (VIS) return false;
   if (!S.pub || !S.pub.pseudo || !CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
   const sc = G.scores(S), pl = S.grid.filter(c => c && !c.treille && P[c.pid]).length;
-  const snap = { day: S.day, spots: (S.spots || []).map(o => ({ id: o.id, t: o.t, n: o.n, x: o.x, z: o.z, a: o.a, cells: o.cells, f: o.f, r: o.r, b: o.b })), grid: S.grid.map(c => c ? (c.treille ? { treille: 1, furn: c.furn } : { pid: c.pid, g: Math.round(c.g), mulch: c.mulch ? 1 : 0, nichoir: c.nichoir ? 1 : 0, health: Math.round(c.health) }) : null), fauna: Object.keys(S.fauna || {}) };
+  const snap = { day: S.day, size: S.size || 0, spots: (S.spots || []).map(o => ({ id: o.id, t: o.t, n: o.n, x: o.x, z: o.z, a: o.a, cells: o.cells, f: o.f, r: o.r, b: o.b })), grid: S.grid.map(c => c ? (c.treille ? { treille: 1, furn: c.furn } : { pid: c.pid, g: Math.round(c.g), mulch: c.mulch ? 1 : 0, nichoir: c.nichoir ? 1 : 0, health: Math.round(c.health) }) : null), fauna: Object.keys(S.fauna || {}) };
   try { await cloudFetch('/rest/v1/gardens?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, pseudo: S.pub.pseudo, is_public: !!S.pub.on, bio: sc.bio, rec: sc.rec, esth: sc.esth, game_day: S.day || 0, plants: pl, snapshot: snap } }); S.pub.last = Date.now(); return true; }
   catch (e) { S.pub.err = e.message || 'erreur'; return false; }
 }
@@ -3460,6 +3465,7 @@ function amenTags(c) {
   return t;
 }
 function openSpot(id) {
+  if (VIS) return;
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
   const sl = G.slotsOf(sp), m = G.dateOf(S.day).m, nm = spadeName(sp), LB = { 'Arbre': 'Arbre', 'Arbuste': 'Arbuste', 'Grimpante': 'Liane', 'Herbacée': 'Herbacée', 'Racine': 'Racine', 'Couvre-sol': 'Couvre-sol' };
   const prLb = pr => !pr ? (sp.b ? 'Annuelle' : 'Plante') : pr.length >= 3 ? 'Petite plante' : pr.map(x => LB[x]).join(' ou ');
@@ -3505,8 +3511,27 @@ async function openLeaderboard(k) {
   try { rows = await cloudFetch('/rest/v1/rpc/leaderboard', { method: 'POST', auth: false, body: { kind: k, lim: 50 } }) || []; } catch (e) { err = 'Classement indisponible pour le moment.'; }
   const tabs = [['total', 'Général'], ['bio', 'Biodiversité'], ['rec', 'Récolte'], ['esth', 'Esthétique']].map(t => '<button class="btn' + (t[0] === k ? ' on' : '') + '" data-act="lb" data-k="' + t[0] + '">' + t[1] + '</button>').join(' ');
   const me = S.pub && S.pub.on ? S.pub.pseudo : null;
-  const body = err ? '<p class="note-p">' + err + '</p>' : rows.length ? '<table class="lbt"><tr><th>#</th><th>Jardinier</th><th>Général</th><th>Bio</th><th>Récolte</th><th>Esth.</th></tr>' + rows.map(r => '<tr' + (me && r.pseudo === me ? ' class="me"' : '') + '><td>' + r.rank + '</td><td>' + esc(r.pseudo) + '</td><td><b>' + r.total + '</b></td><td>' + r.bio + '</td><td>' + r.rec + '</td><td>' + r.esth + '</td></tr>').join('') + '</table>' : '<p class="note-p">Personne n’a encore publié son jardin. Sois le premier !</p>';
+  const body = err ? '<p class="note-p">' + err + '</p>' : rows.length ? '<table class="lbt"><tr><th>#</th><th>Jardinier (touche pour visiter)</th><th>Général</th><th>Bio</th><th>Récolte</th><th>Esth.</th></tr>' + rows.map(r => '<tr data-act="visit" data-p="' + esc(r.pseudo) + '" role="button" tabindex="0" style="cursor:pointer"' + (me && r.pseudo === me ? ' class="me"' : '') + '><td>' + r.rank + '</td><td>' + esc(r.pseudo) + '</td><td><b>' + r.total + '</b></td><td>' + r.bio + '</td><td>' + r.rec + '</td><td>' + r.esth + '</td></tr>').join('') + '</table>' : '<p class="note-p">Personne n’a encore publié son jardin. Sois le premier !</p>';
   modal('Classement des jardins', '<p>' + tabs + '</p>' + body, true);
+}
+async function visitGarden(pseudo) {
+  toast('Chargement du jardin…');
+  let row = null;
+  try { const j = await cloudFetch('/rest/v1/gardens?select=pseudo,total,bio,rec,esth,snapshot&is_public=eq.true&pseudo=eq.' + encodeURIComponent(pseudo), { auth: false }); row = j && j[0]; } catch (e) {}
+  if (!row || !row.snapshot || !row.snapshot.grid) { toast('Ce jardin n’est pas disponible pour la visite.'); return; }
+  enterVisit(row);
+}
+function enterVisit(row) {
+  const sn = row.snapshot, V = G.newGame(); V.day = sn.day || 0; V.size = sn.size || 0; V.spots = (sn.spots || []).map(o => Object.assign({}, o)); V.tuto = { done: true }; V.fauna = {}; (sn.fauna || []).forEach(id => { V.fauna[id] = 1; });
+  V.grid = sn.grid.map(c => { if (!c) return null; if (c.treille) return { treille: true, furn: c.furn }; if (!P[c.pid]) return null; const k = { pid: c.pid, g: c.g || 0, water: 80, health: c.health || 100, stress: 0, mulch: !!c.mulch, nichoir: !!c.nichoir, compostUntil: -1, lastPick: -9999, born: 0, ready: false, stage: 'graine' }; k.stage = G.phase(k).stage; return k; });
+  if (!VIS) VIS = { mine: S, ui };
+  S = V; ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; document.body.classList.add('visiting'); $('layer').innerHTML = '';
+  let bar = $('visitbar'); if (!bar) { bar = document.createElement('div'); bar.id = 'visitbar'; document.body.appendChild(bar); }
+  bar.innerHTML = '<span>Tu visites le jardin de <b>' + esc(row.pseudo) + '</b> · ★ ' + row.total + ' (bio ' + row.bio + ' · récolte ' + row.rec + ' · esth. ' + row.esth + ')</span><button class="btn" data-act="visit-back">Retour à mon jardin</button>';
+  render();
+}
+function endVisit() {
+  if (!VIS) return; S = VIS.mine; ui = VIS.ui; VIS = null; document.body.classList.remove('visiting'); const bar = $('visitbar'); if (bar) bar.remove(); $('layer').innerHTML = ''; render();
 }
 function openScores() {
   const sc = G.scores(S), bar = (n, v, d) => '<div class="scrow"><div class="row"><b>' + n + '</b><strong>' + v + ' / 100</strong></div><div class="bar"><i style="width:' + v + '%"></i></div><p class="note-p">' + d + '</p></div>';
@@ -3918,6 +3943,7 @@ function doTask(id) {
   render(); if (firstCell != null) if (a.type !== 'lawn' && a.type !== 'trogne' && a.type !== 'honey') sendGardener(firstCell, a.type === 'mow' || a.type === 'prune' || a.type === 'heal' ? 'mulch' : a.type);
 }
 function clickCell(i) {
+  if (VIS) return;
   if (ui.tool === 'spade' || ui.tool === 'orient') return;
   const c = S.grid[i];
   if (!ui.mode && (!ui.tool || ui.tool === 'select') && S.pq && S.pq.some(q => q.i === i)) { const r = G.cancelPlant(S, i); if (r.ok) { if (PQ.job && PQ.job.items.includes(i)) PQ.job.items = PQ.job.items.filter(x => x !== i); toast('Plantation annulée : la carte de ' + r.name.toLowerCase() + ' est rendue.'); save(); render(); } return; }
@@ -3958,6 +3984,7 @@ function clickCell(i) {
   ui.sel = i; ui.confirmDel = false; render();
 }
 document.addEventListener('click', e => {
+  if (VIS && !e.target.closest('[data-act="visit-back"],[data-act="close"],[data-act="veil"],[data-act="lb"],[data-act="visit"]')) return;
   if (ui.tool === 'move' && e.target.closest('#garden')) return;
   if (ui.tool && ui.tool !== 'select' && e.target.closest('[data-badge],[data-tree],.lawn')) return;
   const plo = e.target.closest('[data-poulailler]'); if (plo && (!ui.tool || ui.tool === 'select') && !ui.mode) { openPoulailler(); return; }
@@ -3996,6 +4023,8 @@ document.addEventListener('click', e => {
     case 'fauna': openFauna(); break;
     case 'scores': openScores(); break;
     case 'lb': openLeaderboard(a.dataset.k); break;
+    case 'visit': visitGarden(a.dataset.p); break;
+    case 'visit-back': endVisit(); break;
     case 'pub-set': { const inp = $('pubpseudo'), ps = (inp && inp.value || '').trim(); const on = a.dataset.on === '1'; if (on && !/^[\p{L}\p{N}_ .'-]{3,20}$/u.test(ps)) { toast('Pseudo : 3 à 20 caractères (lettres, chiffres).'); break; } S.pub = { on, pseudo: on ? ps : (S.pub && S.pub.pseudo) || ps, err: '' }; toast(on ? 'Publication…' : 'Retrait…'); gardenPush().then(ok => { if (ok) toast(on ? 'Ton jardin est public !' : 'Ton jardin est de nouveau privé.'); openScores(); }); break; }
     case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
     case 'spade-menu': openSpade(); break;
@@ -4150,10 +4179,10 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); render(); startChars();
-if (LIVE) { const tickDay = () => { if (S.day < realDay() && catchUp()) { $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
+if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 })();
 
 </script>

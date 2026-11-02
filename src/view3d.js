@@ -695,10 +695,34 @@ function syncPrairie(S) {
   const r0 = rng; rng = rngMaker(9091); const pts = [], W = HW - .6, H = HH - .6, N = Math.round(4 * W * H * dens);
   for (let i = 0; i < N * 1.6 && pts.length < N; i++) { const x = (rng() * 2 - 1) * W, z = (rng() * 2 - 1) * H; if (free(x, z)) pts.push([x, z]); }
   rng = r0; if (!pts.length) return;
-  const sea = season, pal = (sea === 'autumn' ? [0xc9873a, 0xa8642c, 0xd9a14a, 0x8a5a34, 0xe0b868] : sea === 'winter' ? [0xcdb98c, 0xb8a479, 0xd9c9a2, 0xa8956a] : [0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xb48be0, 0xf08a5a]).map(c => new T.Color(c));
-  const stems = new T.InstancedMesh(geo.cyl(.012, .016, 1, 3), new T.MeshLambertMaterial({ color: sea === 'autumn' ? 0x8a8a3c : sea === 'winter' ? 0x9a8a5a : 0x5b8a3c }), pts.length), heads = new T.InstancedMesh(geo.ico(.075, 0), new T.MeshLambertMaterial(), pts.length), dm = new T.Object3D();
-  const r1 = rngMaker(77); pts.forEach(([x, z], i) => { const h = .3 + r1() * .5, y = hAt(x, z); dm.position.set(x, y + h / 2, z); dm.rotation.set(0, 0, 0); dm.scale.set(1, h, 1); dm.updateMatrix(); stems.setMatrixAt(i, dm.matrix); dm.position.set(x, y + h, z); dm.scale.set(1, .8 + r1() * .5, 1); dm.updateMatrix(); heads.setMatrixAt(i, dm.matrix); heads.setColorAt(i, pal[(r1() * pal.length) | 0]); });
-  heads.instanceColor.needsUpdate = true; gBloom.add(stems, heads);
+  const sea = season, hex = a => a.map(c => new T.Color(c));
+  const PAL = sea === 'autumn' ? { d: hex([0xf2b632, 0x9b6bd1, 0xf4efe0, 0xd9642a, 0xe58aa8, 0xc9873a]), r: hex([0xc9a46a, 0xc23b3b, 0xd9822b, 0xa8642c]), s: hex([0x8a3a5a, 0xa8642c, 0x7a4fc9]) }
+    : sea === 'winter' ? { d: hex([0xe8e0cc, 0xf4f4f4, 0xcdb98c]), r: hex([0xb8a479, 0xd9c9a2, 0xa8956a]), s: hex([0x8a7a5a, 0xa8956a]) }
+    : { d: hex([0xf4f0e0, 0xf2c14e, 0xe58aa8, 0x8fb7f0, 0xf08a3a, 0xd9529e, 0xffffff]), r: hex([0xb48be0, 0xff9ec2, 0xf4f0e0, 0xe04a4a, 0xf6d84a]), s: hex([0x7a4fc9, 0x4f7fe0, 0xe06ab0, 0xb48be0]) };
+  const stemCol = sea === 'autumn' ? 0x8a8a3c : sea === 'winter' ? 0x9a8a5a : 0x5b8a3c, leafCol = sea === 'autumn' ? 0x9a9a46 : sea === 'winter' ? 0xa89a6a : 0x4f9a3a;
+  const wind = (m, stem) => { m.onBeforeCompile = s => { s.uniforms.uTime = timeU; s.vertexShader = s.vertexShader.replace('#include <common>', 'uniform float uTime;\nattribute float aH;\n#include <common>').replace('#include <begin_vertex>', '#include <begin_vertex>\n vec4 ip = instanceMatrix * vec4(0.,0.,0.,1.);\n float wf = ' + (stem ? '(position.y + .5)' : '1.0') + ';\n float gust = .55 + .45 * sin(uTime*.35 + ip.x*.12 + ip.z*.1);\n vec2 wd = vec2(sin(uTime*1.7 + ip.x*.6 + ip.z*.4) + .4*sin(uTime*3.3 + ip.z*.9), cos(uTime*1.35 + ip.z*.5) * .6 + .3) * .075 * gust;\n transformed.x += wd.x * aH * wf * wf;\n transformed.z += wd.y * aH * wf * wf;'); }; return m; };
+  const mk = (g, col, n, stem, dbl) => { const m = new T.MeshLambertMaterial({ color: col == null ? 0xffffff : col, side: dbl ? T.DoubleSide : T.FrontSide }); wind(m, stem); const im = new T.InstancedMesh(g, m, n); im.frustumCulled = false; return im; };
+  const daisyG = (() => { const R = .14, r = .06, P = 8, v = [], ix = []; v.push(0, .03, 0); for (let k = 0; k < P; k++) { const a = k / P * 6.2832, hw = .3; [[r, a - hw, .02], [R, a, .0], [r, a + hw, .02]].forEach(q => v.push(Math.cos(q[1]) * q[0], q[2], Math.sin(q[1]) * q[0])); const b = 1 + k * 3; ix.push(0, b, b + 1, 0, b + 1, b + 2); } const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(v, 3)); g.setIndex(ix); g.computeVertexNormals(); return g; })();
+  const spikeG = geo.cyl(.018, .05, .34, 5), roundG = geo.ico(.075, 0), centerG = geo.ico(.04, 0), bladeG = geo.cone(.035, 1, 3), leafG = (() => { const g = new T.SphereGeometry(.08, 5, 3); g.scale(1, .22, 2.2); g.translate(0, 0, .12); return g; })();
+  const types = pts.map((_, i) => { const r = ((i * 2654435761) >>> 0) / 4294967296; return r < .5 ? 0 : r < .72 ? 2 : 1; });
+  const cnt = [0, 0, 0]; types.forEach(t => cnt[t]++);
+  const stems = mk(geo.cyl(.012, .02, 1, 4), stemCol, pts.length, true), dais = mk(daisyG, null, cnt[0], false, true), cents = mk(centerG, null, cnt[0], false), rnds = mk(roundG, null, cnt[1], false), spks = mk(spikeG, null, cnt[2], false);
+  const nB = Math.round(pts.length * 1.4), blades = mk(bladeG, stemCol, nB, true), nL = Math.round(pts.length * .7), leaves = mk(leafG, leafCol, nL, true, true);
+  const dm = new T.Object3D(), r1 = rngMaker(77), idx = [0, 0, 0], aS = new Float32Array(pts.length), aD = new Float32Array(cnt[0]), aR = new Float32Array(cnt[1]), aP = new Float32Array(cnt[2]), aB = new Float32Array(nB), aL = new Float32Array(nL), aC = new Float32Array(cnt[0]);
+  const put = (im, i, x, y, z, sx, sy, sz, ry, rx) => { dm.position.set(x, y, z); dm.rotation.set(rx || 0, ry || 0, 0); dm.scale.set(sx, sy, sz); dm.updateMatrix(); im.setMatrixAt(i, dm.matrix); };
+  const cent = [new T.Color(0xf0c020), new T.Color(0x6a3b1a), new T.Color(0xf6e08a)];
+  pts.forEach(([x, z], i) => {
+    const h = .32 + r1() * .62, y = hAt(x, z), t = types[i], ry = r1() * 6.28, k = idx[t]++; aS[i] = h;
+    put(stems, i, x, y + h / 2, z, 1, h, 1, 0);
+    if (t === 0) { const s = .8 + r1() * .7; put(dais, k, x, y + h, z, s, s, s, ry); aD[k] = h; dais.setColorAt(k, PAL.d[(r1() * PAL.d.length) | 0]); put(cents, k, x, y + h + .02, z, s, s * .8, s, ry); aC[k] = h; cents.setColorAt(k, cent[(r1() * 3) | 0]); }
+    else if (t === 1) { const s = .8 + r1() * .6; put(rnds, k, x, y + h, z, s, s * .85, s, ry); aR[k] = h; rnds.setColorAt(k, PAL.r[(r1() * PAL.r.length) | 0]); }
+    else { const s = .9 + r1() * .5, hh = .17 * s; put(spks, k, x, y + h + hh - .03, z, s, s, s, ry); aP[k] = h; spks.setColorAt(k, PAL.s[(r1() * PAL.s.length) | 0]); }
+  });
+  for (let i = 0; i < nB; i++) { const q = pts[i % pts.length], x = q[0] + (r1() - .5) * .7, z = q[1] + (r1() - .5) * .7, h = .22 + r1() * .5; put(blades, i, x, hAt(x, z) + h / 2, z, 1, h, 1, r1() * 6.28, (r1() - .5) * .25); aB[i] = h; }
+  for (let i = 0; i < nL; i++) { const q = pts[(i * 3) % pts.length], h = aS[(i * 3) % pts.length], f = .25 + r1() * .4, x = q[0], z = q[1]; put(leaves, i, x, hAt(x, z) + h * f, z, .8 + r1() * .5, 1, .8 + r1() * .5, r1() * 6.28, -.4); aL[i] = h * f; }
+  const att = (im, arr) => im.geometry.setAttribute('aH', new T.InstancedBufferAttribute(arr, 1));
+  [[stems, aS], [dais, aD], [cents, aC], [rnds, aR], [spks, aP], [blades, aB], [leaves, aL]].forEach(([im, a]) => { im.geometry = im.geometry.clone(); att(im, a); im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; gBloom.add(im); });
+
 }
 function plate(x, z, r) { const m = new T.Mesh(new T.CylinderGeometry(r, r, .03, 14), trackM); m.position.set(x, .045, z); m.receiveShadow = true; return m; }
 function syncTracks(S) {

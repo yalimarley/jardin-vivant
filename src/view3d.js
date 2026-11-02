@@ -683,12 +683,12 @@ function routeTo(from, to) {
 }
 /* prairie fleurie : remplit tout l'espace libre entre les guildes */
 function syncPrairie(S) {
-  const np = S.grid.filter(c => c && c.furn === 'prairie').length, sp = S.spots || [];
-  const sg = np + '|' + sp.map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1)).join(';') + '|' + HW + 'x' + HH + '|' + season;
+  const pc = S.grid.filter(c => c && c.furn === 'prairie'), np = pc.length, eff = pc.reduce((a, c) => a + (c.fl == null ? 1 : c.fl), 0), sp = S.spots || [];
+  const sg = Math.round(eff * 8) + '/' + np + '|' + sp.map(o => o.id + ':' + o.x.toFixed(1) + ':' + o.z.toFixed(1) + ':' + (o.a || 0).toFixed(1)).join(';') + '|' + HW + 'x' + HH + '|' + season;
   if (sg === bloomSig) return; bloomSig = sg;
   while (gBloom.children.length) { const c = gBloom.children[0]; gBloom.remove(c); if (c.geometry) c.geometry.dispose(); }
   if (!np) return;
-  const dens = np === 1 ? 1.3 : np === 2 ? 2.2 : 3.2, discs = []; sp.forEach(o => A.G.discsOf(o).forEach(q => discs.push([q[0], q[1], q[2] + (o.f ? .2 : .6)])));
+  const dens = Math.max(.12, eff <= 1 ? 1.3 * eff : eff <= 2 ? 1.3 + .9 * (eff - 1) : Math.min(3.2, 2.2 + (eff - 2))), discs = []; sp.forEach(o => A.G.discsOf(o).forEach(q => discs.push([q[0], q[1], q[2] + (o.f ? .2 : .6)])));
   const segs = []; if (net) net.adj.forEach((l, p) => l.forEach(([q]) => { if (q > p) segs.push([net.nn[p], net.nn[q]]); }));
   const dseg = (px, pz, a, b) => { const dx = b.x - a.x, dz = b.z - a.z, L = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((px - a.x) * dx + (pz - a.z) * dz) / L)); return Math.hypot(px - a.x - t * dx, pz - a.z - t * dz); };
   const free = (x, z) => { for (const d of discs) if (Math.hypot(x - d[0], z - d[1]) < d[2]) return false; for (const [a, b] of segs) if (dseg(x, z, a, b) < .75) return false; return true; };

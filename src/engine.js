@@ -15,7 +15,7 @@ const NEEDF = {1:.7, 2:1, 3:1.4};
 const UNLOCK = {'Arbuste':2, 'Grimpante':4, 'Arbre':6};
 const FURN = ['treille', 'pergola', 'serre', 'mare', 'ruche', 'grandeserre', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel'];
 const FURN_UNLOCK = { chemin: 0, treille: 3, pergola: 5, mare: 6, serre: 8, ruche: 12, trogne: 8, canard: 6, grandeserre: 20, hamac: 8, boismort: 2, pierres: 3, prairie: 4, hotel: 5 };
-const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 8, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 30, serre: 30, canard: 20, sechoir: 25, mare: 30, ruche: 40, atelier: 45, poulailler: 40, voile: 6, grandeserre: 120, boismort: 5, pierres: 5, prairie: 8, hotel: 12 };
+const SHOP = { paillage: 3, compost: 4, ortie: 6, prele: 6, bocaux: 8, savoir: 8, plan: 10, nichoir: 8, oya: 12, cuve: 15, mycor: 20, treille: 12, hamac: 20, pergola: 30, serre: 30, canard: 20, sechoir: 25, mare: 30, ruche: 40, atelier: 45, poulailler: 40, grandeserre: 120, boismort: 5, pierres: 5, prairie: 8, hotel: 12 };
 const SKILLS = {
   plantation: { n: 'Plantation', cat: 'culture', max: 5, req: 0, use: [10, 30, 60, 120], unit: 'plantes plantées', xpk: 5, d: ['Le jardinier plante une plante à la fois, environ 7 secondes (un peu plus pour un arbre).', 'Plantation plus rapide : 6 secondes par plante.', 'Il plante deux plantes à la fois, en 4,5 secondes.', 'Deux plantes à la fois, en 3 secondes.', 'Plantation experte : quatre plantes à la fois, en 2 secondes.'], how: 'Plante une carte.' },
   tonte: { n: 'Tonte', cat: 'entretien', max: 5, req: 0, use: [8, 25, 50, 90], unit: 'zones tondues', xpk: 8, d: ['Tondre l’herbe : +2 paillage par zone.', '+3 paillage par zone.', '+4 paillage par zone.', '+5 paillage par zone, et l’herbe repousse 3 jours plus vite.', '+6 paillage par zone.'], how: 'Tonds les zones d’herbe autour du jardin.' },
@@ -32,17 +32,17 @@ const ADV = {
   resilient: { n: 'Jardinier résilient', cat: 'expertise', cost: 2, reqs: { fabrication: 2, trogne: 2 }, prac: { k: 'soin', n: 6, t: 'soins apportés aux plantes' }, d: 'Tes plantes résistent mieux aux intempéries et aux maladies (+10 % de résistance).' },
   autonome: { n: 'Garde-manger autonome', cat: 'expertise', cost: 2, reqs: { transformation: 2, cuisine: 3 }, prac: { k: 'meals', n: 20, t: 'repas cuisinés' }, d: 'La récolte fraîche se garde 50 % plus longtemps.' }
 };
-const XPB = { harvest: 4, water: 2, mulch: 3, soin: 5, honey: 8, prune: 6, compost: 6 };
+const XPB = { fleurs: 3, harvest: 4, water: 2, mulch: 3, soin: 5, honey: 8, prune: 6, compost: 6 };
 const xpNeed = L => 100 + 25 * (L * (L + 1) / 2 - 1);
 function levelOf(xp) { let L = 1, r = xp || 0; while (r >= xpNeed(L)) { r -= xpNeed(L); L++; } return { lvl: L, into: r, need: xpNeed(L) }; }
 
 const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, paillage: 2, compost: 1 }, nichoir: { lvl: 2, paillage: 3 }, oya: { lvl: 2, paillage: 4, compost: 1 }, cuve: { lvl: 3, paillage: 6, compost: 3 } };
 const RECYCLE = { 'Commune': 2, 'Peu commune': 3, 'Rare': 6 };
-const MAT_UNLOCK = { savoir: 3, voile: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
+const MAT_UNLOCK = { savoir: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14 };
 const EGG_CAP = 30, EGG_KCAL = 86, EGG_PROT = 7.5, EGG_G = 60;
 const NEWMATS = Object.keys(MAT_UNLOCK).concat(['grandeserre', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel']), JAR_KG = .5, DRY_CAP = 3;
 const JARKG = [0, .5, .7, 1], DRYCAP = [0, 3, 5, 8];
-const MAT_QTY = { voile: 2, chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
+const MAT_QTY = { chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
 const COMPOST_RATE = .6, COMPOST_KG = 2.5;
 const NOT_EXO = new Set(['Maïs', 'Tournesol', 'Basilic vivace', 'Basilic']), EXO_EXTRA = new Set(['Curcuma', 'Poivre-cannelle', 'Thym antillais']);
 const isExo = p => !NOT_EXO.has(p.name) && p.gel >= -1 && (p.strate === "Arbre" || p.strate === "Arbuste" || EXO_EXTRA.has(p.name) || /^Bananier/.test(p.name));
@@ -165,7 +165,7 @@ function make(P) {
   const rhythmMul = p => RHYTHM ? totalDays(p) / targetDays(p) : 1;
 
   function blank() {
-    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), paths: [], cards: {}, mats: { voile: 0, paillage: 2, compost: 1, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
+    return { v: SAVE_VERSION, day: 0, grid: Array(NCELL).fill(null), paths: [], cards: {}, mats: { paillage: 2, compost: 1, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0, trogne: 0, canard: 0 }, honey: 0, lawn: Array(LAWN_N).fill(-99), trees: Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })), boostUntil: -1, size: 0, rewarded: { 3: true }, family: defaultFamily(), gq: { claimed: {}, cnt: {}, dc: { day: -1 } },
       tank: 300, tankMax: 500, stock: [], eaten: [], boosterDay: -1, boosters: 0, plantings: 0, maxPlantings: 0,
       cookedDay: -1, learnedDay: -1, knowledge: [], log: [], doneToday: { day: -1, n: 0 }, demo: false, w: weather(0), soil: 45, meals: 0 };
   }
@@ -363,6 +363,9 @@ function make(P) {
   function honeyReady(s, i) { const c = s.grid[i], m = dateOf(s.day).m; return !!(c && c.furn === 'ruche' && m >= 4 && m <= 8 && s.day - (c.honeyDay == null ? -999 : c.honeyDay) >= 45); }
   function honeyKg(s) { let nm = 0; s.grid.forEach(c => { if (c && !c.treille && P[c.pid].tags.includes('mellifere')) nm++; }); return r2(1 + Math.min(3, nm * .15)); }
   function harvestHoney(s, i) { if (!honeyReady(s, i)) return { ok: false }; const kg = honeyKg(s); s.grid[i].honeyDay = s.day; s.honey = r2((s.honey || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 3000) }); log(s, 'good', 'Miel récolté : ' + kg + ' kg.'); bump(s, 'honey'); return { ok: true, kg }; }
+  function flReady(s, i) { const c = s.grid[i], m = dateOf(s.day).m; return !!(c && c.furn === 'prairie' && m >= 4 && m <= 8 && (c.fl == null ? 1 : c.fl) >= .25); }
+  function flKg(s, i) { const c = s.grid[i]; return r2(.16 * Math.min(1, c.fl == null ? 1 : c.fl) + .02); }
+  function harvestFleurs(s, i) { if (!flReady(s, i)) return { ok: false }; const c = s.grid[i], kg = flKg(s, i); c.fl = r2(Math.max(0, (c.fl == null ? 1 : c.fl) - .25)); s.fleurs = r2((s.fleurs || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 300) }); log(s, 'good', 'Fleurs comestibles cueillies : ' + Math.round(kg * 1000) + ' g.'); bump(s, 'fleurs'); return { ok: true, kg, left: c.fl }; }
   function placeDuck(s, i) { const c = s.grid[i]; if (!c || c.furn !== 'mare' || c.ducks || !(s.mats.canard > 0)) return false; s.mats.canard--; c.ducks = true; log(s, 'good', 'Deux canards coureurs indiens s’installent à la mare.'); bump(s); return true; }
   function duckNear(s, i) { const r = (i / COLS) | 0, cc = i % COLS; return s.grid.some((c, j) => c && c.ducks && Math.max(Math.abs(((j / COLS) | 0) - r), Math.abs(j % COLS - cc)) <= 3); }
   function resistance(s, i) { const sy = synergy(s, i), links = new Set(sy.notes.filter(n => n.t === 'good').flatMap(n => n.froms).filter(j => j >= 0)).size; return { links, pct: Math.round(Math.min(.85, links * .1 + (hasAdv(s, 'resilient') ? .1 : 0)) * 100) }; }
@@ -488,6 +491,7 @@ function make(P) {
     const t = stockTotals(s); let kcal = 0, prot = 0, grams = 0; const used = [];
     for (const pid of pids) {
       if (pid === 'honey') { const g = Math.min(40 * ((s.family || []).length || 1), Math.round((s.honey || 0) * 1000)); if (g < 20) continue; s.honey = r2(s.honey - g / 1000); kcal += g * 3; prot += g * .003; grams += g; used.push({ name: 'miel', strate: 'Miel', kcal: 300 }); continue; }
+      if (pid === 'fleurs') { const g = Math.min(15 * ((s.family || []).length || 1), Math.round((s.fleurs || 0) * 1000)); if (g < 8) continue; s.fleurs = r2(s.fleurs - g / 1000); kcal += g * .3; grams += g; used.push({ name: 'fleurs comestibles', strate: 'Fleur', kcal: g * .3 }); continue; }
       if (pid === 'eggs') { const n = Math.min(2 * ((s.family || []).length || 1), Math.floor(s.eggs || 0)); if (n < 1) continue; s.eggs = r2(s.eggs - n); kcal += n * EGG_KCAL; prot += n * EGG_PROT; grams += n * EGG_G; used.push({ name: 'œufs', strate: 'Œuf', kcal: n * EGG_KCAL }); continue; }
       const have = t[pid] || 0, g = Math.min(180 * (s.family || []).length || 180, Math.round(have * 1000)); if (g < 30) continue;
       let need = g / 1000;
@@ -496,7 +500,7 @@ function make(P) {
     }
     s.stock = s.stock.filter(it => it.kg > 0.004);
     if (!used.length) return { ok: false, msg: 'Pas assez de récolte pour cuisiner.' };
-    const strata = new Set(used.filter(p => p.strate !== 'Miel' && p.strate !== 'Œuf').map(p => p.strate)).size, kinds = used.length;
+    const strata = new Set(used.filter(p => p.strate !== 'Miel' && p.strate !== 'Œuf' && p.strate !== 'Fleur').map(p => p.strate)).size, kinds = used.length;
     const balance = clamp((strata - 1) * 34 + (prot > 8 ? 30 : prot > 4 ? 15 : 0) + (kinds >= 3 ? 12 : 0), 0, 100);
     s.eaten.push({ day: s.day, kcal: Math.round(kcal), prot: r1(prot) }); s.cookedDay = s.day; s.meals++;
     const fam = s.family || [], tn = famNeed(s), shares = [];
@@ -567,6 +571,8 @@ function make(P) {
     if (sk.length) T.push({ id: 'heal', prio: 0, icon: 'leaf', label: 'Soigner ' + sk.length + (sk.length > 1 ? ' plantes attaquées' : ' plante attaquée'), sub: 'Limaces ou maladie fongique', act: { type: 'heal', cells: sk } });
     const hn = []; s.grid.forEach((c, i) => { if (honeyReady(s, i)) hn.push(i); });
     if (hn.length) T.push({ id: 'honey', prio: 1, icon: 'basket', label: 'Récolter le miel de ' + (hn.length > 1 ? hn.length + ' ruches' : 'la ruche'), sub: '≈ ' + String(honeyKg(s)).replace('.', ',') + ' kg par ruche', act: { type: 'honey', cells: hn } });
+    const fl = []; s.grid.forEach((c, i) => { if (flReady(s, i)) fl.push(i); });
+    if (fl.length) T.push({ id: 'fleurs', prio: 2, icon: 'basket', label: 'Cueillir les fleurs de la prairie', sub: 'pour les plats et les tisanes · la prairie s’éclaircit', act: { type: 'fleurs', cells: fl } });
     const lr = []; for (let k = 0; k < LAWN_N; k++) if (lawnReady(s, k)) lr.push(k);
     if (lr.length) T.push({ id: 'lawn', prio: 2, icon: 'leaf', label: 'Tondre ' + lr.length + (lr.length > 1 ? ' zones d’herbe' : ' zone d’herbe'), sub: '+' + lr.length * LAWN_MULCH + ' paillage', act: { type: 'lawn', cells: lr } });
     const tr = []; for (let k = 0; k < TREE_N; k++) if (treeReady(s, k)) tr.push(k);
@@ -586,6 +592,7 @@ function make(P) {
     if (a.type === 'harvest') { let kg = 0; a.cells.forEach(i => { const h = harvest(s, i); if (h.ok) kg += h.kg; }); return { r: { kg } }; }
     if (a.type === 'mulch') { let n = 0; a.cells.forEach(i => { if (mulch(s, i)) n++; }); return { r: { n } }; }
     if (a.type === 'heal') { let n = 0; a.cells.forEach(i => { if (heal(s, i)) n++; }); return { r: { n } }; }
+    if (a.type === 'fleurs') { let kg = 0; a.cells.forEach(i => { const h = harvestFleurs(s, i); if (h.ok) kg += h.kg; }); return { r: { kg: r2(kg) } }; }
     if (a.type === 'honey') { let kg = 0; a.cells.forEach(i => { const h = harvestHoney(s, i); if (h.ok) kg += h.kg; }); return { r: { kg: r2(kg) } }; }
     if (a.type === 'lawn') { let n = 0; a.cells.forEach(k => { if (mowLawn(s, k)) n++; }); return { r: { n } }; }
     if (a.type === 'trogne') { let n = 0; a.cells.forEach(k => { if (cutTrogne(s, k)) n++; }); return { r: { n } }; }
@@ -601,6 +608,7 @@ function make(P) {
     if (assist) autoWater(s);
     s.day++; const w = weather(s.day), m = dateOf(s.day).m, tm = (w.tmin + w.tmax) / 2; s.w = w;
     s.tank = Math.min(s.tankMax, s.tank + w.rain * 10 * (1 + .3 * (s.cuves || 0)));
+    if (m >= 3 && m <= 8) s.grid.forEach(c => { if (c && c.furn === 'prairie' && c.fl != null && c.fl < 1) c.fl = r2(Math.min(1, c.fl + .006)); });
     if (w.tmin < 0) ev.push({ t: 'warn', text: 'Gelée cette nuit (' + String(w.tmin).replace('.', ',') + ' °C).' });
     if (w.ev) { s.wxCount = s.wxCount || {}; s.wxCount[w.ev] = (s.wxCount[w.ev] || 0) + 1; const WT = { canicule: 'Canicule : ' + String(w.tmax).replace('.', ',') + ' °C, le sol sèche vite.', secheresse: 'Période sèche : pas de pluie, pense à arroser et à pailler.', tempete: 'Tempête de vent cette nuit.', orage: w.hail ? 'Orage de grêle !' : 'Orage : la cuve se remplit.' }; if (WT[w.ev]) ev.push({ t: 'warn', text: WT[w.ev] }); }
     let wxHit = 0;
@@ -616,8 +624,8 @@ function make(P) {
       if (c.stress > 7) { if (c.stress >= 44) c.health -= 3; else c.health = Math.max(1, c.health - 1.2); }
       else if (c.stress === 0) c.health = Math.min(100, c.health + 1.5);
       const ph0 = phase(c).stage;
-      const rs = (w.ev || w.tmin < 3) ? Math.max(-.4, Math.min(.92, resistance(s, i).pct / 100 + fx.r)) : 0, voile = (c.voileUntil || -1) >= s.day;
-      const gelEff = p.gel - (gsNear(s, i) ? 9 : neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? 4 : 0) - rs * 4 - (voile ? 9 : 0) - (neigh(i, s).some(j => { const q = s.grid[j]; return q && !q.treille && P[q.pid].strate === 'Arbre' && phase(q).stage !== 'graine' && phase(q).stage !== 'pousse'; }) ? 2 : 0) - (gdw ? (gdw.auto ? 3 : 1.5) : 0) - fx.gel;
+      const rs = (w.ev || w.tmin < 3) ? Math.max(-.4, Math.min(.92, resistance(s, i).pct / 100 + fx.r)) : 0;
+      const gelEff = p.gel - (gsNear(s, i) ? 9 : neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? 4 : 0) - rs * 4 - (neigh(i, s).some(j => { const q = s.grid[j]; return q && !q.treille && P[q.pid].strate === 'Arbre' && phase(q).stage !== 'graine' && phase(q).stage !== 'pousse'; }) ? 2 : 0) - (gdw ? (gdw.auto ? 3 : 1.5) : 0) - fx.gel;
       if (w.tmin < gelEff && ph0 !== 'graine' && !gdok) {
         if (p.gel >= -3 && p.kind !== 'vivace') { if (gelEff - w.tmin <= 1.5 && c.health > 45) c.health -= 45; else c.health = 0; } else c.health -= p.gel >= -3 ? 30 : 15;
       }
@@ -626,7 +634,7 @@ function make(P) {
         if (w.ev === 'canicule' && c.water < 10) dmg = (p.strate === 'Arbre' ? 1.5 : 7) * (1 - rs) * (shadeOf(s, i, p) ? .6 : 1);
         else if (w.ev === 'secheresse' && c.water < 5) dmg = (p.strate === 'Arbre' ? .8 : 3) * (1 - rs);
         else if (w.ev === 'tempete' && (p.strate === 'Arbre' || p.strate === 'Arbuste' || p.strate === 'Grimpante')) { dmg = (p.strate === 'Arbre' ? 10 : p.strate === 'Grimpante' ? 22 : 12) * (1 - rs) * (tallN >= 2 ? .4 : tallN === 1 ? .7 : 1); if (c.supp) dmg *= .6; }
-        else if (w.ev === 'orage' && w.hail && !voile && !neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre')) { if (p.strate === 'Herbacée' || p.strate === 'Racine' || p.strate === 'Couvre-sol') dmg = 30 * (1 - rs) * (tallN ? .7 : 1); else if (p.strate === 'Arbuste') dmg = 8 * (1 - rs); }
+        else if (w.ev === 'orage' && w.hail && !neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre')) { if (p.strate === 'Herbacée' || p.strate === 'Racine' || p.strate === 'Couvre-sol') dmg = 30 * (1 - rs) * (tallN ? .7 : 1); else if (p.strate === 'Arbuste') dmg = 8 * (1 - rs); }
         if (dmg > 0.5) { c.health = Math.max(0, c.health - dmg); wxHit++; }
       }
       if (c.sick) { c.health = Math.max(1, c.health - (c.sick.k === 'limaces' ? 2.2 : 1.6)); if (s.day - c.sick.day >= 8) { c.health = Math.max(1, c.health - 12); c.sick = null; ev.push({ t: 'warn', text: p.name + ' a beaucoup souffert faute de soin.' }); } }
@@ -762,27 +770,14 @@ function make(P) {
   function nichoirNear(s, i) { return s.grid[i] && s.grid[i].nichoir || neigh(i, s).some(j => s.grid[j] && s.grid[j].nichoir); }
   function plantCell(s, i) { const c = s.grid[i]; return c && !c.treille ? c : null; }
   function shadeOf(s, i, p) { return p.strate === 'Arbre' || neigh(i, s).some(j => s.grid[j] && !s.grid[j].treille && P[s.grid[j].pid].strate === 'Arbre'); }
-  function useVoile(s, i) {
-    if (!plantCell(s, i)) return { ok: false, msg: 'Choisis une plante.' }; if (!(s.mats.voile > 0)) return { ok: false, msg: 'Plus de voile d’hivernage.' };
-    s.mats.voile--; const g = group(s, i); g.forEach(j => { s.grid[j].voileUntil = s.day + 10; });
-    log(s, 'good', 'Voile d’hivernage posé sur ' + g.length + ' plante' + (g.length > 1 ? 's' : '') + ' pour 10 jours : gel et grêle.'); bump(s, 'soin'); return { ok: true, n: g.length };
-  }
   function forecastInfo(s) {
     const isGel = w => w.ev === 'gel' || (w.tmin != null && w.tmin <= .5); let f = null, dd = 1;
     for (let k = 1; k <= 3; k++) { const g = weather(s.day + k); if (isGel(g)) { f = Object.assign({}, g, { ev: 'gel' }); dd = k; break; } if (g.ev && ['canicule', 'secheresse', 'tempete', 'orage'].includes(g.ev) && !(g.ev === 'orage' && !g.hail && k > 1)) { f = g; dd = k; break; } }
     const mo = dateOf(s.day).m;
     if (!f) { if (s.tank < s.tankMax * .25 && mo >= 5 && mo <= 9 && s.grid.some(c => c && !c.treille)) return { kind: 'secheresse', title: 'Réserve d’eau basse (' + Math.round(s.tank) + ' L)', tip: 'Pose du paillage : il garde l’humidité. Chaque cuve de récupération ajoute 150 L.', hail: false, days: 0 }; return null; }
-    const ex = { gel: ['Gel annoncé cette nuit', 'Une guilde établie (arbre jeune ou adulte) résiste à tout : gel, canicule, sécheresse, tempête et grêle. Sinon, un voile d’hivernage protège jusqu’à 9 °C de plus. Un grand arbre voisin, une guilde (surtout autonome) ou une serre aident aussi. Un gel léger ne tue plus d’un coup une plante en bonne santé.'], canicule: ['Canicule annoncée', 'Arrose avant la chaleur, pose du paillage : les plantes à l’ombre des arbres souffrent moins.'], secheresse: ['Période sèche annoncée', 'Garde de l’eau en cuve, pose des oyas et du paillage.'], tempete: ['Tempête annoncée', 'Arbres, arbustes et grimpantes sont exposés. Un grand arbre voisin coupe le vent.'], orage: ['Orage annoncé', f.hail ? 'Risque de grêle : pose un voile sur les cultures tendres.' : 'La cuve va se remplir.'] };
+    const ex = { gel: ['Gel annoncé cette nuit', 'Une guilde établie (arbre jeune ou adulte) résiste à tout : gel, canicule, sécheresse, tempête et grêle. Sinon, un grand arbre voisin, une guilde (surtout autonome) ou une serre aident aussi. Un gel léger ne tue plus d’un coup une plante en bonne santé.'], canicule: ['Canicule annoncée', 'Arrose avant la chaleur, pose du paillage : les plantes à l’ombre des arbres souffrent moins.'], secheresse: ['Période sèche annoncée', 'Garde de l’eau en cuve, pose des oyas et du paillage.'], tempete: ['Tempête annoncée', 'Arbres, arbustes et grimpantes sont exposés. Un grand arbre voisin coupe le vent.'], orage: ['Orage annoncé', f.hail ? 'Risque de grêle : pose un voile sur les cultures tendres.' : 'La cuve va se remplir.'] };
     const base = f.ev === 'gel' && dd > 1 ? 'Gel annoncé' : ex[f.ev][0];
     return { kind: f.ev, title: base + (dd > 1 ? ' dans ' + dd + ' jours' : '') + (f.ev === 'gel' ? ' (' + String(f.tmin).replace('.', ',') + ' °C)' : f.ev === 'canicule' ? ' (' + String(Math.round(f.tmax)) + ' °C)' : ''), tip: ex[f.ev][1], hail: f.hail, days: dd, tmin: f.tmin };
-  }
-  function protectFrost(s) {
-    const fc = forecastInfo(s); if (!fc || fc.kind !== 'gel') return { ok: false, msg: 'Aucun gel annoncé.' };
-    const risk = i => { const c = s.grid[i]; if (!plantCell(s, i)) return false; if ((c.voileUntil || -1) >= s.day + fc.days) return false; const p = P[c.pid]; return fc.tmin < p.gel - (gsNear(s, i) ? 9 : neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? 4 : 0); };
-    let used = 0, covered = 0;
-    while ((s.mats.voile || 0) > 0 && used < 12) { let best = -1, bn = 0; for (let i = 0; i < NCELL; i++) { if (!isActive(s, i) || !plantCell(s, i)) continue; const n = group(s, i).filter(risk).length; if (n > bn) { bn = n; best = i; } } if (best < 0) break; const r = useVoile(s, best); if (!r.ok) break; used++; covered += bn; }
-    const left = []; for (let i = 0; i < NCELL; i++) if (isActive(s, i) && risk(i)) left.push(i);
-    return { ok: used > 0, used, covered, left: left.length, msg: used ? used + ' voile' + (used > 1 ? 's' : '') + ' posé' + (used > 1 ? 's' : '') + (left.length ? ' · ' + left.length + ' plante' + (left.length > 1 ? 's' : '') + ' restent fragiles.' : ' : tes plantes fragiles sont couvertes.') : (left.length ? 'Plus de voile d’hivernage : ' + left.length + ' plante' + (left.length > 1 ? 's sont fragiles' : ' est fragile') + '.' : 'Rien de fragile à protéger.') };
   }
   function group(s, i) { return [i].concat(neigh(i, s)).filter(j => plantCell(s, j)); }
   function useOrtie(s, i) {
@@ -983,7 +978,7 @@ function make(P) {
   function nSpecies(s) { return new Set(s.grid.filter(c => c && !c.treille).map(c => c.pid)).size; }
   const GQ = [
     { id: 'booster', t: 'Ouvre 3 boosters', say: 'Ouvre tes boosters : cinq cartes t’attendent chaque semaine (tous les trois jours au début). Ouvres-en trois.', need: 3, have: s => s.boosters, rw: { paillage: 2 } },
-    { id: 'hiver', t: 'Prépare l’hiver', say: 'Le froid arrive. Voici trois voiles d’hivernage : quand un gel est annoncé, touche « Protéger » et le jardinier les pose sur les plantes fragiles. Plante 8 cartes pour les recevoir.', need: 8, have: s => s.maxPlantings, rw: { voile: 3 } },
+    { id: 'hiver', t: 'Prépare l’hiver', say: 'Le froid arrive. Voici du paillage : il isole le sol du gel et garde l’humidité. Plante 8 cartes pour le recevoir.', need: 8, have: s => s.maxPlantings, rw: { paillage: 4 } },
     { id: 'herbier1', t: 'Premier herbier', say: 'Chaque espèce plantée entre dans ton herbier. Plante 12 espèces différentes : tes plantes poussent plus vite pendant quelques jours.', need: 12, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 3 } },
     { id: 'rare1', t: 'Une plante rare', say: 'Certaines plantes sont rares ou oubliées. Plante-en une pour recevoir du compost et un peu de paillage.', need: 1, have: s => Object.keys((s.skills && s.skills.species) || {}).filter(k => P[k] && P[k].rarete === 'Rare').length, rw: { compost: 3, paillage: 3 } },
     { id: 'herbier2', t: 'Herbier de 40 espèces', say: 'Quarante espèces différentes plantées : ton jardin devient une vraie collection. Compost et croissance accélérée à la clé.', need: 40, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 5, compost: 3 } },
@@ -1018,7 +1013,7 @@ function make(P) {
     { k: 'harvest', t: 'Récolte 4 fois aujourd’hui', say: 'Défi du jour : récolte 4 fois.', need: 4, rw: { compost: 1 } },
     { k: 'mulch', t: 'Paille 4 plantes aujourd’hui', say: 'Défi du jour : paille 4 plantes.', need: 4, rw: { boost: 2 } }
   ];
-  function rwLabel(rw) { const o = []; if (rw.paillage) o.push(rw.paillage + ' paillage'); if (rw.compost) o.push(rw.compost + ' compost'); if (rw.boost) o.push('croissance accélérée ' + rw.boost + ' j'); if (rw.eau) o.push(rw.eau + ' L d’eau'); if (rw.voile) o.push(rw.voile + ' voiles d’hivernage'); if (rw.chemin) o.push(rw.chemin + ' tronçons de sentier'); if (rw.cuve) o.push('une cuve de récupération'); return o.join(' + '); }
+  function rwLabel(rw) { const o = []; if (rw.paillage) o.push(rw.paillage + ' paillage'); if (rw.compost) o.push(rw.compost + ' compost'); if (rw.boost) o.push('croissance accélérée ' + rw.boost + ' j'); if (rw.eau) o.push(rw.eau + ' L d’eau'); if (rw.chemin) o.push(rw.chemin + ' tronçons de sentier'); if (rw.cuve) o.push('une cuve de récupération'); return o.join(' + '); }
   function quests(s) {
     gqInit(s); const out = [];
     for (const q of GQ) { const have = Math.min(q.need, q.have(s)), done = have >= q.need, claimed = !!s.gq.claimed[q.id]; out.push({ id: q.id, t: q.t, say: q.say, have, need: q.need, done, claimed, rw: q.rw, label: rwLabel(q.rw), daily: false }); }
@@ -1033,7 +1028,7 @@ function make(P) {
     s.gq.claimed[id] = s.day + 1;
     for (const k of ['paillage', 'compost']) if (q.rw[k]) s.mats[k] = (s.mats[k] || 0) + q.rw[k];
     if (q.rw.eau) s.tank = Math.min(s.tankMax, s.tank + q.rw.eau);
-    if (q.rw.voile) s.mats.voile = (s.mats.voile || 0) + q.rw.voile; if (q.rw.chemin) s.mats.chemin = (s.mats.chemin || 0) + q.rw.chemin; if (q.rw.cuve) s.mats.cuve = (s.mats.cuve || 0) + q.rw.cuve;
+    if (q.rw.chemin) s.mats.chemin = (s.mats.chemin || 0) + q.rw.chemin; if (q.rw.cuve) s.mats.cuve = (s.mats.cuve || 0) + q.rw.cuve;
     s.feves = (s.feves || 0) + q.fv;
     if (q.rw.boost) s.boostUntil = Math.min(s.day + 60, Math.max(s.boostUntil, s.day) + q.rw.boost);
     log(s, 'good', 'Guildéon : objectif « ' + q.t + ' » réussi. Bonus : ' + q.label + '.');
@@ -1088,8 +1083,8 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+  return { dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+    flReady, harvestFleurs, neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;

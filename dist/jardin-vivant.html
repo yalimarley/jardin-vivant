@@ -2522,6 +2522,18 @@ const LIVE = !window.__JV_INSTANT && !/[?&]dev\b/.test(location.search);
 G.setRhythm(LIVE);
 if (LIVE) document.body.classList.add('live');
 function realDay() { const d = new Date(); return G.dayOfDate(d.getFullYear(), d.getMonth(), d.getDate()); }
+function briefHtml() {
+  const pl = S.grid.filter(c => c && !c.treille && P[c.pid]); if (!pl.length) return '';
+  const ready = pl.filter(c => c.ready).length, dry = pl.filter(c => c.water < 30).length, sick = pl.filter(c => c.sick).length;
+  S.briefFauna = S.briefFauna || {}; const nf = G.FAUNA.filter(a => (S.fauna || {})[a.id] && !S.briefFauna[a.id]); nf.forEach(a => { S.briefFauna[a.id] = 1; });
+  const li = [];
+  if (ready) li.push('<b>' + ready + '</b> plante' + (ready > 1 ? 's sont prêtes' : ' est prête') + ' à récolter');
+  if (dry) li.push('<b>' + dry + '</b> ' + (dry > 1 ? 'ont soif' : 'a soif'));
+  if (sick) li.push('<b>' + sick + '</b> ' + (sick > 1 ? 'sont malades' : 'est malade'));
+  if (nf.length) li.push('nouveau' + (nf.length > 1 ? 'x' : '') + ' visiteur' + (nf.length > 1 ? 's' : '') + ' : <b>' + nf.map(a => a.n.toLowerCase()).join(', ') + '</b>');
+  const st = S.streak || 0;
+  return (li.length ? '<ul class="amlist">' + li.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p class="note-p">Tout est calme au jardin.</p>') + (st >= 2 ? '<p class="note-p">🔥 <b>' + st + ' jours</b> de suite au jardin' + (7 - st % 7 <= 3 ? ' : plus que ' + (7 - st % 7) + ' pour 3 ginkgos offerts.' : '.') + '</p>' : '');
+}
 function catchUp() {
   if (!LIVE || S.demo) return false;
   const rd = realDay(); if (S.day >= rd) return false;
@@ -2530,7 +2542,8 @@ function catchUp() {
   const before = S.grid.filter(c => c && !c.treille).length;
   for (let k = 1; k <= n; k++) { G.neglect(S, k); G.nextDay(S, false); }
   const left = S.grid.filter(c => c && !c.treille), lost = before - left.length, weak = left.filter(c => c.health < 60).length;
-  if (away >= 2) setTimeout(() => { try { modal('Pendant ton absence', '<p class="note-p">Tu n’es pas venu depuis <b>' + away + ' jours</b>. Le jardin a continué sans toi.' + (away > 3 ? ' Sans soins, les plantes s’affaiblissent.' : '') + '</p><p class="note-p">' + (lost ? '<b>' + lost + '</b> plante' + (lost > 1 ? 's sont mortes' : ' est morte') + '. ' : 'Aucune plante n’est morte. ') + (weak ? '<b>' + weak + '</b> ' + (weak > 1 ? 'sont affaiblies' : 'est affaiblie') + ' : arrose, paille, soigne-les.' : '') + '</p>'); } catch (e) {} }, 900);
+  if (away >= 2) setTimeout(() => { try { modal('Pendant ton absence', '<p class="note-p">Tu n’es pas venu depuis <b>' + away + ' jours</b>. Le jardin a continué sans toi.' + (away > 3 ? ' Sans soins, les plantes s’affaiblissent.' : '') + '</p><p class="note-p">' + (lost ? '<b>' + lost + '</b> plante' + (lost > 1 ? 's sont mortes' : ' est morte') + '. ' : 'Aucune plante n’est morte. ') + (weak ? '<b>' + weak + '</b> ' + (weak > 1 ? 'sont affaiblies' : 'est affaiblie') + ' : arrose, paille, soigne-les.' : '') + '</p>' + briefHtml()); } catch (e) {} }, 900);
+  else if (S.briefDay !== S.day) { S.briefDay = S.day; setTimeout(() => { try { const h = briefHtml(); if (h && !$('layer').innerHTML) modal('Bonjour au jardin', h); } catch (e) {} }, 900); }
   return true;
 }
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }

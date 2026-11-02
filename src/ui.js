@@ -65,12 +65,19 @@ async function cloudSignUp(email, pw) { const j = await cloudFetch('/auth/v1/sig
 async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) {} cloudStore(null); clearTimeout(CLOUD.timer); CLOUD.status = ''; }
 async function cloudPush() {
   if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
-  try { await cloudFetch('/rest/v1/saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; return true; }
+  try { await cloudFetch('/rest/v1/saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; if (S.pub && S.pub.on && (!S.pub.last || Date.now() - S.pub.last > 300000)) gardenPush(); return true; }
   catch (e) { CLOUD.status = 'err'; return false; }
 }
 async function cloudPull() {
   if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return null;
   const j = await cloudFetch('/rest/v1/saves?select=data,day,updated_at&user_id=eq.' + encodeURIComponent(CLOUD.sess.uid)); return j && j[0] ? j[0] : null;
+}
+async function gardenPush() {
+  if (!S.pub || !S.pub.pseudo || !CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
+  const sc = G.scores(S), pl = S.grid.filter(c => c && !c.treille && P[c.pid]).length;
+  const snap = { day: S.day, spots: (S.spots || []).map(o => ({ id: o.id, t: o.t, n: o.n, x: o.x, z: o.z, a: o.a, cells: o.cells, f: o.f, r: o.r, b: o.b })), grid: S.grid.map(c => c ? (c.treille ? { treille: 1, furn: c.furn } : { pid: c.pid, g: Math.round(c.g), mulch: c.mulch ? 1 : 0, nichoir: c.nichoir ? 1 : 0, health: Math.round(c.health) }) : null), fauna: Object.keys(S.fauna || {}) };
+  try { await cloudFetch('/rest/v1/gardens?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, pseudo: S.pub.pseudo, is_public: !!S.pub.on, bio: sc.bio, rec: sc.rec, esth: sc.esth, game_day: S.day || 0, plants: pl, snapshot: snap } }); S.pub.last = Date.now(); return true; }
+  catch (e) { S.pub.err = e.message || 'erreur'; return false; }
 }
 function cloudDirty() { if (!CLOUD.sess) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 20000); }
 window.addEventListener('pagehide', () => { if (CLOUD.sess && CLOUD.timer) cloudPush(); });
@@ -956,13 +963,32 @@ function openSpot(id) {
   if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
   modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }
+function pubBlock() {
+  const p = S.pub || {}, on = !!(CLOUD.sess);
+  let h = '<h3 class="gh">Classement des jardins</h3>';
+  if (!on) return h + '<p class="note-p">Connecte-toi (Menu → Compte) pour publier ton jardin et apparaître au classement.</p><button class="btn" data-act="lb" data-k="total">Voir le classement</button>';
+  h += '<p class="note-p">' + (p.on ? 'Ton jardin est <b>public</b> sous le pseudo <b>' + esc(p.pseudo) + '</b> : les autres joueurs voient tes scores.' : 'Ton jardin est privé. Publie-le pour apparaître au classement mondial (seuls ton pseudo et tes scores sont visibles).') + '</p>';
+  if (p.err) h += '<p class="note-p" style="color:#b3402a">' + esc(p.err.indexOf('duplicate') >= 0 || p.err.indexOf('gardens_pseudo_key') >= 0 ? 'Ce pseudo est déjà pris.' : p.err) + '</p>';
+  h += '<p><input id="pubpseudo" maxlength="20" placeholder="Pseudo (3 à 20 lettres)" value="' + esc(p.pseudo || '') + '" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:60%"> ';
+  h += p.on ? '<button class="btn" data-act="pub-set" data-on="0">Retirer</button> <button class="btn" data-act="pub-set" data-on="1">Mettre à jour</button>' : '<button class="btn" data-act="pub-set" data-on="1">Publier mon jardin</button>';
+  return h + '</p><button class="btn" data-act="lb" data-k="total">Voir le classement</button>';
+}
+async function openLeaderboard(k) {
+  k = k || 'total'; modal('Classement des jardins', '<p class="note-p">Chargement…</p>', true);
+  let rows = [], err = '';
+  try { rows = await cloudFetch('/rest/v1/rpc/leaderboard', { method: 'POST', auth: false, body: { kind: k, lim: 50 } }) || []; } catch (e) { err = 'Classement indisponible pour le moment.'; }
+  const tabs = [['total', 'Général'], ['bio', 'Biodiversité'], ['rec', 'Récolte'], ['esth', 'Esthétique']].map(t => '<button class="btn' + (t[0] === k ? ' on' : '') + '" data-act="lb" data-k="' + t[0] + '">' + t[1] + '</button>').join(' ');
+  const me = S.pub && S.pub.on ? S.pub.pseudo : null;
+  const body = err ? '<p class="note-p">' + err + '</p>' : rows.length ? '<table class="lbt"><tr><th>#</th><th>Jardinier</th><th>Général</th><th>Bio</th><th>Récolte</th><th>Esth.</th></tr>' + rows.map(r => '<tr' + (me && r.pseudo === me ? ' class="me"' : '') + '><td>' + r.rank + '</td><td>' + esc(r.pseudo) + '</td><td><b>' + r.total + '</b></td><td>' + r.bio + '</td><td>' + r.rec + '</td><td>' + r.esth + '</td></tr>').join('') + '</table>' : '<p class="note-p">Personne n’a encore publié son jardin. Sois le premier !</p>';
+  modal('Classement des jardins', '<p>' + tabs + '</p>' + body, true);
+}
 function openScores() {
   const sc = G.scores(S), bar = (n, v, d) => '<div class="scrow"><div class="row"><b>' + n + '</b><strong>' + v + ' / 100</strong></div><div class="bar"><i style="width:' + v + '%"></i></div><p class="note-p">' + d + '</p></div>';
   modal('Mon jardin ★ ' + sc.total + ' / 100',
     bar('Biodiversité', sc.bio, 'Variété des espèces, strates, habitats et animaux découverts (' + Object.keys(S.fauna || {}).length + ' / ' + G.FAUNA.length + ').') +
     bar('Récolte', sc.rec, 'Ce que ton jardin a produit sur les 30 derniers jours (' + (sc.kcal30 >= 1000 ? Math.round(sc.kcal30 / 1000) + ' 000' : sc.kcal30) + ' kcal). Le score suit ton activité récente, pas ton ancienneté.') +
     bar('Esthétique', sc.esth, 'Bonheur de la famille (' + sc.parts.joy + ' %), aménagements, fleurs différentes (' + sc.parts.fleurs + '), couleurs, strates et nombre de parcelles.') +
-    '<p class="note-p">Plus tard, ces trois scores serviront au classement des jardins.</p>', true);
+    pubBlock(), true);
 }
 function openFauna() {
   const seen = S.fauna || {}, n = Object.keys(seen).length;
@@ -1443,6 +1469,8 @@ document.addEventListener('click', e => {
     case 'tool-reloc': ui.tool = ui.tool === 'reloc' ? 'select' : 'reloc'; ui.mode = null; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'fauna': openFauna(); break;
     case 'scores': openScores(); break;
+    case 'lb': openLeaderboard(a.dataset.k); break;
+    case 'pub-set': { const inp = $('pubpseudo'), ps = (inp && inp.value || '').trim(); const on = a.dataset.on === '1'; if (on && !/^[\p{L}\p{N}_ .'-]{3,20}$/u.test(ps)) { toast('Pseudo : 3 à 20 caractères (lettres, chiffres).'); break; } S.pub = { on, pseudo: on ? ps : (S.pub && S.pub.pseudo) || ps, err: '' }; toast(on ? 'Publication…' : 'Retrait…'); gardenPush().then(ok => { if (ok) toast(on ? 'Ton jardin est public !' : 'Ton jardin est de nouveau privé.'); openScores(); }); break; }
     case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
     case 'spade-menu': openSpade(); break;
     case 'hedge-rot': rotSpot(ui.hedgeSel, +a.dataset.d * Math.PI / 180, true); break;

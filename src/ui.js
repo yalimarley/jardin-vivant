@@ -29,7 +29,7 @@ function briefHtml() {
 function catchUp() {
   if (!LIVE || S.demo) return false;
   const rd = realDay(); if (S.day >= rd) return false;
-  if (S.day === 0 && !S.grid.some(c => c) && !(S.spots || []).length) { S.day = rd - 1; G.nextDay(S, false); return true; }
+  if (S.day === 0 && !S.grid.some(c => c) && !(S.spots || []).length) { S.day = rd - 1; S.born = rd - 1; G.nextDay(S, false); return true; }
   let n = rd - S.day; const away = n; if (n > 60) { S.day = rd - 60; n = 60; }
   const before = S.grid.filter(c => c && !c.treille).length;
   for (let k = 1; k <= n; k++) { G.neglect(S, k); G.nextDay(S, false); }

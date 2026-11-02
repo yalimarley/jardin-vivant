@@ -1480,7 +1480,7 @@ const MAT_QTY = { voile: 2, chemin: 6, bocaux: 6, paillage: 5, compost: 3 };
 const COMPOST_RATE = .6, COMPOST_KG = 2.5;
 const NOT_EXO = new Set(['Maïs', 'Tournesol', 'Basilic vivace', 'Basilic']), EXO_EXTRA = new Set(['Curcuma', 'Poivre-cannelle', 'Thym antillais']);
 const isExo = p => !NOT_EXO.has(p.name) && p.gel >= -1 && (p.strate === "Arbre" || p.strate === "Arbuste" || EXO_EXTRA.has(p.name) || /^Bananier/.test(p.name));
-const gshare = s => Math.min(.25, .04 + .0002 * (s.day || 0)), BOOSTER_SIZE = 5, RCY_CAP = 12, KGM = { annuelle: 2.4, continue: 2, vivace: 1.4 }, NEED_KCAL = 2000, CORE = 51;
+const age = s => Math.max(0, (s.day || 0) - (s.born || 0)), gshare = s => Math.min(.25, .04 + .0002 * age(s)), BOOSTER_SIZE = 5, RCY_CAP = 12, KGM = { annuelle: 2.4, continue: 2, vivace: 1.4 }, NEED_KCAL = 2000, CORE = 51;
 const SAVE_VERSION = 1;
 const LAWN_N = 8, LAWN_DAYS = 14, TREE_N = 5, TREE_DAYS = 90, LAWN_MULCH = 2, TREE_MULCH = 4;
 function defaultFamily() { return [{ n: 'Camille', role: 'Adulte', need: 2100, joy: 50, hist: [] }, { n: 'Julien', role: 'Adulte', need: 2400, joy: 50, hist: [] }, { n: 'Léa', role: '10 ans', need: 1900, joy: 50, hist: [] }, { n: 'Noé', role: '6 ans', need: 1500, joy: 50, hist: [] }]; }
@@ -2069,11 +2069,11 @@ function make(P) {
     s.stock = s.stock.filter(it => { const p = P[it.pid]; if (s.day - it.day > (it.keep ? (it.keep === 'sec' ? 400 : 300) : Math.max(1, p.cons * (hasAdv(s, 'autonome') ? 1.5 : 1)))) { ev.push({ t: 'warn', text: it.kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + ' perdus (trop vieux).' }); return false; } return true; });
     { const sea = Math.floor((m % 12) / 3); if (s.lastSea == null) s.lastSea = sea; else if (s.lastSea !== sea) { s.lastSea = sea; gainXp(s, 350); ev.push({ t: 'good', text: 'Une nouvelle saison s’installe : ton jardin a bien vécu, de l’expérience en plus.' }); } }
     pests(s, w, m, ev);
-    for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * gshare(s)); const tgt = clamp((ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100)) + (hamacOk(s) ? 10 : 0) + pathJoy(s), 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), s.day < 45 ? 35 : 0, 100); }
+    for (const f of (s.family || [])) { const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * gshare(s)); const tgt = clamp((ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100)) + (hamacOk(s) ? 10 : 0) + pathJoy(s), 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? 3 : 0), age(s) < 45 ? 35 : 0, 100); }
     { const hungry = (s.family || []).filter(f => f.joy < 25); if (hungry.length && s.day % 3 === 0) ev.push({ t: 'warn', text: hungry.map(f => f.n).join(', ') + (hungry.length > 1 ? ' ont faim' : ' a faim') + ' : cuisine avec ta récolte.' }); }
     { s.waste = (s.waste || 0) + s.grid.filter(c => c && c.furn === 'mare' && c.ducks).length * .25; if (s.poulailler) { const hm = dateOf(s.day).m, per = (hm >= 3 && hm <= 8) ? .75 : (hm === 2 || hm === 9) ? .5 : .2, ate = Math.min(s.waste, .3), fed = ate >= .25 ? 1 : .5, lay = (s.poules || 3) * per * fed; s.waste = r2(s.waste - ate + (s.poules || 3) * .12); const before = s.eggs || 0; s.eggs = Math.min(EGG_CAP, r2(before + lay)); const got = s.eggs - before; s.eggsMade = r2((s.eggsMade || 0) + got); if (got > 0) (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(got * EGG_KCAL) }); }
     const take = Math.min(s.waste, COMPOST_RATE); s.waste = r2(s.waste - take); s.compostPts = (s.compostPts || 0) + take; while (s.compostPts >= COMPOST_KG) { s.compostPts -= COMPOST_KG; s.mats.compost = (s.mats.compost || 0) + 1; s.compostMade = (s.compostMade || 0) + 1; } }
-    const st = stats(s); s.soil += (st.soilTarget - s.soil) * .02; faunaCheck(s, st, ev); s.soil = Math.min(s.soil, 70 + 25 * clamp((s.day || 0) / 730, 0, 1));
+    const st = stats(s); s.soil += (st.soilTarget - s.soil) * .02; faunaCheck(s, st, ev); s.soil = Math.min(s.soil, 70 + 25 * clamp(age(s) / 730, 0, 1));
     if (s.day % 30 === 0) { s.eaten = s.eaten.filter(e => s.day - e.day <= 60); s.prod = (s.prod || []).filter(e => s.day - e.day <= 120); }
     ev.forEach(e => log(s, e.t, e.text));
     return ev;
@@ -2123,7 +2123,7 @@ function make(P) {
     const woody = cs.filter(o => P[o.c.pid].strate === 'Arbre' || P[o.c.pid].strate === 'Arbuste'), woodyMature = woody.filter(o => phase(o.c).stage === 'mature').length, nich = cs.filter(o => o.c.nichoir).length;
     const biodiv = cs.length ? Math.round(clamp(5 + Math.min(sp.size, 80) * .55 + strata.size * 2 + Math.min(mell, 10) * 1.2 + Math.min(2, mares) * 5 + Math.min(2, ruches) * 3 + Math.min(3, nich) * 2 + Math.min(4, s.grid.filter(c => c && (c.furn === 'hotel' || c.furn === 'boismort' || c.furn === 'pierres')).length) * 2.5 + Math.min(3, s.grid.filter(c => c && c.furn === 'prairie').length) * 2.5 + (woody.length ? woodyMature / woody.length * 12 : 0), 0, 100)) : 0;
     const eaten30 = s.eaten.filter(e => s.day - e.day < 30).reduce((a, b) => a + b.kcal, 0);
-    const target = Math.min(clamp(45 + Math.min(20, couvre * 3) + Math.min(10, azote * 2.5) + (cs.length ? mul / cs.length * 10 : 0) + comp * 1.5, 20, 95), 70 + 25 * clamp((s.day || 0) / 730, 0, 1));
+    const target = Math.min(clamp(45 + Math.min(20, couvre * 3) + Math.min(10, azote * 2.5) + (cs.length ? mul / cs.length * 10 : 0) + comp * 1.5, 20, 95), 70 + 25 * clamp(age(s) / 730, 0, 1));
     const need = famNeed(s) * gshare(s), prod90 = (s.prod || []).filter(x => s.day - x.day < 90).reduce((a, b) => a + b.kcal, 0), gl = guilds(s);
     const aEat = clamp(eaten30 / (need * 30), 0, 1) * 100, aProd = clamp(prod90 / (need * 90), 0, 1) * 100, aPot = clamp(pkc / (need * 365), 0, 1) * 100, base = aEat * .55 + aProd * .3 + aPot * .15, boost = Math.min(.6, gl.auto * .06 + (gl.n - gl.auto) * .025);
     const autonomy = Math.round(clamp(base * (1 + boost), 0, 100) * 10) / 10;
@@ -2552,7 +2552,7 @@ function briefHtml() {
 function catchUp() {
   if (!LIVE || S.demo) return false;
   const rd = realDay(); if (S.day >= rd) return false;
-  if (S.day === 0 && !S.grid.some(c => c) && !(S.spots || []).length) { S.day = rd - 1; G.nextDay(S, false); return true; }
+  if (S.day === 0 && !S.grid.some(c => c) && !(S.spots || []).length) { S.day = rd - 1; S.born = rd - 1; G.nextDay(S, false); return true; }
   let n = rd - S.day; const away = n; if (n > 60) { S.day = rd - 60; n = 60; }
   const before = S.grid.filter(c => c && !c.treille).length;
   for (let k = 1; k <= n; k++) { G.neglect(S, k); G.nextDay(S, false); }

@@ -44,8 +44,8 @@ function branches(g){
 const LM = () => rng() > .5 ? mat.crownA : mat.crownB;
 function hash3(x,y,z){ const q = Math.sin(x*127.1 + y*311.7 + z*74.7)*43758.5453; return q - Math.floor(q); }
 function jitter(g, amt){ const p = g.attributes.position; for(let i=0;i<p.count;i++){ const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 1 + (hash3(Math.round(x*100)/100, Math.round(y*100)/100, Math.round(z*100)/100) - .5)*2*amt; p.setXYZ(i, x*k, y*k, z*k); } g.computeVertexNormals(); return g; }
-function blob(r, detail){ const g = jitter(new T.IcosahedronGeometry(r, detail || 1), .13), p = g.attributes.position, col = new Float32Array(p.count*3);
-  for(let i=0;i<p.count;i++){ let y = p.getY(i); if(y < -.45*r){ p.setY(i, y*.7); y = p.getY(i); } const t = Math.min(1, Math.max(0, (y/r + 1)/2)), sh = .7 + .36*t; col[i*3] = col[i*3+1] = col[i*3+2] = sh; }
+function blob(r, detail){ const g = jitter(new T.IcosahedronGeometry(r, (detail || 1) + (r >= .4 ? 1 : 0)), r >= .4 ? .17 : .13), p = g.attributes.position, col = new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){ let y = p.getY(i); if(y < -.45*r){ p.setY(i, y*.7); y = p.getY(i); } const t = Math.min(1, Math.max(0, (y/r + 1)/2)), sh = (.62 + .5*t) * (.9 + .2*hash3(Math.round(p.getX(i)*50)/50, Math.round(p.getY(i)*50)/50, Math.round(p.getZ(i)*50)/50)); col[i*3] = col[i*3+1] = col[i*3+2] = sh; }
   g.setAttribute('color', new T.BufferAttribute(col,3)); return g; }
 const rockGeo = r => jitter(new T.DodecahedronGeometry(r,0), .2);
 function GG(){ const g = new T.Group(), body = new T.Group(); g.add(body); return [g, body]; }

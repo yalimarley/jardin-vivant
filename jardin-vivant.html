@@ -43,7 +43,7 @@ svg{display:block}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600;color:var(--ink)}
 .chip i{width:9px;height:9px;border-radius:50%;background:var(--leaf-2);display:block}
 .gauges{display:flex;gap:10px;flex-wrap:wrap}
-.gclick{cursor:pointer}.faunalist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.fa{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-size:.85rem}.fa.off{opacity:.6;border-style:dashed}.fa em{color:var(--muted,#777);font-size:.75rem}
+.gclick{cursor:pointer}.scrow{margin:0 0 12px}.scrow .row{display:flex;justify-content:space-between}.faunalist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.fa{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-size:.85rem}.fa.off{opacity:.6;border-style:dashed}.fa em{color:var(--muted,#777);font-size:.75rem}
 .gauge{min-width:128px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px;box-shadow:var(--shadow)}
 .gauge .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .gauge span{font-size:12px;color:var(--ink-2);font-weight:600}
@@ -2089,6 +2089,21 @@ function make(P) {
     return all;
   }
 
+  // ----- scores du jardin (classement) : biodiversité, récolte, esthétique, chacun sur 100 -----
+  const SC_KCAL = 60000; // kcal produites sur 30 jours pour 100 points
+  function scores(s) {
+    const st = stats(s), f = s.grid.filter(Boolean), pl = f.filter(c => !c.treille && P[c.pid]);
+    const nF = Object.keys(s.fauna || {}).length;
+    const bio = clamp(st.biodiv * .7 + nF / FAUNA.length * 100 * .3, 0, 100);
+    const kcal30 = (s.prod || []).filter(e => s.day - e.day <= 30).reduce((a, e) => a + e.kcal, 0);
+    const rec = clamp(kcal30 / SC_KCAL * 100, 0, 100);
+    const fl = new Set(pl.filter(c => P[c.pid].tags.includes('mellifere')).map(c => c.pid)).size, colr = new Set(pl.map(c => P[c.pid].col)).size;
+    const furn = new Set(f.filter(c => c.treille && c.furn).map(c => c.furn)).size + pl.filter(c => c.nichoir).length * .5 + Math.min(4, pl.filter(c => c.mulch).length * .25);
+    const fam = (s.family || []), joy = fam.length ? fam.reduce((a, m) => a + m.joy, 0) / fam.length : 0;
+    const esth = clamp(joy * .3 + Math.min(1, furn / 14) * 25 + Math.min(1, fl / 25) * 20 + Math.min(1, colr / 20) * 10 + Math.min(1, new Set(pl.map(c => P[c.pid].strate)).size / 5) * 5 + Math.min(1, (s.spots || []).length / 12) * 10, 0, 100);
+    const r = v => Math.round(v);
+    return { bio: r(bio), rec: r(rec), esth: r(esth), total: r((bio + rec + esth) / 3), kcal30: Math.round(kcal30), parts: { joy: r(joy), furn: Math.round(furn * 10) / 10, fleurs: fl } };
+  }
   // ----- indicateurs -----
   function stats(s) {
     const cs = s.grid.map((c, i) => ({ c, i })).filter(o => o.c && !o.c.treille);
@@ -2497,7 +2512,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -2756,6 +2771,7 @@ function renderTop() {
   const g = (n, v, t, cls) => '<div class="gauge" title="' + t + '"><div class="row"><span>' + n + '</span><strong>' + v + '</strong></div><div class="bar ' + (cls || '') + '"><i style="width:' + clamp(parseFloat(String(v).replace(',', '.')), 0, 100) + '%"></i></div></div>';
   $('gauges').innerHTML = g('Autonomie', fmt(st.autonomy) + ' %', 'Part de ce qu’une forêt comestible peut couvrir (le quart des besoins : fruits, légumes, aromatiques). Base ' + st.aParts.base + ' % (récolte réelle sur 90 jours ' + st.aParts.prod + ' %, potentiel de la forêt ' + st.aParts.pot + ' %), multipliée par le bonus de tes guildes : +' + st.aParts.boost + ' % (' + st.guildsAuto + ' autonome(s) sur ' + st.guildsN + ' guilde(s)).') +
     '<div role="button" tabindex="0" data-act="fauna" class="gclick">' + g('Biodiversité', st.biodiv + ' %', 'Espèces différentes, strates présentes, plantes qui nourrissent les pollinisateurs. Touche pour voir la faune de ton jardin.') + '</div>' +
+    '<div role="button" tabindex="0" data-act="scores" class="gclick">' + g('Jardin ★', G.scores(S).total + ' / 100', 'Moyenne de tes trois scores : biodiversité, récolte, esthétique. Touche pour le détail.') + '</div>' +
     g('Sol vivant', st.soil + ' %', 'Couvre-sols, légumineuses, paillage et compost améliorent le sol, et donc la croissance.');
 }
 const HAIR = ['#6b3f22', '#2b2018', '#d9a441', '#8a4b22'], SKIN = ['#f1c9a0', '#e3b184', '#f6d3b0', '#f1c9a0'];
@@ -3463,6 +3479,14 @@ function openSpot(id) {
   if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
   modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }
+function openScores() {
+  const sc = G.scores(S), bar = (n, v, d) => '<div class="scrow"><div class="row"><b>' + n + '</b><strong>' + v + ' / 100</strong></div><div class="bar"><i style="width:' + v + '%"></i></div><p class="note-p">' + d + '</p></div>';
+  modal('Mon jardin ★ ' + sc.total + ' / 100',
+    bar('Biodiversité', sc.bio, 'Variété des espèces, strates, habitats et animaux découverts (' + Object.keys(S.fauna || {}).length + ' / ' + G.FAUNA.length + ').') +
+    bar('Récolte', sc.rec, 'Ce que ton jardin a produit sur les 30 derniers jours (' + (sc.kcal30 >= 1000 ? Math.round(sc.kcal30 / 1000) + ' 000' : sc.kcal30) + ' kcal). Le score suit ton activité récente, pas ton ancienneté.') +
+    bar('Esthétique', sc.esth, 'Bonheur de la famille (' + sc.parts.joy + ' %), aménagements, fleurs différentes (' + sc.parts.fleurs + '), couleurs, strates et nombre de parcelles.') +
+    '<p class="note-p">Plus tard, ces trois scores serviront au classement des jardins.</p>', true);
+}
 function openFauna() {
   const seen = S.fauna || {}, n = Object.keys(seen).length;
   let h = '<p class="note-p"><b>' + n + ' / ' + G.FAUNA.length + '</b> visiteurs découverts. Les pollinisateurs augmentent les récoltes, les prédateurs réduisent limaces et maladies. Chaque habitat (mare, hôtel à insectes, bois mort, tas de pierres, prairie fleurie, nichoir) attire de nouveaux animaux.</p><div class="faunalist">';
@@ -3941,6 +3965,7 @@ document.addEventListener('click', e => {
     case 'guil-claim': { const r = G.claimQuest(S, a.dataset.id); if (r.ok) { toast('Bonus de Guildéon : ' + r.label + '.'); ui.gUntil = 0; render(); } break; }
     case 'tool-reloc': ui.tool = ui.tool === 'reloc' ? 'select' : 'reloc'; ui.mode = null; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'fauna': openFauna(); break;
+    case 'scores': openScores(); break;
     case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
     case 'spade-menu': openSpade(); break;
     case 'hedge-rot': rotSpot(ui.hedgeSel, +a.dataset.d * Math.PI / 180, true); break;

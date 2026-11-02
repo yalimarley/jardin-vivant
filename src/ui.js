@@ -248,6 +248,7 @@ function renderTop() {
   const g = (n, v, t, cls) => '<div class="gauge" title="' + t + '"><div class="row"><span>' + n + '</span><strong>' + v + '</strong></div><div class="bar ' + (cls || '') + '"><i style="width:' + clamp(parseFloat(String(v).replace(',', '.')), 0, 100) + '%"></i></div></div>';
   $('gauges').innerHTML = g('Autonomie', fmt(st.autonomy) + ' %', 'Part de ce qu’une forêt comestible peut couvrir (le quart des besoins : fruits, légumes, aromatiques). Base ' + st.aParts.base + ' % (récolte réelle sur 90 jours ' + st.aParts.prod + ' %, potentiel de la forêt ' + st.aParts.pot + ' %), multipliée par le bonus de tes guildes : +' + st.aParts.boost + ' % (' + st.guildsAuto + ' autonome(s) sur ' + st.guildsN + ' guilde(s)).') +
     '<div role="button" tabindex="0" data-act="fauna" class="gclick">' + g('Biodiversité', st.biodiv + ' %', 'Espèces différentes, strates présentes, plantes qui nourrissent les pollinisateurs. Touche pour voir la faune de ton jardin.') + '</div>' +
+    '<div role="button" tabindex="0" data-act="scores" class="gclick">' + g('Jardin ★', G.scores(S).total + ' / 100', 'Moyenne de tes trois scores : biodiversité, récolte, esthétique. Touche pour le détail.') + '</div>' +
     g('Sol vivant', st.soil + ' %', 'Couvre-sols, légumineuses, paillage et compost améliorent le sol, et donc la croissance.');
 }
 const HAIR = ['#6b3f22', '#2b2018', '#d9a441', '#8a4b22'], SKIN = ['#f1c9a0', '#e3b184', '#f6d3b0', '#f1c9a0'];
@@ -955,6 +956,14 @@ function openSpot(id) {
   if (nFree) h += '<h3 class="gh">Ajouter une plante</h3>' + (ids.length ? '<div class="gcards">' + ids.map(id => '<div class="cpick' + (ck[id].ok ? '' : ' off') + (need.has(P[id].strate) ? ' want' : '') + '" title="' + (ck[id].ok ? '' : ck[id].msg.replace(/"/g, '')) + '" role="button" tabindex="0" data-act="spot-plant" data-pid="' + id + '" data-sp="' + sp.id + '">' + cardHtml(P[id], { count: S.cards[id] }) + '</div>').join('') + '</div><p class="note-p">Touche une carte de ta réserve : elle est plantée à l’emplacement de sa strate. Cerclées de vert : elles comblent une strate manquante. Grisées : pas plantables maintenant (touche-les pour savoir pourquoi).</p>' : '<p class="note-p">Tu n’as aucune carte en réserve : ouvre un booster pour en gagner.</p>');
   modal(nm + ' · ' + filled.length + '/' + sp.cells.length, h, true);
 }
+function openScores() {
+  const sc = G.scores(S), bar = (n, v, d) => '<div class="scrow"><div class="row"><b>' + n + '</b><strong>' + v + ' / 100</strong></div><div class="bar"><i style="width:' + v + '%"></i></div><p class="note-p">' + d + '</p></div>';
+  modal('Mon jardin ★ ' + sc.total + ' / 100',
+    bar('Biodiversité', sc.bio, 'Variété des espèces, strates, habitats et animaux découverts (' + Object.keys(S.fauna || {}).length + ' / ' + G.FAUNA.length + ').') +
+    bar('Récolte', sc.rec, 'Ce que ton jardin a produit sur les 30 derniers jours (' + (sc.kcal30 >= 1000 ? Math.round(sc.kcal30 / 1000) + ' 000' : sc.kcal30) + ' kcal). Le score suit ton activité récente, pas ton ancienneté.') +
+    bar('Esthétique', sc.esth, 'Bonheur de la famille (' + sc.parts.joy + ' %), aménagements, fleurs différentes (' + sc.parts.fleurs + '), couleurs, strates et nombre de parcelles.') +
+    '<p class="note-p">Plus tard, ces trois scores serviront au classement des jardins.</p>', true);
+}
 function openFauna() {
   const seen = S.fauna || {}, n = Object.keys(seen).length;
   let h = '<p class="note-p"><b>' + n + ' / ' + G.FAUNA.length + '</b> visiteurs découverts. Les pollinisateurs augmentent les récoltes, les prédateurs réduisent limaces et maladies. Chaque habitat (mare, hôtel à insectes, bois mort, tas de pierres, prairie fleurie, nichoir) attire de nouveaux animaux.</p><div class="faunalist">';
@@ -1433,6 +1442,7 @@ document.addEventListener('click', e => {
     case 'guil-claim': { const r = G.claimQuest(S, a.dataset.id); if (r.ok) { toast('Bonus de Guildéon : ' + r.label + '.'); ui.gUntil = 0; render(); } break; }
     case 'tool-reloc': ui.tool = ui.tool === 'reloc' ? 'select' : 'reloc'; ui.mode = null; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'fauna': openFauna(); break;
+    case 'scores': openScores(); break;
     case 'tool-spade': if (ui.tool === 'spade') { ui.tool = 'select'; ui.spade = null; render(); } else { ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); } break;
     case 'spade-menu': openSpade(); break;
     case 'hedge-rot': rotSpot(ui.hedgeSel, +a.dataset.d * Math.PI / 180, true); break;

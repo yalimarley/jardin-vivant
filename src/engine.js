@@ -655,6 +655,21 @@ function make(P) {
     return all;
   }
 
+  // ----- scores du jardin (classement) : biodiversité, récolte, esthétique, chacun sur 100 -----
+  const SC_KCAL = 60000; // kcal produites sur 30 jours pour 100 points
+  function scores(s) {
+    const st = stats(s), f = s.grid.filter(Boolean), pl = f.filter(c => !c.treille && P[c.pid]);
+    const nF = Object.keys(s.fauna || {}).length;
+    const bio = clamp(st.biodiv * .7 + nF / FAUNA.length * 100 * .3, 0, 100);
+    const kcal30 = (s.prod || []).filter(e => s.day - e.day <= 30).reduce((a, e) => a + e.kcal, 0);
+    const rec = clamp(kcal30 / SC_KCAL * 100, 0, 100);
+    const fl = new Set(pl.filter(c => P[c.pid].tags.includes('mellifere')).map(c => c.pid)).size, colr = new Set(pl.map(c => P[c.pid].col)).size;
+    const furn = new Set(f.filter(c => c.treille && c.furn).map(c => c.furn)).size + pl.filter(c => c.nichoir).length * .5 + Math.min(4, pl.filter(c => c.mulch).length * .25);
+    const fam = (s.family || []), joy = fam.length ? fam.reduce((a, m) => a + m.joy, 0) / fam.length : 0;
+    const esth = clamp(joy * .3 + Math.min(1, furn / 14) * 25 + Math.min(1, fl / 25) * 20 + Math.min(1, colr / 20) * 10 + Math.min(1, new Set(pl.map(c => P[c.pid].strate)).size / 5) * 5 + Math.min(1, (s.spots || []).length / 12) * 10, 0, 100);
+    const r = v => Math.round(v);
+    return { bio: r(bio), rec: r(rec), esth: r(esth), total: r((bio + rec + esth) / 3), kcal30: Math.round(kcal30), parts: { joy: r(joy), furn: Math.round(furn * 10) / 10, fleurs: fl } };
+  }
   // ----- indicateurs -----
   function stats(s) {
     const cs = s.grid.map((c, i) => ({ c, i })).filter(o => o.c && !o.c.treille);
@@ -1063,7 +1078,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, useVoile, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, protectFrost, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

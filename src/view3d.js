@@ -341,6 +341,17 @@ function furn(k, cell) {
     for (let i = 0; i < 26; i++) { const a = i * 2.4, rr = .15 + (i % 7) * .12, h = .45 + rng() * .5, x = Math.cos(a) * rr, z = Math.sin(a) * rr; g.add(mesh(geo.cyl(.012, .016, h, 3), mat.leafA, x, h / 2, z, false)); const f = mesh(geo.ico(.07 + rng() * .03, 0), L(cols[i % 5]), x, h, z, false); g.add(f); }
     g.userData.bees = true;
   }
+  else if (k === 'banc') {
+    [-.6, .6].forEach(x => { B(.08, .4, .5, mat.wood, x, .2, 0); B(.07, .5, .07, mat.wood, x, .65, -.22); });
+    B(1.5, .07, .5, L(0xb98a4c), 0, .43, 0); B(1.5, .06, .1, L(0xb98a4c), 0, .72, -.22); B(1.5, .06, .1, L(0xb98a4c), 0, .58, -.22);
+    const cu = mesh(geo.ico(.16, 0), L(0xe8745a), -.35, .55, .05); cu.scale.set(1.3, .7, 1); g.add(cu);
+  }
+  else if (k === 'mangeoire') {
+    B(.07, 1.15, .07, mat.wood, 0, .58, 0); B(.62, .05, .5, L(0xb98a4c), 0, 1.17, 0);
+    [-1, 1].forEach(s => B(.04, .26, .5, L(0xa77d4e), s * .28, 1.3, 0)); const rf = mesh(new T.ConeGeometry(.5, .28, 4), mat.roof, 0, 1.55, 0); rf.rotation.y = Math.PI / 4; rf.scale.set(1.1, 1, .85); g.add(rf);
+    for (let i = 0; i < 9; i++) { const sd = mesh(geo.ico(.018, 0), L(i % 2 ? 0xd8b24a : 0x8a6a3a), (i % 3 - 1) * .12, 1.21, (Math.floor(i / 3) - 1) * .1, false); g.add(sd); }
+    const bw = mesh(geo.cyl(.1, .08, .04, 8), L(0x7aa0b8), .62, .85, 0, false); g.add(bw); B(.03, .85, .03, mat.wood, .62, .42, 0);
+  }
   else if (k === 'hotel') {
     [-.55, .55].forEach(x => B(.09, .5, .09, mat.wood, x, .25, 0)); B(1.3, 1.15, .4, L(0xa77d4e), 0, 1.07, 0);
     const cl = [0xe8c36a, 0x6b4a2e, 0xc98a5a, 0xd9b88a, 0x8a9a4a];
@@ -954,7 +965,7 @@ function sync() {
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
   syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
-  { const fl = []; S.grid.forEach((c, i) => { if (c && c.furn && ['mare', 'boismort', 'pierres', 'hotel'].indexOf(c.furn) >= 0) fl.push({ k: c.furn, i }); }); deco.furn = fl; deco.seen = S.fauna || {}; }
+  { const fl = []; S.grid.forEach((c, i) => { if (c && c.furn && ['mare', 'boismort', 'pierres', 'hotel', 'mangeoire'].indexOf(c.furn) >= 0) fl.push({ k: c.furn, i }); }); deco.furn = fl; deco.seen = S.fauna || {}; deco.feed = S.feed || 0; }
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
 }
@@ -966,16 +977,18 @@ function mkCritter(kind) {
   const g = new T.Group(), M = c => new T.MeshLambertMaterial({ color: c });
   if (kind === 'mare') { const b = new T.Mesh(geo.ico(.09, 0), M(0x5f9e3d)); b.scale.set(1, .6, 1.3); g.add(b); [-.045, .045].forEach(x => { const e = new T.Mesh(geo.ico(.025, 0), M(0xe8e070)); e.position.set(x, .06, .09); g.add(e); }); }
   else if (kind === 'boismort') { const b = new T.Mesh(geo.ico(.15, 0), M(0x6b4a2f)); b.scale.set(1, .75, 1.35); b.position.y = .1; g.add(b); const n = new T.Mesh(geo.ico(.06, 0), M(0xd8b48a)); n.position.set(0, .07, .2); g.add(n); const sp = new T.Mesh(geo.ico(.13, 0), M(0x3b2a1c)); sp.scale.set(1, .6, 1.1); sp.position.set(0, .15, -.03); g.add(sp); }
+  else if (kind === 'mangeoire') { const b = new T.Mesh(geo.ico(.06, 0), M(0x4f8fc0)); b.scale.set(1, .9, 1.35); b.position.y = .06; g.add(b); const bl = new T.Mesh(geo.ico(.045, 0), M(0xf2d34a)); bl.position.set(0, .035, .015); bl.scale.set(1, .8, 1.2); g.add(bl); const bk = new T.Mesh(geo.cone(.016, .05, 4), M(0x2a2a2a)); bk.rotation.x = Math.PI / 2; bk.position.set(0, .075, .1); g.add(bk); const tl = new T.Mesh(geo.box(.03, .01, .08), M(0x35597a)); tl.position.set(0, .06, -.11); g.add(tl); }
   else if (kind === 'pierres') { const b = new T.Mesh(geo.box(.07, .025, .22), M(0x7a8a4a)); b.position.y = .03; g.add(b); const h = new T.Mesh(geo.ico(.04, 0), M(0x8a9a55)); h.position.set(0, .035, .13); g.add(h); const tl = new T.Mesh(geo.box(.025, .015, .2), M(0x7a8a4a)); tl.position.set(0, .025, -.2); g.add(tl); }
   else { const b = new T.Mesh(geo.ico(.035, 0), M(0xd8352a)); b.scale.set(1, .7, 1.1); g.add(b); const d = new T.Mesh(geo.ico(.015, 0), M(0x222222)); d.position.set(0, .03, 0); g.add(d); }
   gFauna.add(g); return { g, kind, ph: Math.random() * 6.28, st: 0 };
 }
 function critters(t, dt) {
   const fl = deco.furn || [], seen = deco.seen || {}, sig = fl.map(f => f.k + f.i).join();
-  if (crit.sig !== sig) { crit.forEach(c => gFauna.remove(c.g)); crit.length = 0; crit.sig = sig; fl.forEach(f => { if (f.k === 'hotel') { for (let n = 0; n < 2; n++) { const c = mkCritter('hotel'); c.f = f; c.n = n; crit.push(c); } } else { const c = mkCritter(f.k); c.f = f; crit.push(c); } }); }
+  if (crit.sig !== sig) { crit.forEach(c => gFauna.remove(c.g)); crit.length = 0; crit.sig = sig; fl.forEach(f => { if (f.k === 'mangeoire') { for (let n = 0; n < 3; n++) { const c = mkCritter('mangeoire'); c.f = f; c.n = n; crit.push(c); } } else if (f.k === 'hotel') { for (let n = 0; n < 2; n++) { const c = mkCritter('hotel'); c.f = f; c.n = n; crit.push(c); } } else { const c = mkCritter(f.k); c.f = f; crit.push(c); } }); }
   const warm = season === 'spring' || season === 'summer' || season === 'autumn', night = hour < 7 || hour > 18.5;
   crit.forEach(c => {
     const need = { mare: 'grenouille', boismort: 'herisson', pierres: 'lezard', hotel: 'coccinelle' }[c.kind];
+    if (c.kind === 'mangeoire') { const vis2 = (deco.feed || 0) > 0 && !rainOn && !night && (c.n === 0 || (deco.feed || 0) > 0); c.g.visible = vis2; if (!vis2) return; const q2 = cellXZ(c.f.i), a2 = c.n * 2.1 + Math.floor(t / 4 + c.ph) * 1.3, hop = Math.max(0, Math.sin(t * 5 + c.ph * 3)), onFeeder = (Math.floor(t / 5 + c.n) % 3) === 0; const x2 = q2[0] + Math.cos(a2) * (onFeeder ? .06 : .75), z2 = q2[1] + Math.sin(a2) * (onFeeder ? .06 : .75), y2 = onFeeder ? 1.24 : .02 + hop * .06; c.g.rotation.y = Math.atan2(x2 - c.g.position.x, z2 - c.g.position.z); c.g.position.x += (x2 - c.g.position.x) * Math.min(1, dt * 6); c.g.position.z += (z2 - c.g.position.z) * Math.min(1, dt * 6); c.g.position.y = y2; return; }
     const vis = !!seen[need] && !rainOn && (c.kind === 'boismort' ? warm : c.kind === 'pierres' ? (warm && !night && hour > 9) : c.kind === 'hotel' ? (warm && !night) : (season !== 'winter')); c.g.visible = vis; if (!vis) return;
     const q = cellXZ(c.f.i), r = c.kind === 'hotel' ? .35 : c.kind === 'mare' ? 1.05 : .9, p = t * (c.kind === 'boismort' ? .25 : .5) + c.ph + (c.n || 0) * 3;
     let x = q[0] + Math.cos(p) * r, z = q[1] + Math.sin(p) * r, y = .02;

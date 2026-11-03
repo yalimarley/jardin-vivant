@@ -237,6 +237,8 @@ const MATS = {
   plan: { n: 'Plan de guilde', d: 'Te dit quoi planter autour d’un arbre.', svg: '<path d="M14 18h48v52H14z" fill="#f1e6c8" stroke="#b8a67e" stroke-width="2.4"/><path d="M62 18l6 6v52l-6-6z" fill="#d9c9a2"/><circle cx="38" cy="44" r="8" fill="#4f9a4a"/><g fill="none" stroke="#6f9a52" stroke-width="2.4" stroke-dasharray="3 3"><circle cx="38" cy="44" r="17"/></g><g fill="#e0603a"><circle cx="38" cy="25" r="3"/><circle cx="55" cy="44" r="3"/></g><g fill="#f0b23a"><circle cx="21" cy="44" r="3"/><circle cx="38" cy="63" r="3"/></g>' },
   mycor: { n: 'Inoculum de mycorhizes', d: 'Un arbre ou arbuste pousse plus vite 2 mois.', svg: '<ellipse cx="40" cy="70" rx="28" ry="5" fill="#6a4e39"/><g stroke="#f4efe0" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M14 70q10-10 20-4t22-6 14-4M26 66q-4-8 0-14M50 62q6-8 2-16"/></g><path d="M40 62V44" stroke="#efe5c6" stroke-width="6" stroke-linecap="round"/><path d="M26 44a14 11 0 0 1 28 0z" fill="#c8553a"/><circle cx="34" cy="38" r="2.2" fill="#fff"/><circle cx="44" cy="35" r="2.6" fill="#fff"/><circle cx="48" cy="41" r="1.8" fill="#fff"/>' },
   savoir: { n: 'Savoir', d: 'Apprends une plante de saison.', svg: '<path d="M10 22c10-4 22-4 30 2v44c-8-6-20-6-30-2z" fill="#f1e6c8" stroke="#b8a67e" stroke-width="2"/><path d="M70 22c-10-4-22-4-30 2v44c8-6 20-6 30-2z" fill="#f7efd6" stroke="#b8a67e" stroke-width="2"/><g stroke="#b8a67e" stroke-width="1.8" stroke-linecap="round"><path d="M16 32c6-1 12-1 18 2M16 42c6-1 12-1 18 2M46 34c6-3 12-3 18-2M46 44c6-3 12-3 18-2"/></g><path d="M40 20c-6-6-4-12 2-14 2 6 0 10-2 14z" fill="#4f9a4a"/>' },
+  banc: { n: 'Banc', d: 'Un coin pour s’asseoir et observer le jardin.', svg: '<ellipse cx="40" cy="70" rx="30" ry="5" fill="#000" opacity=".14"/><path d="M16 70V44M64 70V44" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><rect x="12" y="40" width="56" height="7" rx="2" fill="#b98a4c"/><rect x="12" y="26" width="56" height="5" rx="2" fill="#b98a4c"/><rect x="12" y="33" width="56" height="5" rx="2" fill="#b98a4c"/>' },
+  mangeoire: { n: 'Mangeoire à oiseaux', d: 'Remplis-la de graines : mésanges et rouges-gorges viennent.', svg: '<ellipse cx="40" cy="72" rx="22" ry="5" fill="#000" opacity=".14"/><path d="M40 72V40" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><rect x="18" y="36" width="44" height="6" rx="2" fill="#b98a4c"/><path d="M20 36V22h40v14" fill="#d9b88a" stroke="#8a6240" stroke-width="2.4"/><path d="M14 24l26-16 26 16z" fill="#b5503c" stroke="#7a3322" stroke-width="2.4" stroke-linejoin="round"/><circle cx="32" cy="33" r="2.2" fill="#d8b24a"/><circle cx="40" cy="34" r="2.2" fill="#8a6a3a"/><circle cx="48" cy="33" r="2.2" fill="#d8b24a"/>' },
   boismort: { n: 'Tas de bois mort', d: 'Abri pour hérissons, insectes et champignons.', svg: '<ellipse cx="40" cy="68" rx="30" ry="6" fill="#000" opacity=".15"/><g stroke="#4a3322" stroke-width="2"><rect x="10" y="52" width="60" height="12" rx="6" fill="#8a6240"/><rect x="14" y="40" width="50" height="12" rx="6" fill="#9a7048"/><rect x="22" y="28" width="38" height="12" rx="6" fill="#7a5636"/></g><circle cx="14" cy="58" r="3.5" fill="#d9b88a"/><circle cx="19" cy="46" r="3.5" fill="#d9b88a"/><circle cx="26" cy="34" r="3.5" fill="#d9b88a"/>' },
   pierres: { n: 'Tas de pierres', d: 'Refuge pour lézards, orvets et insectes.', svg: '<ellipse cx="40" cy="68" rx="30" ry="6" fill="#000" opacity=".15"/><path d="M10 64l8-16 14-4 8-10 14 6 10 8 8 16z" fill="#9aa09a" stroke="#6f756f" stroke-width="2.4" stroke-linejoin="round"/><path d="M26 64l6-12 10-2 8 14z" fill="#b4b9b2" stroke="#6f756f" stroke-width="2"/>' },
   prairie: { n: 'Prairie fleurie', d: 'Un coin de fleurs sauvages : abeilles et papillons.', svg: '<ellipse cx="40" cy="68" rx="30" ry="7" fill="#7aa857"/><g stroke="#4f7a3c" stroke-width="2.4" stroke-linecap="round"><path d="M18 66V42M30 68V34M42 66V40M54 68V30M64 66V46"/></g><circle cx="18" cy="40" r="5" fill="#e8745a"/><circle cx="30" cy="32" r="5" fill="#f6c24b"/><circle cx="42" cy="38" r="5" fill="#9b6fd0"/><circle cx="54" cy="28" r="5" fill="#f4f0e4"/><circle cx="64" cy="44" r="5" fill="#e8745a"/>' },
@@ -275,7 +277,7 @@ function familyHtml() {
     return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + face(k, m.joy, 46) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + t + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
 }
 function openFamily() { modal('La famille', familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
-function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('prairie') + mat('hotel') + mat('boismort') + mat('pierres') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
+function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('prairie') + mat('hotel') + mat('banc') + mat('mangeoire') + mat('boismort') + mat('pierres') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
 function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
@@ -380,10 +382,12 @@ const FURN_INFO = {
   pierres: { n: 'Tas de pierres', d: 'Un refuge pour lézards, orvets et insectes du sol. Augmente la biodiversité.' },
   prairie: { n: 'Prairie fleurie', d: 'Un coin laissé aux fleurs sauvages : abeilles et papillons y viennent. Augmente la biodiversité.' },
   hotel: { n: 'Hôtel à insectes', d: 'Abeilles solitaires, coccinelles et perce-oreilles y nichent. Augmente la biodiversité.' },
+  banc: { n: 'Banc', d: 'Un banc pour souffler et regarder les animaux passer. Prendre un moment au jardin y est plus reposant, et ça compte pour l’esthétique.' },
+  mangeoire: { n: 'Mangeoire à oiseaux', d: 'Remplis-la tous les trois jours : les oiseaux viennent et se laissent observer.' },
   hamac: { n: 'Hamac', d: 'Un coin de repos entre deux poteaux. Tant qu’il est posé à côté d’au moins 3 plantes en bonne santé, la famille est plus heureuse (+10 de bonheur visé). Un jardin qu’on a envie d’habiter.' },
   ruche: { n: 'Ruche', d: 'Les abeilles pollinisent les fleurs voisines : plus de fruits pour les vivaces et les plantes gourmandes proches. Compte aussi dans la biodiversité.' }
 };
-const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel'];
+const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel', 'banc', 'mangeoire'];
 const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer. Les cercles orange marquent les plantes encore sans sentier.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
 const INSTANT = ['atelier', 'poulailler', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
 const dia = (cx, cy, k) => [(cx).toFixed(1) + ',' + (cy - TH * k).toFixed(1), (cx + TW * k).toFixed(1) + ',' + cy.toFixed(1), (cx).toFixed(1) + ',' + (cy + TH * k).toFixed(1), (cx - TW * k).toFixed(1) + ',' + cy.toFixed(1)];
@@ -438,6 +442,16 @@ function furnTile(k, cx, cy, m, seed, cell) {
   if (k === 'prairie') {
     s += poly(dia(cx, cy + 4, .98), '#7aa857') + poly(dia(cx, cy + 3, .9), '#8fbb62');
     const R2 = rnd(cx * 7 + cy * 13); for (let n = 0; n < 16; n++) { const x = cx - 36 + R2() * 72, y = cy - 6 + R2() * 20, h = 14 + R2() * 18, col = ['#e8745a', '#f6c24b', '#9b6fd0', '#f4f0e4', '#e86fa0'][n % 5]; s += '<path d="M' + x.toFixed(1) + ' ' + y.toFixed(1) + 'v-' + h.toFixed(1) + '" stroke="#4f7a3c" stroke-width="2" stroke-linecap="round"/><circle cx="' + x.toFixed(1) + '" cy="' + (y - h).toFixed(1) + '" r="4.2" fill="' + col + '"/>'; }
+    return s;
+  }
+  if (k === 'banc') {
+    s += poly(dia(cx, cy + 4, .98), '#7d9a52') + poly(dia(cx, cy + 3, .9), '#8fae5f');
+    s += '<path d="M' + (cx - 24) + ' ' + (cy + 6) + 'V' + (cy - 8) + 'M' + (cx + 24) + ' ' + (cy + 6) + 'V' + (cy - 8) + '" stroke="#8a6240" stroke-width="4.5" stroke-linecap="round"/><rect x="' + (cx - 32) + '" y="' + (cy - 12) + '" width="64" height="7" rx="2" fill="#b98a4c"/><rect x="' + (cx - 32) + '" y="' + (cy - 30) + '" width="64" height="5" rx="2" fill="#b98a4c"/><rect x="' + (cx - 32) + '" y="' + (cy - 22) + '" width="64" height="5" rx="2" fill="#b98a4c"/>';
+    return s;
+  }
+  if (k === 'mangeoire') {
+    s += poly(dia(cx, cy + 4, .98), '#7d9a52') + poly(dia(cx, cy + 3, .9), '#8fae5f');
+    s += '<path d="M' + cx + ' ' + (cy + 6) + 'V' + (cy - 30) + '" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><rect x="' + (cx - 22) + '" y="' + (cy - 34) + '" width="44" height="6" rx="2" fill="#b98a4c"/><path d="M' + (cx - 20) + ' ' + (cy - 34) + 'V' + (cy - 48) + 'h40v14" fill="#d9b88a" stroke="#8a6240" stroke-width="2.4"/><path d="M' + (cx - 26) + ' ' + (cy - 46) + 'l26-16 26 16z" fill="#b5503c" stroke="#7a3322" stroke-width="2.4" stroke-linejoin="round"/>';
     return s;
   }
   if (k === 'hotel') {
@@ -790,7 +804,7 @@ function renderGarden() {
     if (ui.strF && ui.strF !== p.strate) return;
     const L = []; if (cell.water < 60) L.push(['water', cell.water < 30 ? 1 : 0]); if (cell.sick) L.push([cell.sick.k, 1]); if (cell.ready) L.push(['harvest', 0]); if (G.needsPrune(S, cell)) L.push(['prune', 0]); if (setM.has(i)) L.push(['mulch', 0]); if (setC.has(i)) L.push(['compost', 0]); L.splice(4);
     L.forEach(([kd, urg], k) => { h += badge(kd, cx + (L.length === 1 ? 0 : (k % 2 ? 15 : -15)), cy - tall - Math.floor(k / 2) * 25, urg, i, k); }); });
-  S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } if (cell && cell.furn === 'prairie' && G.flReady(S, i)) { const [cx, cy] = centers[i]; h += badge('fleurs', cx, cy - 50, 1, i, 0); } });
+  S.grid.forEach((cell, i) => { if (cell && cell.furn === 'ruche' && G.honeyReady(S, i)) { const [cx, cy] = centers[i]; h += badge('honey', cx, cy - 58, 1, i, 0); } if (cell && cell.furn === 'prairie' && centers[i] && G.flReady(S, i)) { const [cx, cy] = centers[i]; h += badge('fleurs', cx, cy - 50, 1, i, 0); } });
   h += '</g>';
   LAWNS.forEach(([x, y], k) => { if (G.lawnReady(S, k)) { const q = wpos(x, y - 36); h += worldBadge('lawn', q[0].toFixed(1), q[1].toFixed(1), k); } });
   TREES.forEach(([x, y, sc], k) => { if (G.treeReady(S, k)) { const q = wpos(x, y - 92 * sc); h += worldBadge('trogne', q[0].toFixed(1), q[1].toFixed(1), k); } });
@@ -930,7 +944,7 @@ function spadeTap(x, z, a, bounds) {
 function rotSpot(id, da, fin) { const sp = (S.spots || []).find(o => o.id === id); if (!sp) return; sp.a = (sp.a || 0) + da; if (fin) { save(); render(); } else if (window.V3D && V3D.sync) V3D.sync(); }
 function furnTap(x, z, bounds) {
   if (!(ui.mode && ui.mode.type === 'mat' && FURNK.includes(ui.mode.k))) return false; const k = ui.mode.k;
-  const FR = { boismort: 1.1, pierres: 1.0, hotel: 1.0, prairie: 1.5, hamac: 1.7 }, r = G.addSpot(S, 'single', 1, x, z, 0, { f: 1, b: bounds, r: FR[k] }); if (!r.ok) { toast(r.msg); return true; }
+  const FR = { boismort: 1.1, pierres: 1.0, hotel: 1.0, prairie: 1.5, hamac: 1.7, banc: 1.2, mangeoire: .9 }, r = G.addSpot(S, 'single', 1, x, z, 0, { f: 1, b: bounds, r: FR[k] }); if (!r.ok) { toast(r.msg); return true; }
   const ci = r.spot.cells[0]; if (!G.placeFurn(S, ci, k)) { G.removeSpot(S, r.spot.id); toast('Impossible de poser cet aménagement ici.'); return true; }
   if (!(S.mats[k] > 0)) ui.mode = null; ui.sel = ci; save(); render(); return true;
 }
@@ -1050,6 +1064,116 @@ function cookAnim(r, pids) {
     + '<g class="ck-plate"><ellipse cx="150" cy="172" rx="38" ry="11" fill="#fff" stroke="#d8d2c4" stroke-width="2"/><ellipse cx="150" cy="172" rx="26" ry="7" fill="#f4efe6"/>' + food + '<path d="M118 150v26M114 150v10M122 150v10" stroke="#9aa3ab" stroke-width="2.2" stroke-linecap="round" fill="none" transform="translate(-14 0)"/><path d="M186 150v26" stroke="#9aa3ab" stroke-width="3" stroke-linecap="round" transform="translate(16 0)"/></g></svg>';
   window.__ckR = r; modal('En cuisine', '<div class="ck"><div class="ck-in">' + svg + '</div><p class="note-p" style="text-align:center">Le repas se prépare…</p><div class="acts" style="justify-content:center"><button type="button" class="btn sm" data-act="kskip">Passer</button></div></div>');
   const done = () => { if ($('layer') && $('layer').querySelector('.ck')) openKitchen(r); }; window.__ckT = setTimeout(done, window.__ckMs || 2800);
+}
+
+/* ---------- activités du jour : observation, détente, esthétique ---------- */
+const AN = { chevreuil: '🦌', sanglier: '🐗', renard: '🦊', belette: '🦦', herisson: '🦔', chouette: '🦉', chauve: '🦇', oiseaux: '🐦', mesange: '🐦', grenouille: '🐸', lezard: '🦎', orvet: '🐍', crapaud: '🐸', salamandre: '🦎', abeille: '🐝', bourdon: '🐝', solitaire: '🐝', papillon: '🦋', syrphe: '🪰', coccinelle: '🐞', carabe: '🪲', libellule: '🪰' };
+const anEmoji = id => AN[id] || '🐾';
+const FNAME = id => { const f = G.FAUNA.find(x => x.id === id); return f ? f.n : id; };
+const stars = q => { const n = q > .85 ? 3 : q > .55 ? 2 : 1; return '★'.repeat(n) + '☆'.repeat(3 - n); };
+function actDone(id, out, msg) {
+  const r = G.finishAct(S, id, out.q, out.data); if (!r.ok) { closeLayer(); return; } save(); render();
+  toast((msg || 'Bien joué !') + (r.g ? ' +' + r.g + ' ginkgo.' : ''));
+  return r;
+}
+function closeLayer() { const l = $('layer'); if (l) l.innerHTML = ''; }
+function layerAlive(cls) { const l = $('layer'); return !!(l && l.querySelector(cls)); }
+function openAct(id) {
+  if (id === 'photo') return actPhoto();
+  if (id === 'affut') return actAffut();
+  if (id === 'trapset') return actTrapSet();
+  if (id === 'trap') return actTrap();
+  if (id === 'feeder') return actFeeder();
+  if (id === 'ronde') return actRonde();
+  if (id === 'bouquet') return actBouquet();
+  if (id === 'tisane') return actTisane();
+  if (id === 'detente') return actDetente();
+}
+function polaroid(id, q, rare, label) { return '<div class="pol"><div class="pol-img">' + anEmoji(id) + (rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + FNAME(id) + '</b><span>' + stars(q) + (label ? ' · ' + label : '') + '</span></div>'; }
+/* 1. appareil photo */
+function actPhoto() {
+  const v = S.wild; if (!v) { toast('Aucun animal à photographier pour l’instant.'); return; }
+  modal('Appareil photo', '<div class="ph"><p class="note-p" style="text-align:center">Un ' + FNAME(v.k).toLowerCase() + ' passe dans le jardin. Déclenche quand il est au centre du viseur.</p><div class="ph-frame" id="phf"><div class="ph-bush"></div><div class="ph-an" id="pha">' + anEmoji(v.k) + '</div><div class="ph-cross"><i></i><b></b></div><div class="ph-flash" id="phfl"></div></div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="phgo">📷 Déclencher</button></div><div id="phres"></div></div>');
+  const an = $('pha'), fr = $('phf'); let t0 = performance.now(), off = 0, live = true, speed = 1.3 + Math.random() * .6;
+  const step = ts => { if (!live || !an.isConnected) return; const t = (ts - t0) / 1000; off = Math.sin(t * speed) * .42 + Math.sin(t * speed * 2.3) * .08; an.style.left = (50 + off * 100) + '%'; an.style.transform = 'translate(-50%,' + (Math.sin(t * 6) * 3) + 'px) scaleX(' + (Math.cos(t * speed) > 0 ? 1 : -1) + ')'; requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+  $('phgo').onclick = () => { if (!live) return; live = false; const q = Math.max(.2, 1 - Math.abs(off) / .38); $('phfl').classList.add('on'); $('phgo').disabled = true;
+    setTimeout(() => { const rare = q > .85; $('phres').innerHTML = polaroid(v.k, q, rare, q > .85 ? 'Cliché parfait' : q > .55 ? 'Belle photo' : 'Un peu flou') + '<div class="acts" style="justify-content:center"><button type="button" class="btn" id="phok">Ranger dans l’album</button></div>'; $('phok').onclick = () => { actDone('photo', { q }, 'Photo rangée dans l’album.'); closeLayer(); }; }, 420); };
+}
+/* 2. affût */
+function actAffut() {
+  modal('Affût', '<div class="af"><div class="af-sc" id="afs"><div class="af-moon"></div><div class="af-eyes" id="afe">👀</div></div><p class="note-p" id="aft" style="text-align:center">Maintiens le bouton sans bouger pendant 4 secondes. Un animal discret s’approche peut-être.</p><div class="af-bar"><i id="afb"></i></div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="afgo">Rester immobile (maintenir)</button></div></div>');
+  let t0 = 0, raf = 0; const go = $('afgo'), bar = $('afb'), tx = $('aft');
+  const end = ok => { cancelAnimationFrame(raf); t0 = 0; if (!ok) { bar.style.width = '0'; tx.textContent = 'Trop tôt : l’animal s’est méfié. Réessaie, sans bouger.'; return; } go.disabled = true; $('afe').classList.add('on'); const k = ['chouette', 'herisson', 'belette', 'renard', 'chauve'][Math.floor(Math.random() * 5)]; $('afe').textContent = anEmoji(k); tx.innerHTML = '<b>Observation rare !</b> Tu as vu un animal discret du jardin. Il est noté dans ton album.'; const f = actDone('affut', { q: 1 }, 'Observation rare notée.'); if (f && f.k) { $('afe').textContent = anEmoji(f.k); tx.innerHTML = '<b>' + FNAME(f.k) + ' observé !</b> Noté dans ton album.'; } };
+  const loop = ts => { if (!t0 || !go.isConnected) return; const p = Math.min(1, (ts - t0) / 4000); bar.style.width = p * 100 + '%'; if (p >= 1) { end(true); return; } raf = requestAnimationFrame(loop); };
+  const down = e => { e.preventDefault(); if (go.disabled) return; t0 = performance.now(); tx.textContent = 'Chut… ne bouge pas.'; raf = requestAnimationFrame(loop); };
+  const up = () => { if (t0 && !go.disabled) end(false); };
+  go.addEventListener('pointerdown', down); go.addEventListener('pointerup', up); go.addEventListener('pointerleave', up); go.addEventListener('pointercancel', up);
+}
+/* 3. piège photo */
+function sceneModal(title, inner, txt, ms, done) {
+  modal(title, '<div class="ck"><div class="ck-in">' + inner + '</div><p class="note-p" style="text-align:center">' + txt + '</p></div>');
+  setTimeout(() => { if (layerAlive('.ck')) done(); }, ms);
+}
+function actTrapSet() {
+  const svg = '<svg viewBox="0 0 320 200" class="ck-svg"><rect width="320" height="200" rx="12" fill="#cfe6b8"/><path d="M0 150Q80 130 160 150T320 140V200H0z" fill="#8fbb62"/><rect x="150" y="70" width="14" height="86" fill="#7a5a3a"/><rect x="132" y="48" width="50" height="34" rx="6" fill="#4a5a68"/><circle cx="157" cy="65" r="9" fill="#222"/><circle cx="157" cy="65" r="5" fill="#6fb6e8"/><circle cx="176" cy="55" r="3" fill="#e8453c" class="tp-led"/><g class="tp-leaf"><path d="M90 150c10-24 26-30 40-26-4 18-18 28-40 26z" fill="#6aa84f"/></g></svg>';
+  sceneModal('Piège photo', svg, 'Tu fixes l’appareil à un tronc, bien caché. Reviens demain voir qui est passé.', 2300, () => { actDone('trapset', { q: 1 }, 'Piège photo posé. Résultat demain !'); closeLayer(); });
+}
+function actTrap() {
+  const r = G.finishAct(S, 'trap', 1); if (!r.ok) return; save(); render();
+  const items = (r.ks || []).map((k, i) => polaroid(k, .45 + (i * .22) % .5, i === 0 && S.album[k] && S.album[k].rare)).join('');
+  modal('Piège photo', '<p class="note-p" style="text-align:center">Voici qui est passé cette nuit :</p><div class="pols">' + items + '</div><div class="acts" style="justify-content:center"><button type="button" class="btn" data-act="close">Ranger dans l’album</button></div>' + (r.g ? '<p class="note-p" style="text-align:center">+' + r.g + ' ginkgo</p>' : ''));
+}
+/* 4. mangeoire */
+function actFeeder() {
+  const svg = '<svg viewBox="0 0 320 200" class="ck-svg"><rect width="320" height="200" rx="12" fill="#d6ebf6"/><path d="M0 160Q80 140 160 160T320 150V200H0z" fill="#8fbb62"/><rect x="156" y="90" width="8" height="74" fill="#7a5a3a"/><rect x="120" y="84" width="80" height="9" rx="3" fill="#b98a4c"/><path d="M126 84V58h68v26" fill="#d9b88a" stroke="#8a6240" stroke-width="3"/><path d="M112 60l48-30 48 30z" fill="#b5503c"/><g class="fd-seeds">' + [0, 1, 2, 3, 4, 5].map(i => '<circle cx="' + (140 + i * 8) + '" cy="40" r="3" fill="#d8b24a" style="animation-delay:' + i * .15 + 's"/>').join('') + '</g><text class="fd-b1" x="100" y="150" font-size="28">🐦</text><text class="fd-b2" x="210" y="150" font-size="24">🐤</text></svg>';
+  sceneModal('Mangeoire', svg, 'Graines, eau fraîche… les oiseaux ne tardent pas.', 2400, () => { actDone('feeder', { q: 1 }, 'Mangeoire remplie pour 3 jours.'); closeLayer(); });
+}
+/* 5. ronde du soir */
+function actRonde() {
+  const N = 9, items = []; const kinds = ['🐌', '🐌', '🐌', '✨', '✨', '🍄', '🦉', '✨', '🪲'];
+  for (let i = 0; i < N; i++) items.push({ k: kinds[i], x: 8 + Math.random() * 84, y: 12 + Math.random() * 76, f: false });
+  modal('Ronde du soir', '<div class="rd"><p class="note-p" style="text-align:center">Promène la lampe dans le noir. Touche ce que tu trouves : limaces, lucioles, champignons…</p><div class="rd-field" id="rdf" style="--mx:50%;--my:50%">' + items.map((it, i) => '<span class="rd-it" data-i="' + i + '" style="left:' + it.x + '%;top:' + it.y + '%">' + it.k + '</span>').join('') + '<div class="rd-dark"></div></div><div class="rd-sc" id="rds">0 / ' + N + ' trouvés</div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="rdok">Terminer la ronde</button></div></div>');
+  const fld = $('rdf'); let found = 0;
+  const mv = e => { const r = fld.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; fld.style.setProperty('--mx', x + '%'); fld.style.setProperty('--my', y + '%'); fld.style.setProperty('--r', (r.width * .17) + 'px'); fld._p = [e.clientX - r.left, e.clientY - r.top]; fld.querySelectorAll('.rd-it:not(.got)').forEach(el => { const b = el.getBoundingClientRect(); const d = Math.hypot(b.left + b.width / 2 - e.clientX, b.top + b.height / 2 - e.clientY); el.classList.toggle('lit', d < r.width * .17); }); };
+  fld.addEventListener('pointermove', mv); fld.addEventListener('pointerdown', mv);
+  fld.addEventListener('click', e => { const el = e.target.closest('.rd-it'); if (!el || !el.classList.contains('lit') || el.classList.contains('got')) return; el.classList.add('got'); found++; $('rds').textContent = found + ' / ' + N + ' trouvés'; if (found >= N) $('rdok').click(); });
+  fld.style.setProperty('--r', '70px');
+  $('rdok').onclick = () => { const q = Math.min(1, found / (N * .7)); actDone('ronde', { q }, found ? 'Ronde terminée : ' + found + ' trouvailles.' : 'Ronde terminée.'); closeLayer(); };
+}
+/* 6. bouquet */
+function actBouquet() {
+  const F = ['🌼', '🌸', '🌺', '🌷', '🌻', '💮', '🌼', '🌸', '🌷', '🌺', '🌻', '💮']; let got = []; 
+  modal('Bouquet', '<div class="bq"><p class="note-p" style="text-align:center">Cueille 5 fleurs pour la table de la maison. Varie les couleurs !</p><div class="bq-field" id="bqf">' + F.map((f, i) => '<button type="button" class="bq-fl" data-f="' + f + '" style="left:' + (6 + (i % 6) * 15 + (i % 2) * 3) + '%;top:' + (8 + Math.floor(i / 6) * 44 + (i % 3) * 6) + '%">' + f + '</button>').join('') + '</div><div class="bq-vase" id="bqv"><span id="bqb"></span>🏺</div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="bqok" disabled>Poser sur la table</button></div></div>');
+  $('bqf').addEventListener('click', e => { const b = e.target.closest('.bq-fl'); if (!b || b.classList.contains('got') || got.length >= 5) return; b.classList.add('got'); got.push(b.dataset.f); $('bqb').textContent = got.join(''); if (got.length >= 5) $('bqok').disabled = false; });
+  $('bqok').onclick = () => { const q = Math.min(1, new Set(got).size / 4); actDone('bouquet', { q }, 'Le bouquet embellit la table.'); closeLayer(); };
+}
+/* 7. tisane */
+function actTisane() {
+  const opts = []; if ((S.fleurs || 0) > .015) opts.push({ id: 'fleurs', n: 'Fleurs de la prairie', e: '🌼' }); if ((S.honey || 0) > .02) opts.push({ id: 'honey', n: 'Miel', e: '🍯' });
+  G.stockTotals && Object.entries(G.stockTotals(S)).forEach(([id, kg]) => { const p = P[id]; if (p && kg > .02 && (p.strate === 'Couvre-sol' || /menthe|thym|mélisse|sauge|camomille|romarin|verveine|sureau|tilleul/i.test(p.name))) opts.push({ id: +id, n: p.name, e: '🌿' }); });
+  if (!opts.length) { toast('Pas encore d’herbes ou de fleurs à infuser.'); return; }
+  const sel = new Set();
+  modal('Tisane', '<div class="ts"><p class="note-p" style="text-align:center">Compose ta tisane avec jusqu’à 3 ingrédients.</p><div class="ts-ing">' + opts.map(o => '<button type="button" class="pill ts-o" data-id="' + o.id + '">' + o.e + ' ' + o.n + '</button>').join('') + '</div><div class="ts-cup" id="tsc"><svg viewBox="0 0 120 90"><path class="ck-steam" d="M44 24c-6-8 6-14 0-22" fill="none" stroke="#b8c2cc" stroke-width="3" stroke-linecap="round"/><path class="ck-steam" style="animation-delay:.4s" d="M60 24c-6-8 6-14 0-22" fill="none" stroke="#b8c2cc" stroke-width="3" stroke-linecap="round"/><path class="ck-steam" style="animation-delay:.8s" d="M76 24c-6-8 6-14 0-22" fill="none" stroke="#b8c2cc" stroke-width="3" stroke-linecap="round"/><path d="M26 30h68l-6 40q-2 10-14 10H46q-12 0-14-10z" fill="#fff" stroke="#c8c2b4" stroke-width="2.5"/><path d="M30 38h60l-3 22H33z" id="tsl" fill="#e8c36a" opacity=".85"/><path d="M94 40q18 0 14 14t-18 10" fill="none" stroke="#c8c2b4" stroke-width="3"/></svg></div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="tsok" disabled>Infuser</button></div></div>');
+  const cols = { fleurs: '#f0a0c0', honey: '#e8a21a' };
+  $('layer').querySelector('.ts-ing').addEventListener('click', e => { const b = e.target.closest('.ts-o'); if (!b) return; const id = b.dataset.id; if (sel.has(id)) { sel.delete(id); b.classList.remove('on'); } else if (sel.size < 3) { sel.add(id); b.classList.add('on'); } $('tsok').disabled = !sel.size; const c = [...sel][0]; $('tsl').setAttribute('fill', cols[c] || '#a8c86a'); });
+  $('tsok').onclick = () => { $('tsok').disabled = true; const pids = [...sel].map(x => /^\d+$/.test(x) ? +x : x); $('tsc').classList.add('sip'); setTimeout(() => { if (!layerAlive('.ts')) return; actDone('tisane', { q: Math.min(1, pids.length / 3), data: { pids } }, 'Une tisane qui fait du bien.'); closeLayer(); }, 1600); };
+}
+/* 10. détente */
+function actDetente() {
+  const bonus = G.hasFurn(S, 'banc') || G.hasFurn(S, 'hamac');
+  modal('Un moment au jardin', '<div class="dt"><div class="dt-sc"><div class="dt-sun"></div><div class="dt-ring" id="dtr"></div><div class="dt-txt" id="dtt">Inspire…</div></div><div class="af-bar"><i id="dtb"></i></div><p class="note-p" style="text-align:center">' + (bonus ? 'Assis sur le banc ou dans le hamac, tu observes le jardin. ' : 'Pose-toi un instant. ') + 'Suis la respiration, regarde bouger le jardin.</p><div class="acts" style="justify-content:center"><button type="button" class="btn sm" id="dtok">Terminer</button></div></div>');
+  const t0 = performance.now(), D = 24000, tx = $('dtt'), bar = $('dtb'); let last = '';
+  const loop = ts => { if (!bar.isConnected) return; const p = Math.min(1, (ts - t0) / D); bar.style.width = p * 100 + '%'; const ph = ((ts - t0) % 8000) / 8000, w = ph < .5 ? 'Inspire…' : 'Expire…'; if (w !== last) { tx.textContent = w; last = w; } if (p >= 1) { $('dtok').click(); return; } requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+  $('dtok').onclick = () => { const p = Math.min(1, (performance.now() - t0) / D); actDone('detente', { q: Math.max(.3, p) }, p >= 1 ? 'Ton esprit est au calme.' : 'Un petit moment de calme.'); closeLayer(); };
+}
+/* 9. album */
+function openAlbum() {
+  const inf = G.albumInfo(S), A = S.album || {};
+  const cards = G.FAUNA.map(f => { const a = A[f.id], seen = !!(S.fauna && S.fauna[f.id]); return '<div class="alb-c' + (a && a.n ? ' got' : seen ? ' seen' : ' lock') + '"><div class="alb-e">' + (seen || (a && a.n) ? anEmoji(f.id) : '❓') + (a && a.rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + (seen || (a && a.n) ? f.n : '???') + '</b><span>' + (a && a.n ? stars((a.best || 40) / 100) + ' · ' + a.n + ' photo' + (a.n > 1 ? 's' : '') : seen ? 'Vu, à photographier' : f.h) + '</span></div>'; }).join('');
+  const ms = inf.ms.map(m => '<span class="alb-m' + (m.done ? ' done' : m.ok ? ' ok' : '') + '">' + m.k + ' espèces · ' + m.g + ' ginkgos</span>').join('');
+  modal('Album de la faune', '<p class="note-p"><b>' + inf.n + ' / ' + inf.total + '</b> espèces photographiées. Photographie les visiteurs du jour, pose un piège photo ou guette à la tombée de la nuit.</p><div class="alb-ms">' + ms + '</div>' + (inf.ms.some(m => m.ok && !m.done) ? '<div class="acts" style="justify-content:flex-start;margin:6px 0"><button type="button" class="btn sm" data-act="album-claim">Récupérer les récompenses</button></div>' : '') + '<div class="alb-g">' + cards + '</div>', true);
 }
 function openKitchen(res) {
   const t = G.stockTotals(S), ids = Object.keys(t).map(Number).filter(id => t[id] > .03), hasH = (S.honey || 0) > .02, hasE = (S.eggs || 0) >= 1, hasF = (S.fleurs || 0) > .01;
@@ -1235,7 +1359,7 @@ async function accountAfterLogin() {
 }
 function openMenu() {
   const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
-  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('album', 'leaf', 'Album de la faune') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
   const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
@@ -1416,6 +1540,7 @@ function doTask(id) {
   const t = G.buildTasks(S).tasks.find(x => x.id === id); if (!t) { render(); return; }
   const a = t.act;
   if (a.type === 'booster') return openBooster();
+  if (a.type === 'act') return openAct(a.id);
   if (a.type === 'cook') return openKitchen();
   if (a.type === 'learn') { openLearn(); return; }
   if (a.type === 'sow') { ui.mode = { type: 'plant', pid: a.pid }; render(); $('garden').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); toast('Choisis une parcelle libre.'); return; }
@@ -1543,6 +1668,8 @@ document.addEventListener('click', e => {
     case 'kitchen': openKitchen(); break;
     case 'skills': openSkills(); break;
     case 'menu': openMenu(); break;
+    case 'album': openAlbum(); break;
+    case 'album-claim': { const g = G.albumClaim(S); save(); toast(g ? '+' + g + ' ginkgos pour ton album !' : 'Rien à récupérer pour l’instant.'); openAlbum(); render(); break; }
     case 'tools-toggle': ui.toolsOpen = !ui.toolsOpen; applyHud(); break;
     case 'stock': openStock(); break;
     case 'tray-toggle': ui.trayOpen = !ui.trayOpen; applyHud(); break;
@@ -1676,7 +1803,7 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); claimDaily(); render(); startChars();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }

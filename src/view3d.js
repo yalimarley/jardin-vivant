@@ -708,40 +708,46 @@ function routeTo(from, to) {
 let gWild = null, wild = null, wildSig = '';
 function mkWild(k) {
   const g = new T.Group(), body = new T.Group(); g.add(body); const legs = [], head = new T.Group(); let tail = null, sp = 1.5;
-  const leg = (x, z, h, r, col) => { const l = new T.Group(); l.position.set(x, h, z); l.add(mesh(geo.cyl(r, r * .75, h, 5), L(col), 0, -h / 2, 0)); body.add(l); legs.push(l); };
-  const blob2 = (r, col, x, y, z, sx, sy, sz) => { const m = mesh(geo.ico(r, 1), L(col), x, y, z); m.scale.set(sx, sy, sz); body.add(m); return m; };
+  const leg = (x, z, h, r, col) => { const l = new T.Group(); l.position.set(x, h, z); l.add(mesh(geo.cyl(r, r * .75, h, 6), L(col), 0, -h / 2, 0)); hoof(l, h, r * .8, 0x1c1410); body.add(l); legs.push(l); };
+  const eyes = (hd, x, y, z, r) => [-1, 1].forEach(s => { hd.add(mesh(geo.ico(r, 1), L(0x0e0b09), s * x, y, z, false)); hd.add(mesh(geo.ico(r * .35, 0), L(0xffffff), s * x + s * r * .1, y + r * .35, z + r * .5, false)); });
+  const hoof = (l, h, r, col) => l.add(mesh(geo.cyl(r * 1.15, r * 1.3, h * .14, 5), L(col), 0, -h + h * .07, 0, false));
+  const blob2 = (r, col, x, y, z, sx, sy, sz) => { const m = mesh(geo.ico(r, 2), L(col), x, y, z); m.scale.set(sx, sy, sz); body.add(m); return m; };
   if (k === 'chevreuil') {
     sp = 1.7; blob2(.4, 0xb07a4a, 0, .88, 0, .78, .72, 1.55); blob2(.28, 0xe9dcc4, 0, .72, .12, .8, .5, 1.3);
     [[-.14, .4], [.14, .4], [-.14, -.42], [.14, -.42]].forEach(p => leg(p[0], p[1], .68, .04, 0x7a5a3a));
     const neck = mesh(geo.cyl(.065, .1, .5, 6), L(0xb07a4a), 0, 1.15, .55); neck.rotation.x = -.75; body.add(neck);
     head.position.set(0, 1.42, .78); body.add(head); const h0 = mesh(geo.ico(.12, 1), L(0xb98456), 0, 0, 0); h0.scale.set(.85, .8, 1.35); head.add(h0); head.add(mesh(geo.ico(.05, 0), L(0x2a1f18), 0, -.02, .17, false));
     [-1, 1].forEach(s => { const ear = mesh(geo.ico(.06, 0), L(0xa06a3c), s * .11, .09, -.03, false); ear.scale.set(.5, 1.3, .6); head.add(ear); const an = mesh(geo.cyl(.012, .016, .3, 4), L(0x6a5238), s * .06, .22, -.02, false); an.rotation.z = -s * .25; head.add(an); const t1 = mesh(geo.cyl(.01, .012, .14, 4), L(0x6a5238), s * .12, .32, .02, false); t1.rotation.z = -s * .6; head.add(t1); });
+    blob2(.2, 0xf4efe4, 0, .86, -.52, .9, .9, .55); eyes(head, .075, .03, .1, .022); head.add(mesh(geo.ico(.035, 1), L(0x151010), 0, -.04, .19, false)); head.add(mesh(geo.ico(.05, 1), L(0xefe6d2), 0, -.07, .14, false));
     tail = mesh(geo.ico(.07, 0), L(0xf4efe4), 0, .98, -.66); body.add(tail);
   } else if (k === 'sanglier') {
     sp = 1.3; blob2(.4, 0x4a3a30, 0, .5, 0, .85, .75, 1.5); blob2(.3, 0x3a2c24, 0, .62, .35, .9, .9, 1.1);
     [[-.17, .36], [.17, .36], [-.17, -.36], [.17, -.36]].forEach(p => leg(p[0], p[1], .3, .045, 0x2a1f18));
     head.position.set(0, .5, .68); body.add(head); const h0 = mesh(geo.ico(.2, 1), L(0x45362c), 0, 0, 0); h0.scale.set(.85, .85, 1.3); head.add(h0); head.add(mesh(geo.cyl(.07, .09, .16, 6), L(0x8a6a5a), 0, -.04, .27, false)); head.children[head.children.length - 1].rotation.x = Math.PI / 2;
     [-1, 1].forEach(s => { head.add(mesh(geo.ico(.04, 0), L(0x2a1f18), s * .1, .06, .12, false)); const tk = mesh(geo.cone(.022, .12, 4), L(0xf1e8d0), s * .09, -.06, .26, false); tk.rotation.x = -.9; head.add(tk); const ear = mesh(geo.cone(.06, .14, 4), L(0x3a2c24), s * .12, .17, -.04, false); head.add(ear); });
-    for (let i = 0; i < 7; i++) { const c = mesh(geo.cone(.035, .12, 3), L(0x2a1f18), 0, .88, .5 - i * .17, false); body.add(c); }
+    eyes(head, .09, .06, .14, .02); head.add(mesh(geo.cyl(.06, .06, .03, 8), L(0xb08a7a), 0, -.04, .33, false)); head.children[head.children.length - 1].rotation.x = Math.PI / 2;
+    for (let i = 0; i < 9; i++) { const c = mesh(geo.cone(.035, .13, 4), L(i % 2 ? 0x2a1f18 : 0x6a5646), 0, .9, .55 - i * .14, false); body.add(c); }
     tail = mesh(geo.cyl(.012, .02, .22, 4), L(0x2a1f18), 0, .6, -.62); tail.rotation.x = .6; body.add(tail);
   } else if (k === 'renard') {
     sp = 1.9; blob2(.24, 0xd9732a, 0, .42, 0, .75, .7, 1.7); blob2(.16, 0xf6ead8, 0, .38, .22, .8, .7, 1);
     [[-.08, .22], [.08, .22], [-.08, -.2], [.08, -.2]].forEach(p => leg(p[0], p[1], .28, .028, 0x2a1f18));
     head.position.set(0, .56, .4); body.add(head); const h0 = mesh(geo.ico(.1, 1), L(0xd9732a), 0, 0, 0); h0.scale.set(.9, .85, 1.1); head.add(h0); const sn = mesh(geo.cone(.05, .17, 5), L(0xf0e0cc), 0, -.03, .15, false); sn.rotation.x = Math.PI / 2; head.add(sn); head.add(mesh(geo.ico(.02, 0), L(0x111111), 0, -.03, .24, false));
-    [-1, 1].forEach(s => head.add(mesh(geo.cone(.04, .12, 4), L(0x2a1f18), s * .06, .12, -.02, false)));
+    eyes(head, .05, .03, .08, .014); [-1, 1].forEach(s => head.add(mesh(geo.cone(.045, .15, 4), L(0xd9732a), s * .06, .13, -.02, false)));
+    blob2(.1, 0xf6ead8, 0, .5, .3, .7, .55, .9);
     tail = new T.Group(); tail.position.set(0, .42, -.36); const tb = mesh(geo.ico(.1, 1), L(0xd9732a), 0, 0, -.14); tb.scale.set(.8, .8, 2); tail.add(tb); tail.add(mesh(geo.ico(.07, 0), L(0xf6efe2), 0, 0, -.3, false)); body.add(tail);
   } else if (k === 'belette') {
     sp = 2.1; blob2(.1, 0xb98a5a, 0, .13, 0, .7, .65, 2.8); blob2(.07, 0xf6ead8, 0, .09, .05, .8, .5, 2);
     [[-.04, .12], [.04, .12], [-.04, -.12], [.04, -.12]].forEach(p => leg(p[0], p[1], .09, .018, 0x8a6238));
-    head.position.set(0, .17, .3); body.add(head); const h0 = mesh(geo.ico(.06, 1), L(0xb98a5a), 0, 0, 0); h0.scale.set(.9, .8, 1.1); head.add(h0); head.add(mesh(geo.ico(.015, 0), L(0x111111), 0, -.01, .07, false)); [-1, 1].forEach(s => head.add(mesh(geo.ico(.02, 0), L(0x8a6238), s * .045, .045, -.02, false)));
+    head.position.set(0, .17, .3); body.add(head); const h0 = mesh(geo.ico(.06, 1), L(0xb98a5a), 0, 0, 0); h0.scale.set(.9, .8, 1.1); head.add(h0); eyes(head, .03, .02, .05, .012); head.add(mesh(geo.ico(.015, 0), L(0x111111), 0, -.01, .07, false)); [-1, 1].forEach(s => head.add(mesh(geo.ico(.02, 0), L(0x8a6238), s * .045, .045, -.02, false)));
     tail = mesh(geo.cyl(.012, .02, .2, 4), L(0x8a6238), 0, .14, -.34); tail.rotation.x = Math.PI / 2.4; body.add(tail);
   } else {
     sp = 1; const dome = mesh(geo.ico(.16, 1), L(0x6b4f35), 0, .15, -.02); dome.scale.set(1.1, .8, 1.35); body.add(dome);
-    for (let i = 0; i < 22; i++) { const a = i * 2.4, y = .12 + (i % 5) * .035, r = .1 + (i % 3) * .035; const sp2 = mesh(geo.cone(.022, .1, 3), L(i % 2 ? 0x3a2c1c : 0x8a6a45), Math.cos(a) * r, y + .06, Math.sin(a) * r * 1.3 - .03, false); sp2.rotation.set(Math.sin(a) * .7, 0, -Math.cos(a) * .7); body.add(sp2); }
-    head.position.set(0, .1, .22); body.add(head); const h0 = mesh(geo.ico(.07, 1), L(0xe0c49a), 0, 0, 0); h0.scale.set(.8, .75, 1.3); head.add(h0); head.add(mesh(geo.ico(.02, 0), L(0x111111), 0, 0, .1, false));
+    for (let i = 0; i < 46; i++) { const a = i * 2.4, y = .12 + (i % 5) * .035, r = .1 + (i % 3) * .035; const sp2 = mesh(geo.cone(.022, .1, 3), L(i % 2 ? 0x3a2c1c : 0x8a6a45), Math.cos(a) * r, y + .06, Math.sin(a) * r * 1.3 - .03, false); sp2.rotation.set(Math.sin(a) * .7, 0, -Math.cos(a) * .7); body.add(sp2); }
+    head.position.set(0, .1, .22); body.add(head); const h0 = mesh(geo.ico(.07, 1), L(0xe0c49a), 0, 0, 0); h0.scale.set(.8, .75, 1.3); head.add(h0); head.add(mesh(geo.ico(.02, 0), L(0x111111), 0, 0, .1, false)); eyes(head, .035, .025, .06, .012);
     [[-.1, .1], [.1, .1], [-.1, -.1], [.1, -.1]].forEach(p => leg(p[0], p[1], .06, .02, 0x8a6a45));
   }
-  g.userData = { body, legs, head, tail, sp, heading: 0, lx: 0, lz: 0 }; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); return g;
+  const sh = new T.Mesh(new T.CircleGeometry(.5, 16), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .22, depthWrite: false })); sh.rotation.x = -Math.PI / 2; sh.position.y = .02; sh.scale.set({ chevreuil: .9, sanglier: .9, renard: .5, belette: .25, herisson: .3 }[k] || .5, { chevreuil: 1.8, sanglier: 1.7, renard: 1.5, belette: 1.4, herisson: 1 }[k] || 1, 1); sh.scale.z = 1; g.add(sh);
+  g.userData = { body, legs, head, tail, sp, heading: 0, lx: 0, lz: 0, ears: [] }; g.traverse(o => { if (o.isMesh && o !== sh) o.castShadow = true; }); return g;
 }
 function syncWild(S) {
   if (!gWild) { gWild = new T.Group(); scene.add(gWild); }
@@ -765,7 +771,7 @@ function wildTick(t, dt) {
   g.rotation.y = u.heading;
   const sw = moving ? Math.sin(t * (flee ? 16 : 8) * (wild.k === 'belette' ? 1.4 : 1)) : 0;
   u.legs.forEach((l, i) => { l.rotation.x = (i % 3 ? -1 : 1) * sw * (flee ? .9 : .55); });
-  u.body.position.y = moving ? Math.abs(sw) * (flee ? .06 : .02) : 0;
+  u.body.position.y = moving ? Math.abs(sw) * (flee ? .06 : .02) : Math.sin(t * 2.2) * .008; u.body.scale.y = 1 + (moving ? 0 : Math.sin(t * 2.2) * .015);
   const gz = graze ? .75 + Math.sin(t * 4) * .1 : 0; u.head.rotation.x = graze ? (wild.k === 'herisson' || wild.k === 'belette' ? .3 : gz) : (moving ? .1 : Math.sin(t * 1.2) * .08);
   if (u.tail) { if (wild.k === 'renard') u.tail.rotation.y = Math.sin(t * 3) * .3; else u.tail.rotation.z = Math.sin(t * 6) * .25; }
 }

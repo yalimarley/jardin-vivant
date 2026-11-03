@@ -579,7 +579,7 @@ function mountChars() {
   for (const k in agents) { const a = agents[k]; if (a.who === 'f' && !a.node) { a.inside = !famOut(); a.node = 'y0'; a.c = walk.N[a.node].c; a.r = walk.N[a.node].r; } if (a.node && walk.N[a.node] && !a.path.length) { a.c = walk.N[a.node].c; a.r = walk.N[a.node].r; } if (!a.node || !walk.N[a.node]) { const n = nearestNode(a.c, a.r); a.node = n; a.c = walk.N[n].c; a.r = walk.N[n].r; a.path = []; a.act = null; }
     if (a.who === 'g' && a.act) setPop(a, a.act); a.el = null; placeAgent(a); drawAgent(a); }
 }
-const POPS = { prune: IC.prune, water: IC.drop, harvest: IC.basket, plant: IC.seed, mulch: IC.leaf, compost: IC.leaf };
+const POPS = { heal: IC.leaf, slug: IC.snail, prune: IC.prune, water: IC.drop, harvest: IC.basket, plant: IC.seed, mulch: IC.leaf, compost: IC.leaf };
 function setPop(a, kind) { if (!a.el) return; const pi = a.el.querySelector('.pi'); if (pi) pi.innerHTML = POPS[kind] || ''; }
 function waterSpot(id) {
   const sp = (S.spots || []).find(o => o.id === id); if (!sp) return;
@@ -593,6 +593,7 @@ const TQ = []; let charsLive = false;
 const TLAB = { water: 'arroser', harvest: 'récolter', prune: 'tailler', heal: 'soigner', compost: 'composter', mulch: 'pailler' };
 function pendI(i) { return TQ.some(t => t.i === i) || (agents.g && agents.g.task && agents.g.task.i === i); }
 function queueTask(i, kind, fn) {
+  { const f0 = fn; fn = () => { f0(); try { if (window.V3D && V3D.burst) V3D.burst(kind, i); } catch (e) {} }; }
   if (!charsLive || !walk.N || !$('garden')) { fn(); return true; }
   if (pendI(i)) return false;
   TQ.push({ i, kind, fn }); const g = agents.g; if (g && !g.task) { g.act = null; g.path = []; g.pause = 0; } return true;
@@ -601,7 +602,7 @@ function flushTasks() { const g = agents.g; if (g && g.task) { const t = g.task;
 const TDUR = { water: 1.9, harvest: 1.6, prune: 2.2, heal: 2, compost: 2.2, mulch: 2.2 };
 function startTask(a) {
   const t = TQ.shift(); if (!t) return false; const goal = nearestNode(t.i % STR + .5, ((t.i / STR) | 0) + .5);
-  a.task = t; a.path = goal && goal !== a.node ? bfs(a.node, goal) : []; a.act = t.kind === 'prune' || t.kind === 'heal' ? 'mulch' : t.kind; a.actT = TDUR[t.kind] || 2; a.pause = .25; setPop(a, a.act); return true;
+  a.task = t; a.path = goal && goal !== a.node ? bfs(a.node, goal) : []; a.act = t.kind === 'heal' ? 'heal' : t.kind === 'prune' ? 'mulch' : t.kind; a.actK = (S.grid[t.i] && S.grid[t.i].sick && S.grid[t.i].sick.k) || null; a.actT = TDUR[t.kind] || 2; a.pause = .25; setPop(a, a.act === 'heal' && a.actK === 'limaces' ? 'slug' : a.act); return true;
 }
 function cellAct(kind, i, msg) {
   const run = {
@@ -1034,6 +1035,22 @@ function ripBooster() {
   const body = '<p class="note-p" style="margin-bottom:8px">Touche une carte pour la retourner. Elles sont déjà dans ta réserve. Tu gagnes aussi 1 ginkgo.</p><div class="deal">' + cards.map((c, k) => '<button type="button" class="flipper" data-act="flip" aria-label="Carte ' + (k + 1) + '"><div class="in"><div class="face back"><svg width="46" height="46" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 31V19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 22c-6 0-9-3-9-8 6 0 9 3 9 8zM20 19c0-5 3-8 9-8 0 5-3 8-9 8z" fill="currentColor"/></svg></div><div class="face front">' + (c.t === 'plant' ? cardHtml(P[c.pid], {}) : matCard(c.k, c.q)) + '</div></div></button>').join('') + '</div><div class="acts" style="justify-content:flex-end"><button type="button" class="btn" data-act="flipall">Tout retourner</button><button type="button" class="btn primary" data-act="close">Terminé</button></div>';
   modal('Tes cartes du jour', body, true);
 }
+
+function cookAnim(r, pids) {
+  let rm = false; try { rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {} if (rm || window.__JV_INSTANT) { openKitchen(r); return; }
+  const SC = { Arbre: '#d9533a', Arbuste: '#7a4fc9', Herbacée: '#6aa84f', Racine: '#e8832a', Grimpante: '#b8c93a', 'Couvre-sol': '#d9529e', Champignon: '#c9b28a' }, col = id => id === 'honey' ? '#e0a21a' : id === 'eggs' ? '#f3e7cf' : id === 'fleurs' ? '#e86fa0' : (SC[(P[id] || {}).strate] || '#8bc34a');
+  const ing = pids.slice(0, 5).map((id, k) => '<circle class="ck-ing" style="animation-delay:' + (k * .18) + 's" cx="' + (52 + k * 28) + '" cy="104" r="10" fill="' + col(id) + '"/>').join('');
+  const sl = pids.slice(0, 5).map((id, k) => '<ellipse class="ck-sl" style="animation-delay:' + (.5 + k * .22) + 's;--dx:' + (k % 2 ? 22 : -18) + 'px" cx="' + (52 + k * 28) + '" cy="110" rx="5" ry="3" fill="' + col(id) + '"/>').join('');
+  const food = pids.slice(0, 5).map((id, k) => '<circle cx="' + (150 + (k % 3) * 9 - 9) + '" cy="' + (166 + (k > 2 ? 4 : -2)) + '" r="6" fill="' + col(id) + '"/>').join('');
+  const svg = '<svg viewBox="0 0 320 210" class="ck-svg" role="img" aria-label="Le repas se prépare"><rect x="0" y="136" width="320" height="74" rx="10" fill="#d7bf9a"/><rect x="0" y="136" width="320" height="8" fill="#c4a67a"/>'
+    + '<rect x="30" y="112" width="150" height="16" rx="4" fill="#b98a4c"/>' + ing + sl
+    + '<g class="ck-knife"><rect x="64" y="64" width="9" height="30" rx="2" fill="#6b4a2c"/><path d="M64 92h46l-6 12H64z" fill="#cfd6dc" stroke="#9aa3ab" stroke-width="1.2"/></g>'
+    + '<g transform="translate(232 98)"><ellipse cx="0" cy="34" rx="36" ry="9" fill="#00000018"/><rect x="-32" y="0" width="64" height="34" rx="8" fill="#5a6a78"/><rect x="-38" y="6" width="8" height="5" rx="2" fill="#4a5a68"/><rect x="30" y="6" width="8" height="5" rx="2" fill="#4a5a68"/><g class="ck-lid"><ellipse cx="0" cy="0" rx="34" ry="6" fill="#7a8a98"/><circle cx="0" cy="-6" r="4" fill="#4a5a68"/></g>'
+    + [-14, 0, 14].map((x, k) => '<path class="ck-steam" style="animation-delay:' + (k * .35) + 's" d="M' + x + ' -10c-6 -8 6 -14 0 -24" fill="none" stroke="#b8c2cc" stroke-width="3" stroke-linecap="round"/>').join('') + '</g>'
+    + '<g class="ck-plate"><ellipse cx="150" cy="172" rx="38" ry="11" fill="#fff" stroke="#d8d2c4" stroke-width="2"/><ellipse cx="150" cy="172" rx="26" ry="7" fill="#f4efe6"/>' + food + '<path d="M118 150v26M114 150v10M122 150v10" stroke="#9aa3ab" stroke-width="2.2" stroke-linecap="round" fill="none" transform="translate(-14 0)"/><path d="M186 150v26" stroke="#9aa3ab" stroke-width="3" stroke-linecap="round" transform="translate(16 0)"/></g></svg>';
+  window.__ckR = r; modal('En cuisine', '<div class="ck"><div class="ck-in">' + svg + '</div><p class="note-p" style="text-align:center">Le repas se prépare…</p><div class="acts" style="justify-content:center"><button type="button" class="btn sm" data-act="kskip">Passer</button></div></div>');
+  const done = () => { if ($('layer') && $('layer').querySelector('.ck')) openKitchen(r); }; window.__ckT = setTimeout(done, window.__ckMs || 2800);
+}
 function openKitchen(res) {
   const t = G.stockTotals(S), ids = Object.keys(t).map(Number).filter(id => t[id] > .03), hasH = (S.honey || 0) > .02, hasE = (S.eggs || 0) >= 1, hasF = (S.fleurs || 0) > .01;
   let h = '';
@@ -1411,6 +1428,7 @@ function doTask(id) {
   if (a.type === 'water') toast(r.n + ' plante' + (r.n > 1 ? 's' : '') + ' arrosée' + (r.n > 1 ? 's' : '') + (r.short ? '. Réserve d’eau insuffisante pour les autres.' : '.'));
   if (a.type === 'harvest') toast('Récolte rentrée : ' + fmt(r.kg, 2) + ' kg au garde-manger.');
   if (a.type === 'heal') toast(r.n + ' plante' + (r.n > 1 ? 's soignées' : ' soignée') + '.');
+  if (a.type === 'scare') toast('Tu as fait fuir l’animal : tes plantes sont sauves.');
   if (a.type === 'fleurs') toast('+' + Math.round(r.kg * 1000) + ' g de fleurs comestibles au garde-manger.');
   if (a.type === 'honey') toast('+' + fmt(r.kg, 1) + ' kg de miel au garde-manger.');
   if (a.type === 'lawn') toast('Herbe tondue : +' + 2 * r.n + ' paillage.');
@@ -1482,7 +1500,7 @@ document.addEventListener('click', e => {
     else if (kd === 'honey') { const h2 = G.harvestHoney(S, i); done = h2.ok; if (done) toast('+' + fmt(h2.kg, 1) + ' kg de miel au garde-manger.'); }
     else if (kd === 'compost') done = cellAct('compost', i);
     else if (kd === 'mulch') done = cellAct('mulch', i);
-    render(); if (done) flyIcon(kd, pos); return; }
+    render(); if (done) { flyIcon(kd, pos); try { if (window.V3D && V3D.burst && (kd === 'honey' || kd === 'fleurs')) V3D.burst(kd, i); } catch (e) {} } return; }
   const cell = e.target.closest('.cell'); if (cell) { clickCell(+cell.dataset.i); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   const act = a.dataset.act, i = ui.sel;
@@ -1545,7 +1563,7 @@ document.addEventListener('click', e => {
     case 'journal': openJournal(); break;
     case 'kall': document.querySelectorAll('#kit input').forEach(x => { x.checked = true; }); kitchenPreview(); break;
     case 'knone': document.querySelectorAll('#kit input').forEach(x => { x.checked = false; }); kitchenPreview(); break;
-    case 'cookall': { const pids = [...document.querySelectorAll('#kit input')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); openKitchen(r); render(); break; }
+    case 'cookall': { const pids = [...document.querySelectorAll('#kit input')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); cookAnim(r, pids); render(); break; }
     case 'herbier': openHerbier(); break;
     case 'famille': openFamily(); break;
     case 'compte': openAccount(); break;
@@ -1573,7 +1591,8 @@ document.addEventListener('click', e => {
     case 'rip': ripBooster(); break;
     case 'flip': a.classList.toggle('up'); break;
     case 'flipall': document.querySelectorAll('.flipper').forEach(f => f.classList.add('up')); break;
-    case 'cook': { const pids = [...document.querySelectorAll('#kit input:checked')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); openKitchen(r); render(); break; }
+    case 'kskip': { clearTimeout(window.__ckT); if (window.__ckR) openKitchen(window.__ckR); break; }
+    case 'cook': { const pids = [...document.querySelectorAll('#kit input:checked')].map(pidOf); const r = G.cook(S, pids); if (!r.ok) { toast(r.msg); break; } save(); cookAnim(r, pids); render(); break; }
     case 'heal1': cellAct('heal', i); render(); break;
     case 'water1': cellAct('water', i); render(); break;
     case 'mulch1': cellAct('mulch', i); render(); break;
@@ -1657,7 +1676,7 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); claimDaily(); render(); startChars();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }

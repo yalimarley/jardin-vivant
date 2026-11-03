@@ -1093,9 +1093,11 @@ function make(P) {
   function quests(s) {
     gqInit(s); const out = [];
     for (const q of GQ) { const have = Math.min(q.need, q.have(s)), done = have >= q.need, claimed = !!s.gq.claimed[q.id]; out.push({ id: q.id, t: q.t, say: q.say, have, need: q.need, done, claimed, rw: q.rw, label: rwLabel(q.rw), daily: false }); }
-    let di = s.day % DAILY.length; if (DAILY[di].k === 'mulch' && !(s.mats.paillage > 0) && !(s.gq.dc.day === s.day && s.gq.dc.mulch)) di = 0;
-    const d = DAILY[di], dc = s.gq.dc.day === s.day ? (s.gq.dc[d.k] || 0) : 0, did = 'j' + s.day;
-    if (s.day % 3 === 0 || dc > 0 || s.gq.claimed[did]) out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
+    const dcd = s.gq.dc.day === s.day ? s.gq.dc : {}, cl = s.grid.filter(c => c && !c.treille);
+    const feas = x => x.k === 'water' ? cl.filter(c => c.water < 60).length + (dcd.water || 0) >= x.need : x.k === 'harvest' ? cl.filter(c => c.ready).length + (dcd.harvest || 0) >= x.need : (s.mats.paillage > 0 || (dcd.mulch || 0) > 0) && cl.length >= x.need;
+    let di = s.day % DAILY.length; for (let t = 0; t < DAILY.length && !feas(DAILY[di]) && !(dcd[DAILY[di].k] > 0); t++) di = (di + 1) % DAILY.length;
+    const d = DAILY[di], okD = feas(d) || dcd[d.k] > 0, dc = s.gq.dc.day === s.day ? (s.gq.dc[d.k] || 0) : 0, did = 'j' + s.day;
+    if (okD && (s.day % 3 === 0 || dc > 0) || s.gq.claimed[did]) out.push({ id: did, t: d.t, say: d.say, have: Math.min(d.need, dc), need: d.need, done: dc >= d.need, claimed: !!s.gq.claimed[did], rw: d.rw, label: rwLabel(d.rw), daily: true });
     out.forEach(q => { q.fv = q.daily ? 1 : Math.max(2, Math.round(2 + ((q.rw && q.rw.boost) || 0) * .3)); q.label = (q.label ? q.label + ' + ' : '') + q.fv + ' ginkgos'; });
     return out;
   }

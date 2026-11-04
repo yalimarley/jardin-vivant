@@ -25,11 +25,14 @@ const SKILLS = {
   fabrication: { n: 'Fabrication', cat: 'entretien', max: 3, req: 8, use: [3, 8], unit: 'fabrications', xpk: 5, d: ['Fabriquer soi-même du purin d’ortie et de la prêle avec du paillage et du compost.', 'Fabriquer aussi des nichoirs et des oyas.', 'Fabriquer aussi des cuves de récupération.'], how: 'Fabrique un soin ou un équipement.' },
   sechage: { n: 'Séchage', cat: 'expertise', max: 3, req: 10, use: [3, 8], unit: 'séchages', xpk: 5, d: ['Sécher herbes et fruits au séchoir : 3 kg par jour.', '5 kg par jour.', '8 kg par jour.'], how: 'Sèche une récolte au séchoir.' },
   transformation: { n: 'Transformation', cat: 'expertise', max: 3, req: 8, use: [3, 8], unit: 'mises en bocaux', xpk: 5, d: ['Mettre fruits et légumes en bocaux : 0,5 kg par bocal.', 'Confitures, compotes, jus : 0,7 kg par bocal.', 'Lacto-fermentation et conserves généreuses : 1 kg par bocal.'], how: 'Mets une récolte en bocaux.' },
+  observation: { n: 'Observation', cat: 'expertise', max: 3, req: 3, use: [6, 16], unit: 'photos et observations', xpk: 4, d: ['Chaque nouvelle espèce ajoutée à l’album rapporte 1 ginkgo de plus.', 'Le piège photo ramène une espèce de plus chaque nuit.', 'L’affût fait venir deux espèces nocturnes au lieu d’une.'], how: 'Photographie un animal, guette ou relève le piège.' },
+  herboristerie: { n: 'Herboristerie', cat: 'expertise', max: 3, req: 4, use: [6, 16], unit: 'fleurs cueillies et tisanes', xpk: 4, d: ['Les fleurs de la prairie pèsent 20 % de plus à la cueillette.', 'La prairie fleurie repousse 50 % plus vite.', 'Tisanes plus apaisantes (+50 % de calme) et bouquets qui tiennent 5 jours au lieu de 3.'], how: 'Cueille des fleurs ou prépare une tisane.' },
   cuisine: { n: 'Cuisine', cat: 'expertise', max: 5, req: 0, use: [3, 8, 16, 30], unit: 'repas cuisinés', xpk: 7, d: ['Cuisiner les repas de la famille.', 'Les repas rendent la famille 5 % plus heureuse.', '10 % plus heureuse.', '15 % plus heureuse.', '20 % plus heureuse.'], how: 'Cuisine un repas.' }
 };
 const ADV = {
   botaniste: { n: 'Botaniste', cat: 'expertise', cost: 2, reqs: { plantation: 3, bouture: 2 }, prac: { k: 'species', n: 12, t: 'espèces différentes cultivées' }, d: 'Toutes tes plantes poussent 10 % plus vite.' },
   resilient: { n: 'Jardinier résilient', cat: 'expertise', cost: 2, reqs: { fabrication: 2, trogne: 2 }, prac: { k: 'soin', n: 6, t: 'soins apportés aux plantes' }, d: 'Tes plantes résistent mieux aux intempéries et aux maladies (+10 % de résistance).' },
+  naturaliste: { n: 'Naturaliste', cat: 'expertise', cost: 2, reqs: { observation: 2, herboristerie: 1 }, prac: { k: 'album', n: 8, t: 'espèces dans l’album de la faune' }, d: 'Tous tes gains de ginkgos (album, activités, photos) augmentent de 50 %.' },
   autonome: { n: 'Garde-manger autonome', cat: 'expertise', cost: 2, reqs: { transformation: 2, cuisine: 3 }, prac: { k: 'meals', n: 20, t: 'repas cuisinés' }, d: 'La récolte fraîche se garde 50 % plus longtemps.' }
 };
 const XPB = { fleurs: 3, harvest: 4, water: 2, mulch: 3, soin: 5, honey: 8, prune: 6, compost: 6 };
@@ -368,10 +371,10 @@ function make(P) {
   function honeyReady(s, i) { const c = s.grid[i], m = dateOf(s.day).m; return !!(c && c.furn === 'ruche' && m >= 4 && m <= 8 && s.day - (c.honeyDay == null ? -999 : c.honeyDay) >= 45); }
   function honeyKg(s) { let nm = 0; s.grid.forEach(c => { if (c && !c.treille && P[c.pid].tags.includes('mellifere')) nm++; }); return r2(1 + Math.min(3, nm * .15)); }
   function harvestHoney(s, i) { if (!honeyReady(s, i)) return { ok: false }; const kg = honeyKg(s); s.grid[i].honeyDay = s.day; s.honey = r2((s.honey || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 3000) }); log(s, 'good', 'Miel récolté : ' + kg + ' kg.'); bump(s, 'honey'); return { ok: true, kg }; }
-  function flReady(s, i) { const c = s.grid[i]; return !!(c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .25); }
+  function flReady(s, i) { const c = s.grid[i]; return !!(c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .3 && c.flDay !== s.day); }
   function flSeason(m) { return m >= 2 && m <= 7 ? 1 : m >= 8 && m <= 10 ? .6 : .35; }
-  function flKg(s, i) { const c = s.grid[i]; return r2(.16 * Math.min(1, c.fl == null ? 1 : c.fl) * flSeason(dateOf(s.day).m) + .02); }
-  function harvestFleurs(s, i) { if (!flReady(s, i)) return { ok: false }; const c = s.grid[i], kg = flKg(s, i); c.fl = r2(Math.max(0, (c.fl == null ? 1 : c.fl) - .25)); s.fleurs = r2((s.fleurs || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 300) }); log(s, 'good', 'Fleurs comestibles cueillies : ' + Math.round(kg * 1000) + ' g.'); bump(s, 'fleurs'); return { ok: true, kg, left: c.fl }; }
+  function flKg(s, i) { const c = s.grid[i]; return r2((.075 * Math.min(1, c.fl == null ? 1 : c.fl) * flSeason(dateOf(s.day).m) + .012) * (skillLevel(s, 'herboristerie') >= 1 ? 1.2 : 1)); }
+  function harvestFleurs(s, i) { if (!flReady(s, i)) return { ok: false }; const c = s.grid[i], kg = flKg(s, i); c.fl = r2(Math.max(0, (c.fl == null ? 1 : c.fl) - .1)); c.flDay = s.day; gainSkill(s, 'herboristerie', 1); s.fleurs = r2((s.fleurs || 0) + kg); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 300) }); log(s, 'good', 'Fleurs comestibles cueillies : ' + Math.round(kg * 1000) + ' g.'); bump(s, 'fleurs'); return { ok: true, kg, left: c.fl }; }
   function placeDuck(s, i) { const c = s.grid[i]; if (!c || c.furn !== 'mare' || c.ducks || !(s.mats.canard > 0)) return false; s.mats.canard--; c.ducks = true; log(s, 'good', 'Deux canards coureurs indiens s’installent à la mare.'); bump(s); return true; }
   function duckNear(s, i) { const r = (i / COLS) | 0, cc = i % COLS; return s.grid.some((c, j) => c && c.ducks && Math.max(Math.abs(((j / COLS) | 0) - r), Math.abs(j % COLS - cc)) <= 3); }
   function resistance(s, i) { const sy = synergy(s, i), links = new Set(sy.notes.filter(n => n.t === 'good').flatMap(n => n.froms).filter(j => j >= 0)).size; return { links, pct: Math.round(Math.min(.85, links * .1 + (hasAdv(s, 'resilient') ? .1 : 0)) * 100) }; }
@@ -411,30 +414,42 @@ function make(P) {
   function calmBonus(s) { return s.calm && s.day - s.calm.day < 3 ? Math.min(10, s.calm.v) : 0; }
   function addCalm(s, v) { const c = calmBonus(s); s.calm = { day: s.day, v: Math.min(10, c + v) }; }
   function hasFurn(s, k) { return s.grid.some(c => c && c.treille && c.furn === k); }
-  function albumAdd(s, id, q, rare) { s.album = s.album || {}; const a = s.album[id] || (s.album[id] = { n: 0, best: 0, rare: false, day: s.day }); a.n++; a.best = Math.max(a.best, Math.round(q * 100)); if (rare) a.rare = true; s.fauna = s.fauna || {}; if (!s.fauna[id]) s.fauna[id] = s.day; return a; }
+  function albumAdd(s, id, q, rare) { s.album = s.album || {}; const a = s.album[id] || (s.album[id] = { n: 0, best: 0, rare: false, day: s.day }); a.n++; if (a.n === 1 && skillLevel(s, 'observation') >= 1) s.feves = (s.feves || 0) + 1;  a.best = Math.max(a.best, Math.round(q * 100)); if (rare) a.rare = true; s.fauna = s.fauna || {}; if (!s.fauna[id]) s.fauna[id] = s.day; return a; }
   function actStatus(s) { return actState(s).done; }
   function trapPick(s, rn) {
-    const known = FAUNA.filter(f => s.fauna && s.fauna[f.id]).map(f => f.id), pool = ['chevreuil', 'renard', 'sanglier', 'belette', 'herisson', 'chouette', 'chauve'].filter(id => known.includes(id) || id === 'renard' || id === 'herisson' || id === 'chevreuil'), out = [], nb = 1 + Math.floor(rn() * 3);
+    const known = FAUNA.filter(f => s.fauna && s.fauna[f.id]).map(f => f.id), pool = ['chevreuil', 'renard', 'sanglier', 'belette', 'herisson', 'chouette', 'chauve'].filter(id => known.includes(id) || id === 'renard' || id === 'herisson' || id === 'chevreuil'), out = [], nb = 1 + Math.floor(rn() * 3) + (skillLevel(s, 'observation') >= 2 ? 1 : 0);
     while (out.length < nb && pool.length) out.push(pool.splice(Math.floor(rn() * pool.length), 1)[0]); return out;
   }
   function finishAct(s, id, q, data) {
     const a = actState(s); if (a.done[id] && id !== 'trapset') return { ok: false }; q = clamp(q == null ? 1 : q, 0, 1); a.done[id] = true; const out = { ok: true, id, q }; let g = 0;
     gainXp(s, Math.round(ACT_XP[id] * (.6 + .8 * q)));
     if (id === 'photo') { const v = s.wild; if (v) { albumAdd(s, v.k, q, q > .85); out.k = v.k; } g = q > .8 ? 2 : 1; addCalm(s, 2); }
-    else if (id === 'affut') { const night = ['chouette', 'chauve', 'herisson', 'belette', 'renard'], rn = mulberry(s.day * 55 + 3), k = night[Math.floor(rn() * night.length)]; albumAdd(s, k, q, true); out.k = k; g = q > .7 ? 3 : 1; addCalm(s, 3); }
+    else if (id === 'affut') { const night = ['chouette', 'chauve', 'herisson', 'belette', 'renard'], rn = mulberry(s.day * 55 + 3), k = night[Math.floor(rn() * night.length)]; albumAdd(s, k, q, true); out.k = k; if (skillLevel(s, 'observation') >= 3) { const k2 = night[(night.indexOf(k) + 1 + Math.floor(rn() * 3)) % night.length]; albumAdd(s, k2, q, true); out.k2 = k2; } g = q > .7 ? 3 : 1; addCalm(s, 3); }
     else if (id === 'trapset') { if (!(s.mats.piege > 0)) { a.done[id] = false; return { ok: false }; } s.trap = { day: s.day }; addCalm(s, 1); }
     else if (id === 'trap') { const rn = mulberry(s.day * 91 + 5), ks = trapPick(s, rn); ks.forEach(k => albumAdd(s, k, .4 + rn() * .5, rn() < .25)); out.ks = ks; s.trap = null; a.done.trapset = false; g = ks.length > 2 ? 3 : ks.length > 1 ? 2 : 1; }
     else if (id === 'feeder') { s.feed = 3; s.fauna = s.fauna || {}; if (!s.fauna.oiseaux) { s.fauna.oiseaux = s.day; log(s, 'good', 'Les oiseaux découvrent ta mangeoire.'); } addCalm(s, 3); }
     else if (id === 'ronde') { let n = 0; for (const c of s.grid) { if (n >= Math.round(1 + q * 2)) break; if (c && c.sick && c.sick.k === 'limaces') { c.sick = null; n++; } } out.n = n; g = q > .7 ? 3 : 1; addCalm(s, 4); }
-    else if (id === 'bouquet') { const c = s.grid.find(c => c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .1); if (c) c.fl = r2(Math.max(0, (c.fl == null ? 1 : c.fl) - .1)); s.bouquet = { day: s.day }; addCalm(s, 4); g = 1; }
-    else if (id === 'tisane') { const used = (data && data.pids) || []; used.forEach(p => { if (p === 'fleurs') s.fleurs = r2(Math.max(0, (s.fleurs || 0) - .012)); else if (p === 'honey') s.honey = r2(Math.max(0, (s.honey || 0) - .01)); else { let need = .012; for (const it of s.stock) { if (it.pid !== p || need <= 0) continue; const t = Math.min(it.kg, need); it.kg = r2(it.kg - t); need -= t; } } }); s.stock = s.stock.filter(it => it.kg > 0.004); addCalm(s, 3 + Math.min(3, used.length)); g = used.length >= 3 ? 2 : 1; }
+    else if (id === 'bouquet') { const c = s.grid.find(c => c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .3); if (c) c.fl = r2(Math.max(0, (c.fl == null ? 1 : c.fl) - .05)); s.bouquet = { day: s.day }; addCalm(s, 4); g = 1; }
+    else if (id === 'tisane') { const used = (data && data.pids) || []; used.forEach(p => { if (p === 'fleurs') s.fleurs = r2(Math.max(0, (s.fleurs || 0) - .012)); else if (p === 'honey') s.honey = r2(Math.max(0, (s.honey || 0) - .01)); else { let need = .012; for (const it of s.stock) { if (it.pid !== p || need <= 0) continue; const t = Math.min(it.kg, need); it.kg = r2(it.kg - t); need -= t; } } }); s.stock = s.stock.filter(it => it.kg > 0.004); addCalm(s, Math.round((3 + Math.min(3, used.length)) * (skillLevel(s, 'herboristerie') >= 3 ? 1.5 : 1))); gainSkill(s, 'herboristerie', 1); g = used.length >= 3 ? 2 : 1; }
     else if (id === 'detente') { addCalm(s, 6 + (hasFurn(s, 'banc') || hamacOk(s) ? 3 : 0)); g = 1; }
+    if (['photo', 'affut', 'trap'].includes(id)) gainSkill(s, 'observation', 1);
+    if (g && hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
     if (g) { s.feves = (s.feves || 0) + g; out.g = g; }
     bump(s, 'act'); { const gq = gqInit(s); gq.cnt['act_' + id] = (gq.cnt['act_' + id] || 0) + 1; } return out;
   }
+  function shoot(s, kind, k, q) {
+    q = clamp(q == null ? .6 : q, 0, 1); if (!s.snap || s.snap.day !== s.day) s.snap = { day: s.day, n: 0 }; s.snapKinds = s.snapKinds || {};
+    const key = kind + (k ? ':' + k : ''), first = !s.snapKinds[key]; s.snapKinds[key] = 1; const out = { ok: true, first, g: 0, newSp: false };
+    if (kind === 'animal' && k) { const had = s.album && s.album[k] && s.album[k].n > 0; albumAdd(s, k, q, q > .85); out.newSp = !had; }
+    let g = kind === 'animal' ? (out.newSp ? 2 : 0) : (first ? 1 : 0);
+    if (s.snap.n < 6) { s.snap.n++; gainXp(s, 3 + (first ? 5 : 0) + (kind === 'animal' ? 3 : 0)); gainSkill(s, 'observation', 0); }
+    if (g && hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
+    if (g) { s.feves = (s.feves || 0) + g; out.g = g; }
+    bump(s, 'snap'); bump(s, 'snap_' + kind); return out;
+  }
   const ALB_MS = [[3, 5], [6, 8], [10, 14], [14, 20]];
   function albumInfo(s) { const n = Object.keys(s.album || {}).filter(k => s.album[k].n > 0).length; return { n, total: FAUNA.length, ms: ALB_MS.map(([k, g]) => ({ k, g, done: !!(s.albumRw && s.albumRw[k]), ok: n >= k })) }; }
-  function albumClaim(s) { const inf = albumInfo(s); let g = 0; s.albumRw = s.albumRw || {}; inf.ms.forEach(m => { if (m.ok && !m.done) { s.albumRw[m.k] = 1; g += m.g; } }); if (g) { s.feves = (s.feves || 0) + g; gainXp(s, 30); log(s, 'good', 'Album de la faune : +' + g + ' ginkgos.'); } return g; }
+  function albumClaim(s) { const inf = albumInfo(s); let g = 0; s.albumRw = s.albumRw || {}; inf.ms.forEach(m => { if (m.ok && !m.done) { s.albumRw[m.k] = 1; g += m.g; } }); if (g) { if (hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5); s.feves = (s.feves || 0) + g; gainXp(s, 30); log(s, 'good', 'Album de la faune : +' + g + ' ginkgos.'); } return g; }
   function pests(s, w, m, ev) {
     const rn = mulberry(s.day * 977 + 13), kinds = [];
     const w1 = weather(s.day - 1), w2 = weather(s.day - 2), wet = (w.rain || 0) + .6 * (w1.rain || 0) + .35 * (w2.rain || 0), pS = (wet >= 6 ? .5 : wet >= 2.5 ? .34 : wet >= .5 ? .12 : .008) * (s.poulailler ? .85 : 1), pF = (w.rain >= 1 && w.tmax >= 14 && w.tmax <= 28 && m >= 3 && m <= 10) ? .12 : .004;
@@ -639,7 +654,7 @@ function make(P) {
       else if (!s.trap && (s.mats.piege || 0) > 0 && !A.done.trapset) T.push({ id: 'act-trapset', prio: 2, icon: 'leaf', label: 'Poser le piège photo', sub: 'Résultat demain', act: { type: 'act', id: 'trapset' } });
       if (hasFurn(s, 'mangeoire') && !(s.feed > 0) && !A.done.feeder) T.push({ id: 'act-feeder', prio: 2, icon: 'leaf', label: 'Remplir la mangeoire', sub: 'Graines et eau fraîche : les oiseaux reviennent', act: { type: 'act', id: 'feeder' } });
       if (eve && !A.done.ronde && (s.maxPlantings || 0) >= 3) T.push({ id: 'act-ronde', prio: 2, icon: 'leaf', label: 'Ronde du soir avec la lampe', sub: 'Trouve limaces et lucioles dans le noir', act: { type: 'act', id: 'ronde' } });
-      if (s.grid.some(c => c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .1) && !A.done.bouquet) T.push({ id: 'act-bouquet', prio: 3, icon: 'leaf', label: 'Cueillir un bouquet', sub: 'Pour la table de la maison', act: { type: 'act', id: 'bouquet' } });
+      if (s.grid.some(c => c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .3) && !A.done.bouquet) T.push({ id: 'act-bouquet', prio: 3, icon: 'leaf', label: 'Cueillir un bouquet', sub: 'Pour la table de la maison', act: { type: 'act', id: 'bouquet' } });
       if (!A.done.tisane && ((s.fleurs || 0) > .015 || s.stock.some(it => it.kg > .02 && P[it.pid] && P[it.pid].strate === 'Couvre-sol'))) T.push({ id: 'act-tisane', prio: 3, icon: 'pot', label: 'Préparer une tisane', sub: 'Fleurs et herbes du jardin', act: { type: 'act', id: 'tisane' } });
       if (!A.done.detente) T.push({ id: 'act-detente', prio: 3, icon: 'leaf', label: 'Prendre un moment au jardin', sub: 'Respirer, regarder, écouter', act: { type: 'act', id: 'detente' } });
     }
@@ -681,7 +696,7 @@ function make(P) {
     if (assist) autoWater(s);
     s.day++; const w = weather(s.day), m = dateOf(s.day).m, tm = (w.tmin + w.tmax) / 2; s.w = w;
     s.tank = Math.min(s.tankMax, s.tank + w.rain * 10 * (1 + .3 * (s.cuves || 0)));
-    { const rg = m >= 2 && m <= 7 ? .008 : m >= 8 && m <= 10 ? .003 : .001; s.grid.forEach(c => { if (c && c.furn === 'prairie' && c.fl != null && c.fl < 1) c.fl = r2(Math.min(1, c.fl + rg)); }); }
+    { const rg = (m >= 2 && m <= 7 ? .016 : m >= 8 && m <= 10 ? .006 : .002) * (skillLevel(s, 'herboristerie') >= 2 ? 1.5 : 1); s.grid.forEach(c => { if (c && c.furn === 'prairie' && c.fl != null && c.fl < 1) c.fl = r2(Math.min(1, c.fl + rg)); }); }
     if (w.tmin < 0) ev.push({ t: 'warn', text: 'Gelée cette nuit (' + String(w.tmin).replace('.', ',') + ' °C).' });
     if (w.ev) { s.wxCount = s.wxCount || {}; s.wxCount[w.ev] = (s.wxCount[w.ev] || 0) + 1; const WT = { canicule: 'Canicule : ' + String(w.tmax).replace('.', ',') + ' °C, le sol sèche vite.', secheresse: 'Période sèche : pas de pluie, pense à arroser et à pailler.', tempete: 'Tempête de vent cette nuit.', orage: w.hail ? 'Orage de grêle !' : 'Orage : la cuve se remplit.' }; if (WT[w.ev]) ev.push({ t: 'warn', text: WT[w.ev] }); }
     let wxHit = 0;
@@ -759,7 +774,7 @@ function make(P) {
     const fl = new Set(pl.filter(c => P[c.pid].tags.includes('mellifere')).map(c => c.pid)).size, colr = new Set(pl.map(c => P[c.pid].col)).size;
     const furn = new Set(f.filter(c => c.treille && c.furn).map(c => c.furn)).size + pl.filter(c => c.nichoir).length * .5 + Math.min(4, pl.filter(c => c.mulch).length * .25);
     const fam = (s.family || []), joy = fam.length ? fam.reduce((a, m) => a + m.joy, 0) / fam.length : 0;
-    const esth = clamp((s.bouquet && s.day - s.bouquet.day < 3 ? 3 : 0) + joy * .3 + Math.min(1, furn / 14) * 25 + Math.min(1, fl / 25) * 20 + Math.min(1, colr / 20) * 10 + Math.min(1, new Set(pl.map(c => P[c.pid].strate)).size / 5) * 5 + Math.min(1, (s.spots || []).length / 12) * 10, 0, 100);
+    const esth = clamp((s.bouquet && s.day - s.bouquet.day < (skillLevel(s, 'herboristerie') >= 3 ? 5 : 3) ? 3 : 0) + joy * .3 + Math.min(1, furn / 14) * 25 + Math.min(1, fl / 25) * 20 + Math.min(1, colr / 20) * 10 + Math.min(1, new Set(pl.map(c => P[c.pid].strate)).size / 5) * 5 + Math.min(1, (s.spots || []).length / 12) * 10, 0, 100);
     const r = v => Math.round(v);
     return { bio: r(bio), rec: r(rec), esth: r(esth), total: r((bio + rec + esth) / 3), kcal30: Math.round(kcal30), parts: { joy: r(joy), furn: Math.round(furn * 10) / 10, fleurs: fl } };
   }
@@ -978,7 +993,7 @@ function make(P) {
     s.pts--; s.ptsSpent = (s.ptsSpent || 0) + 1; s.skills.lv[k] = st.nx;
     const m = 'Compétence « ' + d.n + ' » : niveau ' + st.nx + ' ! ' + d.d[st.nx - 1]; s.skillNotes.push(m); log(s, 'good', m); bump(s); return { ok: true, lv: st.nx, name: d.n };
   }
-  function advProgress(s, k) { const a = ADV[k], v = a.prac.k === 'species' ? Object.keys(s.skills.species || {}).length : a.prac.k === 'soin' ? ((s.gq && s.gq.cnt.soin) || 0) : (s.meals || 0); return v; }
+  function advProgress(s, k) { const a = ADV[k], v = a.prac.k === 'species' ? Object.keys(s.skills.species || {}).length : a.prac.k === 'album' ? albumInfo(s).n : a.prac.k === 'soin' ? ((s.gq && s.gq.cnt.soin) || 0) : (s.meals || 0); return v; }
   function advState(s, k) {
     const a = ADV[k]; if (hasAdv(s, k)) return { have: true };
     const reqs = Object.keys(a.reqs).map(r => ({ k: r, n: SKILLS[r].n, need: a.reqs[r], ok: skillLevel(s, r) >= a.reqs[r] })), prog = advProgress(s, k);
@@ -1057,24 +1072,27 @@ function make(P) {
     { id: 'hiver', t: 'Prépare l’hiver', say: 'Le froid arrive. Voici du paillage : il isole le sol du gel et garde l’humidité. Plante 8 cartes pour le recevoir.', need: 8, have: s => s.maxPlantings, rw: { paillage: 4 } },
     { id: 'herbier1', t: 'Premier herbier', say: 'Chaque espèce plantée entre dans ton herbier. Plante 12 espèces différentes : tes plantes poussent plus vite pendant quelques jours.', need: 12, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 3 } },
     { id: 'rare1', t: 'Une plante rare', say: 'Certaines plantes sont rares ou oubliées. Plante-en une pour recevoir du compost et un peu de paillage.', need: 1, have: s => Object.keys((s.skills && s.skills.species) || {}).filter(k => P[k] && P[k].rarete === 'Rare').length, rw: { compost: 3, paillage: 3 } },
-    { id: 'photo1', t: 'Photographie un visiteur', say: 'Un animal passe presque chaque jour : touche la tâche « Photographier » et prends-le en photo pour ton album.', need: 1, have: s => (s.gq.cnt.act_photo || 0), rw: { paillage: 1 } },
-    { id: 'album3', t: 'Album : 3 espèces', say: 'Ton album de la faune se remplit photo après photo. Réunis 3 espèces (Menu, Album de la faune).', need: 3, have: s => albumInfo(s).n, rw: { compost: 2, boost: 3 } },
-    { id: 'detente1', t: 'Cinq moments de détente', say: 'Respirer fait aussi partie du jardin : fais le « Moment de détente » 5 jours.', need: 5, have: s => (s.gq.cnt.act_detente || 0), rw: { boost: 3 } },
-    { id: 'banc1', t: 'Aménage un coin repos', say: 'Un banc ou un hamac à l’ombre : la famille s’y repose et ta forêt est plus belle. Achète-en un à la boutique (Détente et décor) et pose-le.', need: 1, have: s => (hasFurn(s, 'banc') || hasFurn(s, 'hamac')) ? 1 : 0, rw: { paillage: 2, boost: 3 }, gate: s => s.maxPlantings >= 3 },
-    { id: 'feeder1', t: 'Nourris les oiseaux 3 fois', say: 'Pose une mangeoire (boutique, Faune) puis remplis-la : mésanges et rouges-gorges viendront.', need: 3, have: s => (s.gq.cnt.act_feeder || 0), rw: { compost: 2, boost: 3 }, gate: s => s.maxPlantings >= 4 },
-    { id: 'trap1', t: 'Relève ton piège photo', say: 'Achète un piège photo à la boutique (Faune et observation), pose-le le soir, relève-le le lendemain : qui est passé ?', need: 1, have: s => (s.gq.cnt.act_trap || 0), rw: { boost: 5, compost: 2 }, gate: s => s.maxPlantings >= 4 },
-    { id: 'bouquet1', t: 'Compose 3 bouquets', say: 'Une prairie fleurie donne de quoi faire un bouquet pour la table : cueille-en trois, au fil des jours.', need: 3, have: s => (s.gq.cnt.act_bouquet || 0), rw: { paillage: 2, boost: 3 }, gate: s => s.grid.some(c => c && c.furn === 'prairie') },
-    { id: 'tisane1', t: 'Prépare 3 tisanes', say: 'Fleurs de la prairie, miel, menthe ou thym : compose ta tisane trois fois.', need: 3, have: s => (s.gq.cnt.act_tisane || 0), rw: { boost: 4 }, gate: s => s.maxPlantings >= 6 },
-    { id: 'affut1', t: 'Veille au crépuscule', say: 'À la tombée de la nuit (après 18 h ou avant 8 h), reste immobile à l’affût : un animal discret viendra peut-être.', need: 2, have: s => (s.gq.cnt.act_affut || 0), rw: { boost: 5, compost: 2 }, gate: s => s.maxPlantings >= 3 },
-    { id: 'ronde1', t: 'Fais 3 rondes du soir', say: 'Le soir, prends ta lampe : les limaces se cachent mais tu les trouveras. Trois rondes.', need: 3, have: s => (s.gq.cnt.act_ronde || 0), rw: { paillage: 3, boost: 4 }, gate: s => s.maxPlantings >= 3 },
+    { id: 'photo1', t: 'Photographie un visiteur', say: 'Un animal passe presque chaque jour : touche la tâche « Photographier » et prends-le en photo pour ton album.', need: 1, have: s => (s.gq.cnt.act_photo || 0), rw: { paillage: 1 , items: { boismort: 1 } } },
+    { id: 'album3', t: 'Album : 3 espèces', say: 'Ton album de la faune se remplit photo après photo. Réunis 3 espèces (Menu, Album de la faune).', need: 3, have: s => albumInfo(s).n, rw: { compost: 2, boost: 3 , items: { pierres: 1 } }, gate: s => s.maxPlantings >= 3 },
+    { id: 'detente1', t: 'Cinq moments de détente', say: 'Respirer fait aussi partie du jardin : fais le « Moment de détente » 5 jours.', need: 5, have: s => (s.gq.cnt.act_detente || 0), rw: { boost: 3 , items: { banc: 1 } }, gate: s => s.maxPlantings >= 3 },
+    { id: 'banc1', t: 'Aménage un coin repos', say: 'Un banc ou un hamac à l’ombre : la famille s’y repose et ta forêt est plus belle. Achète-en un à la boutique (Détente et décor) et pose-le.', need: 1, have: s => (hasFurn(s, 'banc') || hasFurn(s, 'hamac')) ? 1 : 0, rw: { paillage: 2, boost: 3 , items: { prairie: 1 } }, gate: s => s.maxPlantings >= 4 },
+    { id: 'feeder1', t: 'Nourris les oiseaux 3 fois', say: 'Pose une mangeoire (boutique, Faune) puis remplis-la : mésanges et rouges-gorges viendront.', need: 3, have: s => (s.gq.cnt.act_feeder || 0), rw: { compost: 2, boost: 3 , items: { hotel: 1 } }, gate: s => s.maxPlantings >= 5 },
+    { id: 'trap1', t: 'Relève ton piège photo', say: 'Achète un piège photo à la boutique (Faune et observation), pose-le le soir, relève-le le lendemain : qui est passé ?', need: 1, have: s => (s.gq.cnt.act_trap || 0), rw: { boost: 5, compost: 2 , items: { mangeoire: 1 } }, gate: s => s.maxPlantings >= 4 },
+    { id: 'bouquet1', t: 'Compose 3 bouquets', say: 'Une prairie fleurie donne de quoi faire un bouquet pour la table : cueille-en trois, au fil des jours.', need: 3, have: s => (s.gq.cnt.act_bouquet || 0), rw: { paillage: 2, boost: 3 , items: { prairie: 1 } }, gate: s => s.grid.some(c => c && c.furn === 'prairie') },
+    { id: 'tisane1', t: 'Prépare 3 tisanes', say: 'Fleurs de la prairie, miel, menthe ou thym : compose ta tisane trois fois.', need: 3, have: s => (s.gq.cnt.act_tisane || 0), rw: { boost: 4 , items: { prairie: 1 } }, gate: s => s.maxPlantings >= 6 },
+    { id: 'affut1', t: 'Veille au crépuscule', say: 'À la tombée de la nuit (après 18 h ou avant 8 h), reste immobile à l’affût : un animal discret viendra peut-être.', need: 2, have: s => (s.gq.cnt.act_affut || 0), rw: { boost: 5, compost: 2 , items: { boismort: 1 } }, gate: s => s.maxPlantings >= 3 },
+    { id: 'ronde1', t: 'Fais 3 rondes du soir', say: 'Le soir, prends ta lampe : les limaces se cachent mais tu les trouveras. Trois rondes.', need: 3, have: s => (s.gq.cnt.act_ronde || 0), rw: { paillage: 3, boost: 4 , items: { pierres: 1 } }, gate: s => s.maxPlantings >= 3 },
     { id: 'scare1', t: 'Effarouche 3 visiteurs', say: 'Quand un animal abîme tes plantes, touche « Effaroucher » à temps. Trois fois.', need: 3, have: s => (s.gq.cnt.scare || 0), rw: { compost: 2, boost: 3 } },
-    { id: 'album8', t: 'Album : 8 espèces', say: 'Photographie, pose ton piège et guette le soir : réunis 8 espèces dans ton album.', need: 8, have: s => albumInfo(s).n, rw: { boost: 8, compost: 3 }, gate: s => s.maxPlantings >= 6 },
-    { id: 'album14', t: 'Album : 14 espèces', say: 'Un vrai naturaliste ! 14 espèces dans l’album de la faune.', need: 14, have: s => albumInfo(s).n, rw: { boost: 14, paillage: 4 }, gate: s => s.maxPlantings >= 12 },
+    { id: 'album8', t: 'Album : 8 espèces', say: 'Photographie, pose ton piège et guette le soir : réunis 8 espèces dans ton album.', need: 8, have: s => albumInfo(s).n, rw: { boost: 8, compost: 3 , items: { mare: 1 } }, gate: s => s.maxPlantings >= 6 },
+    { id: 'album14', t: 'Album : 14 espèces', say: 'Un vrai naturaliste ! 14 espèces dans l’album de la faune.', need: 14, have: s => albumInfo(s).n, rw: { boost: 14, paillage: 4 , items: { ruche: 1 } }, gate: s => s.maxPlantings >= 12 },
+    { id: 'snap3', t: 'Prends 3 photos', say: 'Touche le petit appareil photo à droite de la carte : photographie un animal, ta guilde, ton jardinier… tout ce qui est joli.', need: 3, have: s => (s.gq.cnt.snap || 0), rw: { compost: 1 } },
+    { id: 'snapg', t: 'Photographie une guilde', say: 'Cadre une de tes guildes bien fournie avec l’appareil photo : elle rejoint tes photos.', need: 1, have: s => (s.gq.cnt.snap_guilde || 0), rw: { items: { prairie: 1 } }, gate: s => guilds(s).n >= 1 },
+    { id: 'snapa', t: 'Photographie 3 animaux', say: 'Un animal à l’écran ? Cadre-le avec l’appareil photo avant qu’il parte : trois fois.', need: 3, have: s => (s.gq.cnt.snap_animal || 0), rw: { items: { mangeoire: 1 }, boost: 3 }, gate: s => s.maxPlantings >= 4 },
     { id: 'herbier2', t: 'Herbier de 40 espèces', say: 'Quarante espèces différentes plantées : ton jardin devient une vraie collection. Compost et croissance accélérée à la clé.', need: 40, have: s => Object.keys((s.skills && s.skills.species) || {}).length, rw: { boost: 5, compost: 3 } },
     { id: 'p3', t: 'Plante 6 cartes', say: 'Pose 6 plantes dans ta forêt. Une graine en terre, c’est déjà un jardin.', need: 6, have: s => s.maxPlantings, rw: { compost: 1 } },
     { id: 'eau3', t: 'Arrose 10 plantes', say: 'Elles ont soif ! Arrose 10 plantes au total, la goutte bleue te montre lesquelles.', need: 10, have: s => (s.gq.cnt.water || 0), rw: { boost: 3 } },
     { id: 'cuve1', t: 'Récupère la pluie', say: 'L’été, la réserve d’eau se vide vite. Voici une cuve de récupération : joue-la depuis ton matériel pour agrandir ta réserve de 150 L. Atteins 14 plantations pour la recevoir.', need: 14, have: s => s.maxPlantings, rw: { cuve: 1 } },
-    { id: 'guilde1', t: 'Plante ta première guilde', say: 'Plante une guilde : un arbre entouré d’au moins 5 plantes d’espèces différentes couvrant 4 strates (arbuste, herbacée, racine, grimpante, couvre-sol). Je te donne un bonus de croissance !', need: 1, have: s => guilds(s).n, rw: { boost: 7, paillage: 3 } },
+    { id: 'guilde1', t: 'Plante ta première guilde', say: 'Plante une guilde : un arbre entouré d’au moins 5 plantes d’espèces différentes couvrant 4 strates (arbuste, herbacée, racine, grimpante, couvre-sol). Je te donne un bonus de croissance !', need: 1, have: s => guilds(s).n, rw: { boost: 7, paillage: 3 , items: { boismort: 1 } } },
     { id: 'rec3', t: 'Récolte 8 fois', say: 'Un panier orange sur une plante : c’est prêt ! Récolte 8 fois.', need: 8, have: s => (s.gq.cnt.harvest || 0), rw: { compost: 1 } },
     { id: 'repas1', t: 'Cuisine 3 repas', say: 'Direction le garde-manger : cuisine trois repas de ta forêt pour ta famille.', need: 3, have: s => s.meals, rw: { paillage: 2 } },
     { id: 'paille3', t: 'Paille 8 plantes', say: 'La paille garde l’eau et nourrit le sol. Paille 8 plantes.', need: 8, have: s => (s.gq.cnt.mulch || 0), rw: { boost: 3 } },
@@ -1086,15 +1104,15 @@ function make(P) {
     { id: 'boutique1', t: 'Fais un achat à la boutique', say: 'Tu as des ginkgos ! À la boutique, tu peux t’offrir un meuble ou un bâtiment pour ton jardin.', need: 1, have: s => (s.gq.cnt.shop || 0), rw: { boost: 3 } },
     { id: 'sp6', t: '9 espèces différentes', say: 'Plus c’est varié, plus c’est résistant. Plante 9 espèces différentes.', need: 9, have: s => nSpecies(s), rw: { compost: 2 } },
     { id: 'tonte1', t: 'Tonds 5 zones d’herbe', say: 'L’herbe haute autour du jardin ? Tonds-la, tu récupères du paillage.', need: 5, have: s => (s.gq.cnt.mow || 0), rw: { paillage: 2 } },
-    { id: 'p12', t: 'Atteins 20 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 20 plantations.', need: 20, have: s => s.maxPlantings, rw: { boost: 5 } },
-    { id: 'guilde2', t: 'Deux guildes', say: 'Une deuxième guilde ! Elles se protègent entre elles.', need: 2, have: s => guilds(s).n, rw: { boost: 10, compost: 2 } },
-    { id: 'auto25', t: 'Autonomie à 30 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 30 %.', need: 30, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 } },
+    { id: 'p12', t: 'Atteins 20 plantations', say: 'Ta forêt grandit ! Continue jusqu’à 20 plantations.', need: 20, have: s => s.maxPlantings, rw: { boost: 5 , items: { hotel: 1 } } },
+    { id: 'guilde2', t: 'Deux guildes', say: 'Une deuxième guilde ! Elles se protègent entre elles.', need: 2, have: s => guilds(s).n, rw: { boost: 10, compost: 2 , items: { prairie: 1 } } },
+    { id: 'auto25', t: 'Autonomie à 30 %', say: 'Plus ta forêt produit et plus tes guildes sont autonomes, plus tu es autonome. Vise 30 %.', need: 30, have: s => Math.floor(stats(s).autonomy), rw: { boost: 7, compost: 2 , items: { pierres: 1 } } },
     { id: 'trogne1', t: 'Taille une trogne', say: 'Ouvre les Compétences, choisis Trognes, puis touche un arbre au bord du jardin pour le tailler en têtard, et coupe-le ensuite : paillage et pousse accélérée.', need: 1, have: s => (s.gq.cnt.trogne || 0), rw: { paillage: 4 } },
     { id: 'repas5', t: 'Cuisine 15 repas', say: 'Ta famille compte sur toi : 15 repas au total.', need: 15, have: s => s.meals, rw: { boost: 5 } },
     { id: 'miel1', t: 'Récolte du miel', say: 'Les abeilles ont travaillé ! Récolte le miel de la ruche (de mai à septembre).', need: 1, have: s => (s.gq.cnt.honey || 0), rw: { boost: 5, paillage: 2 } },
-    { id: 'sp12', t: '18 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 18 espèces.', need: 18, have: s => nSpecies(s), rw: { compost: 3 } },
+    { id: 'sp12', t: '18 espèces différentes', say: 'Une vraie forêt, c’est de la diversité : 18 espèces.', need: 18, have: s => nSpecies(s), rw: { compost: 3 , items: { prairie: 1 } } },
     { id: 'auto50', t: 'Autonomie à 60 %', say: 'Plus de la moitié de tes besoins couverts par ton jardin : c’est énorme. Vise 60 %.', need: 60, have: s => Math.floor(stats(s).autonomy), rw: { boost: 14, paillage: 5 } },
-    { id: 'guilde4', t: 'Quatre guildes', say: 'Quatre guildes, bravo ! Tu penses comme une forêt.', need: 4, have: s => guilds(s).n, rw: { boost: 14, paillage: 4 } },
+    { id: 'guilde4', t: 'Quatre guildes', say: 'Quatre guildes, bravo ! Tu penses comme une forêt.', need: 4, have: s => guilds(s).n, rw: { boost: 14, paillage: 4 , items: { hamac: 1 } } },
     { id: 'p30', t: 'Atteins 50 plantations', say: 'Ta forêt devient un vrai jardin-forêt. Cap sur 50 plantations.', need: 50, have: s => s.maxPlantings, rw: { boost: 10, compost: 3 } }
   ];
   const DAILY = [
@@ -1102,7 +1120,8 @@ function make(P) {
     { k: 'harvest', t: 'Récolte 4 fois aujourd’hui', say: 'Défi du jour : récolte 4 fois.', need: 4, rw: { compost: 1 } },
     { k: 'mulch', t: 'Paille 4 plantes aujourd’hui', say: 'Défi du jour : paille 4 plantes.', need: 4, rw: { boost: 2 } }
   ];
-  function rwLabel(rw) { const o = []; if (rw.paillage) o.push(rw.paillage + ' paillage'); if (rw.compost) o.push(rw.compost + ' compost'); if (rw.boost) o.push('croissance accélérée ' + rw.boost + ' j'); if (rw.eau) o.push(rw.eau + ' L d’eau'); if (rw.chemin) o.push(rw.chemin + ' tronçons de sentier'); if (rw.cuve) o.push('une cuve de récupération'); return o.join(' + '); }
+  const ITEMN = { prairie: 'une prairie fleurie', boismort: 'un tas de bois mort', pierres: 'un tas de pierres', hotel: 'un hôtel à insectes', banc: 'un banc', mangeoire: 'une mangeoire', piege: 'un piège photo', nichoir: 'un nichoir', hamac: 'un hamac', mare: 'une mare', ruche: 'une ruche', treille: 'une treille' };
+  function rwLabel(rw) { const o = []; if (rw.items) Object.keys(rw.items).forEach(k => o.push(ITEMN[k] || k)); if (rw.paillage) o.push(rw.paillage + ' paillage'); if (rw.compost) o.push(rw.compost + ' compost'); if (rw.boost) o.push('croissance accélérée ' + rw.boost + ' j'); if (rw.eau) o.push(rw.eau + ' L d’eau'); if (rw.chemin) o.push(rw.chemin + ' tronçons de sentier'); if (rw.cuve) o.push('une cuve de récupération'); return o.join(' + '); }
   function quests(s) {
     gqInit(s); const out = [];
     for (const q of GQ) { if (q.gate && !q.gate(s) && !(s.gq.claimed[q.id]) && !(q.have(s) > 0)) continue; const have = Math.min(q.need, q.have(s)), done = have >= q.need, claimed = !!s.gq.claimed[q.id]; out.push({ id: q.id, t: q.t, say: q.say, have, need: q.need, done, claimed, rw: q.rw, label: rwLabel(q.rw), daily: false }); }
@@ -1118,6 +1137,7 @@ function make(P) {
     const q = quests(s).find(x => x.id === id); if (!q || !q.done || q.claimed) return { ok: false }; gainXp(s, 40);
     s.gq.claimed[id] = s.day + 1;
     for (const k of ['paillage', 'compost']) if (q.rw[k]) s.mats[k] = (s.mats[k] || 0) + q.rw[k];
+    if (q.rw.items) Object.keys(q.rw.items).forEach(k => { s.mats[k] = (s.mats[k] || 0) + q.rw.items[k]; });
     if (q.rw.eau) s.tank = Math.min(s.tankMax, s.tank + q.rw.eau);
     if (q.rw.chemin) s.mats.chemin = (s.mats.chemin || 0) + q.rw.chemin; if (q.rw.cuve) s.mats.cuve = (s.mats.cuve || 0) + q.rw.cuve;
     s.feves = (s.feves || 0) + q.fv;
@@ -1174,7 +1194,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, shoot, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     albumInfo, albumClaim, finishAct, actStatus, hasFurn, calmBonus, trapPick, scareWild, WILD, flReady, flSeason, harvestFleurs, neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };

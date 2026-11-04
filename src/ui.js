@@ -1170,11 +1170,56 @@ function actDetente() {
   $('dtok').onclick = () => { const p = Math.min(1, (performance.now() - t0) / D); actDone('detente', { q: Math.max(.3, p) }, p >= 1 ? 'Ton esprit est au calme.' : 'Un petit moment de calme.'); closeLayer(); };
 }
 /* 9. album */
+/* ---------- appareil photo : à tout moment ---------- */
+const PHKEY = KEY + '-photos';
+function photosLoad() { try { const a = JSON.parse(localStorage.getItem(PHKEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function photosSave(a) { try { localStorage.setItem(PHKEY, JSON.stringify(a.slice(-24))); } catch (e) { try { localStorage.setItem(PHKEY, JSON.stringify(a.slice(-8))); } catch (e2) {} } }
+let camTimer = 0;
+function closeCam() { clearInterval(camTimer); camTimer = 0; const d = $('camOv'); if (d) d.remove(); }
+function camRect() { const f = document.querySelector('#camOv .cam-fr'); return f ? f.getBoundingClientRect() : null; }
+function camSubject() {
+  const r = camRect(); if (!r || !window.V3D || !V3D.screenXZ) return { kind: 'paysage', label: 'Le jardin', q: .5 };
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, hd = Math.hypot(r.width, r.height) / 2;
+  const inF = (p, m) => p[0] > r.left + m && p[0] < r.right - m && p[1] > r.top + m && p[1] < r.bottom - m, cent = p => clamp01(1 - Math.hypot(p[0] - cx, p[1] - cy) / hd);
+  function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+  const wi = V3D.wildInfo && V3D.wildInfo();
+  if (wi && wi.vis && wi.st !== 'gone' && S.wild) { const p = V3D.screenXZ(wi.pos[0], wi.pos[2]); p[1] -= 14; if (inF(p, 10)) { const f = G.FAUNA.find(x => x.id === wi.k); return { kind: 'animal', k: wi.k, label: (f ? f.n : wi.k), q: .45 + .55 * cent(p), emoji: anEmoji(wi.k) }; } }
+  let best = null; G.guilds(S).ids.forEach(i => { const p = V3D.screenOf(i); if (inF(p, 24)) { const c = cent(p); if (!best || c > best.c) best = { c }; } });
+  if (best) return { kind: 'guilde', label: 'Une guilde', q: .5 + .5 * best.c, emoji: '🌳' };
+  if (V3D.gardenerPos) { const g = V3D.gardenerPos(), p = V3D.screenXZ(g[0], g[1]); p[1] -= 18; if (inF(p, 14)) return { kind: 'jardinier', label: 'Le jardinier', q: .5 + .5 * cent(p), emoji: '🧑‍🌾' }; }
+  let fl = 0; S.grid.forEach((c, i) => { if (c && c.furn === 'prairie') { const p = V3D.screenOf(i); if (inF(p, 0)) fl++; } });
+  if (fl) return { kind: 'fleurs', label: 'Prairie fleurie', q: .55, emoji: '🌼' };
+  const m = G.dateOf(S.day).m; return { kind: 'paysage', label: 'Le jardin ' + (m >= 2 && m <= 4 ? 'au printemps' : m >= 5 && m <= 7 ? 'en été' : m >= 8 && m <= 10 ? 'en automne' : 'en hiver'), q: .5, emoji: '🏡' };
+}
+function camTick() { const h = $('camHint'); if (!h) return; const s = camSubject(); h.className = 'cam-hint' + (s.kind === 'animal' || s.kind === 'guilde' ? ' hit' : ''); h.textContent = s.kind === 'paysage' ? 'Cadre un animal, une guilde, ton jardinier…' : s.emoji + ' ' + s.label + ' dans le cadre'; }
+function openCam() {
+  if (!(window.V3D && V3D.on && V3D.snap)) { toast('L’appareil photo demande la vue 3D.'); return; }
+  if ($('camOv')) { closeCam(); return; }
+  const d = document.createElement('div'); d.id = 'camOv';
+  d.innerHTML = '<div class="cam-fr"><i></i><i></i><i></i><i></i></div><div class="cam-hint" id="camHint"></div><button type="button" class="cam-x" data-act="cam-close">Fermer</button><button type="button" class="cam-shut" data-act="cam-shot" aria-label="Prendre la photo"></button><button type="button" class="cam-gal" data-act="photos">Photos (' + photosLoad().length + ')</button>';
+  document.body.appendChild(d); camTick(); camTimer = setInterval(camTick, 400);
+}
+function camShot() {
+  const r = camRect(), ov = $('camOv'); if (!r || !ov) return; const sub = camSubject(), img = V3D.snap(r.left, r.top, r.width, r.height);
+  if (!img) { toast('La photo a échoué, réessaie.'); return; }
+  const res = G.shoot(S, sub.kind, sub.k, sub.q), arr = photosLoad(); arr.push({ id: Date.now(), day: S.day, kind: sub.kind, k: sub.k || null, label: sub.label, img, q: Math.round(sub.q * 100) }); photosSave(arr); save(); render();
+  ov.classList.remove('flash'); void ov.offsetWidth; ov.classList.add('flash');
+  const gain = res.newSp ? 'Nouvelle espèce dans l’album !' : res.first ? 'Première photo de ce genre' : ''; const p = document.createElement('div'); p.className = 'cam-pol'; p.innerHTML = '<img alt="" src="' + img + '"><b>' + esc(sub.label) + '</b>' + (gain || res.g ? '<small>' + gain + (res.g ? ' +' + res.g + ' ginkgo' + (res.g > 1 ? 's' : '') : '') + '</small>' : ''); ov.appendChild(p); setTimeout(() => p.remove(), 2700);
+  const b = ov.querySelector('.cam-gal'); if (b) b.textContent = 'Photos (' + arr.length + ')';
+}
+function openPhotos() {
+  closeCam(); const arr = photosLoad().slice().reverse();
+  modal('Mes photos', arr.length ? '<p class="note-p">' + arr.length + ' photo' + (arr.length > 1 ? 's' : '') + ' (les 24 dernières sont gardées sur cet appareil). Touche une photo pour l’agrandir ou la télécharger.</p><div class="ph-grid">' + arr.map(p => '<button type="button" class="ph-th" data-act="photo-view" data-id="' + p.id + '"><img alt="" src="' + p.img + '"><b>' + esc(p.label) + '</b><small>' + dateStr(p.day, true) + '</small></button>').join('') + '</div>' : '<p class="note-p">Aucune photo pour l’instant. Touche le petit appareil photo (à droite de la carte) puis cadre un animal, une guilde, ton jardinier ou un joli coin.</p>', true);
+}
+function openPhoto(id) {
+  const p = photosLoad().find(x => String(x.id) === String(id)); if (!p) { openPhotos(); return; }
+  modal(p.label, '<div class="ph-big"><img alt="' + esc(p.label) + '" src="' + p.img + '"></div><p class="note-p">' + dateStr(p.day, true) + '</p><div class="acts" style="justify-content:flex-start"><a class="btn sm primary" href="' + p.img + '" download="jardin-vivant-' + p.id + '.jpg">Télécharger</a><button type="button" class="btn sm" data-act="photos">Retour aux photos</button><button type="button" class="btn sm" data-act="photo-del" data-id="' + p.id + '">Supprimer</button></div>');
+}
 function openAlbum() {
   const inf = G.albumInfo(S), A = S.album || {};
   const cards = G.FAUNA.map(f => { const a = A[f.id], seen = !!(S.fauna && S.fauna[f.id]); return '<div class="alb-c' + (a && a.n ? ' got' : seen ? ' seen' : ' lock') + '"><div class="alb-e">' + (seen || (a && a.n) ? anEmoji(f.id) : '❓') + (a && a.rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + (seen || (a && a.n) ? f.n : '???') + '</b><span>' + (a && a.n ? stars((a.best || 40) / 100) + ' · ' + a.n + ' photo' + (a.n > 1 ? 's' : '') : seen ? 'Vu, à photographier' : f.h) + '</span></div>'; }).join('');
   const ms = inf.ms.map(m => '<span class="alb-m' + (m.done ? ' done' : m.ok ? ' ok' : '') + '">' + m.k + ' espèces · ' + m.g + ' ginkgos</span>').join('');
-  modal('Album de la faune', '<p class="note-p"><b>' + inf.n + ' / ' + inf.total + '</b> espèces photographiées. Photographie les visiteurs du jour, pose un piège photo ou guette à la tombée de la nuit.</p><div class="alb-ms">' + ms + '</div>' + (inf.ms.some(m => m.ok && !m.done) ? '<div class="acts" style="justify-content:flex-start;margin:6px 0"><button type="button" class="btn sm" data-act="album-claim">Récupérer les récompenses</button></div>' : '') + '<div class="alb-g">' + cards + '</div>', true);
+  modal('Album de la faune', '<div class="acts" style="justify-content:flex-start;margin:0 0 8px"><button type="button" class="btn sm" data-act="photos">Mes photos (' + photosLoad().length + ')</button><button type="button" class="btn sm" data-act="cam">Appareil photo</button></div><p class="note-p"><b>' + inf.n + ' / ' + inf.total + '</b> espèces photographiées. Photographie les visiteurs du jour, pose un piège photo ou guette à la tombée de la nuit.</p><div class="alb-ms">' + ms + '</div>' + (inf.ms.some(m => m.ok && !m.done) ? '<div class="acts" style="justify-content:flex-start;margin:6px 0"><button type="button" class="btn sm" data-act="album-claim">Récupérer les récompenses</button></div>' : '') + '<div class="alb-g">' + cards + '</div>', true);
 }
 function openKitchen(res) {
   const t = G.stockTotals(S), ids = Object.keys(t).map(Number).filter(id => t[id] > .03), hasH = (S.honey || 0) > .02, hasE = (S.eggs || 0) >= 1, hasF = (S.fleurs || 0) > .01;
@@ -1310,12 +1355,14 @@ const SKILL_SVG = {
   tonte: '<path d="M16 68h48" stroke="#6a4e39" stroke-width="4" stroke-linecap="round"/><g stroke="#4f9a4a" stroke-width="3.2" stroke-linecap="round" fill="none"><path d="M20 68q-2-12-6-20M32 68q0-16-2-26M44 68q2-18 6-30M56 68q-1-12 4-22"/></g><path d="M16 24q30-12 48 20" stroke="#9aa6ae" stroke-width="4.4" fill="none" stroke-linecap="round"/><path d="M16 24L8 14" stroke="#8a6240" stroke-width="4.4" stroke-linecap="round"/>',
   bouture: '<path d="M40 12v36" stroke="#4f9a4a" stroke-width="4" stroke-linecap="round"/><path d="M40 26c-12-2-18-10-18-16 10 0 18 6 18 16zM40 38c12-2 18-10 18-16-10 0-18 6-18 16z" fill="#7dbb5c"/><path d="M40 52q-6 8-12 10M40 52v14M40 52q6 8 12 10" stroke="#b08a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M22 50l36-6" stroke="#aab3ba" stroke-width="3.2" stroke-linecap="round"/>',
   greffe: '<path d="M30 72V42l-8-16M30 42l20-20" stroke="#7a5636" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M25 46l16-9" stroke="#e8d5a8" stroke-width="5"/><circle cx="54" cy="18" r="6" fill="#e0603a"/><circle cx="19" cy="21" r="5" fill="#f0b23a"/>',
+  observation: '<path d="M14 28h12l5-8h18l5 8h12v36H14z" fill="#5f6e79"/><circle cx="40" cy="43" r="13" fill="#2a343c" stroke="#c9d4db" stroke-width="3"/><circle cx="40" cy="43" r="6" fill="#3d6a8a"/><circle cx="37" cy="40" r="2" fill="#fff" opacity=".8"/><rect x="58" y="32" width="6" height="4" rx="1.5" fill="#e8832a"/>',
+  herboristerie: '<path d="M40 70V40" stroke="#4f9a4a" stroke-width="3.5" stroke-linecap="round"/><path d="M40 56c-10-2-14-8-14-14 8 0 14 6 14 14z" fill="#6aa84f"/><g fill="#f4c542"><circle cx="40" cy="22" r="6"/><circle cx="30" cy="28" r="6"/><circle cx="50" cy="28" r="6"/><circle cx="33" cy="38" r="6"/><circle cx="47" cy="38" r="6"/></g><circle cx="40" cy="31" r="5" fill="#d9733a"/>',
   cuisine: '<path d="M16 38h48l-4 26H20z" fill="#7a8a96"/><path d="M12 38h56" stroke="#5f6e79" stroke-width="5" stroke-linecap="round"/><path d="M30 28q-4-8 0-14M42 28q-4-8 0-14M54 28q-4-8 0-14" stroke="#c9d3d8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M8 46h8M64 46h8" stroke="#5f6e79" stroke-width="4" stroke-linecap="round"/>'
 };
 const SKILL_ART = k => ({ trogne: MATS.trogne.svg, fabrication: MATS.ortie.svg, sechage: MATS.sechoir.svg, transformation: MATS.bocaux.svg })[k] || SKILL_SVG[k];
 const RECIPE_N = { ortie: 'Purin d’ortie', prele: 'Prêle', nichoir: 'Nichoir à mésanges', oya: 'Oya', cuve: 'Cuve' };
-const SK_CAT = { plantation: 'culture', bouture: 'culture', greffe: 'culture', tonte: 'entretien', trogne: 'entretien', fabrication: 'entretien', cuisine: 'expertise', sechage: 'expertise', transformation: 'expertise' };
-const SK_ORDER = ['plantation', 'tonte', 'trogne', 'bouture', 'greffe', 'fabrication', 'sechage', 'transformation', 'cuisine'];
+const SK_CAT = { plantation: 'culture', bouture: 'culture', greffe: 'culture', tonte: 'entretien', trogne: 'entretien', fabrication: 'entretien', cuisine: 'expertise', sechage: 'expertise', transformation: 'expertise', observation: 'expertise', herboristerie: 'expertise' };
+const SK_ORDER = ['plantation', 'tonte', 'trogne', 'bouture', 'greffe', 'fabrication', 'sechage', 'transformation', 'cuisine', 'observation', 'herboristerie'];
 function gardenerPortrait() {
   return '<svg viewBox="0 0 72 80" width="72" height="80" aria-hidden="true"><rect width="72" height="80" rx="14" fill="#e6efdc"/><path d="M14 80c0-16 10-24 22-24s22 8 22 24z" fill="#5f8f4a"/><path d="M28 56h16v24H28z" fill="#e9d9a8"/><path d="M24 66l4-10M48 66l-4-10" stroke="#3d6a34" stroke-width="3" stroke-linecap="round"/><circle cx="36" cy="38" r="13" fill="#f1c9a0"/><ellipse cx="36" cy="27" rx="25" ry="5.5" fill="#d9ad52"/><path d="M23 27c0-12 6-18 13-18s13 6 13 18z" fill="#e7bf63"/><path d="M23 25h26" stroke="#b9442f" stroke-width="3"/><circle cx="31" cy="38" r="1.6" fill="#2b2018"/><circle cx="41" cy="38" r="1.6" fill="#2b2018"/><path d="M31 44q5 4 10 0" stroke="#8a4b2d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
 }
@@ -1342,6 +1389,7 @@ function openSkills() {
       if (k === 'fabrication') A.push(Object.keys(G.RECIPES).map(r => { const rc = G.RECIPES[r], ok = s.lv >= rc.lvl && (S.mats.paillage || 0) >= (rc.paillage || 0) && (S.mats.compost || 0) >= (rc.compost || 0); return '<button type="button" class="sk-btn sm" data-act="craft" data-k="' + r + '"' + (ok ? '' : ' disabled') + ' title="' + (s.lv >= rc.lvl ? '' : 'Niveau ' + rc.lvl + ' requis') + '">' + RECIPE_N[r] + ' · ' + (rc.paillage || 0) + ' paillage' + (rc.compost ? ' + ' + rc.compost + ' compost' : '') + (s.lv >= rc.lvl ? '' : ' (niv. ' + rc.lvl + ')') + '</button>'; }).join(''));
       if (k === 'plantation') A.push('<button type="button" class="sk-btn" data-act="close">Aller planter</button>');
       if (k === 'tonte') A.push('<button type="button" class="sk-btn" data-act="close">Aller tondre</button>');
+      if (k === 'observation') A.push('<button type="button" class="sk-btn" data-act="cam">Ouvrir l’appareil photo</button>');
       if (k === 'cuisine') A.push('<button type="button" class="sk-btn" data-act="kitchen">Ouvrir le garde-manger</button>');
     }
     c += '<div class="sk-acts">' + A.join('') + '</div></div>';
@@ -1675,6 +1723,12 @@ document.addEventListener('click', e => {
     case 'tool-select': ui.spade = null; ui.hedgeSel = null; ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'tool-delete': ui.tool = ui.tool === 'delete' ? 'select' : 'delete'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
+    case 'cam': openCam(); break;
+    case 'cam-close': closeCam(); break;
+    case 'cam-shot': camShot(); break;
+    case 'photos': openPhotos(); break;
+    case 'photo-view': openPhoto(a.dataset.id); break;
+    case 'photo-del': { const arr = photosLoad().filter(x => String(x.id) !== String(a.dataset.id)); photosSave(arr); openPhotos(); break; }
     case 'zoom-in': zoomBy(1.3); break;
     case 'zoom-out': zoomBy(1 / 1.3); break;
     case 'rot-l': VROT = (VROT + 3) % 4; render(); break;

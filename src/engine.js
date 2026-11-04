@@ -285,7 +285,7 @@ function make(P) {
     s.waste = r2((s.waste || 0) + kg * .6); s.stock.push({ pid: p.id, kg, day: s.day }); (s.prod = s.prod || []).push({ day: s.day, kcal: Math.round(kg * 10 * p.kcal) });
     if (p.kind === 'annuelle') { s.grid[i] = null; s.soil = clamp(s.soil + .3, 0, 100); }
     else c.lastPick = s.day;
-    const lateD = c.readyDay != null ? s.day - c.readyDay : 0; c.readyDay = null;
+    const lateD = c.readyDay != null ? s.day - c.readyDay : 0; c.readyDay = null; c.ready = false;
     log(s, 'good', 'Récolte : ' + kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + (lateD > 3 ? ' (un peu passé : récolte plus vite la prochaine fois).' : '.'));
     discover(s, 'harvest', p.id, 60);
     let seed = false; if (p.kind !== 'vivace' && s.seedDay !== s.day && mulberry(s.day * 31 + i * 7 + s.plantings)() < .22) { s.seedDay = s.day; s.cards[p.id] = (s.cards[p.id] || 0) + 1; seed = true; log(s, 'good', 'Tu as gardé des graines de ' + p.name.toLowerCase() + ' : une carte en plus.'); }

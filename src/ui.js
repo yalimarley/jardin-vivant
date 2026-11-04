@@ -622,7 +622,7 @@ function startTask(a) {
 function cellAct(kind, i, msg) {
   const run = {
     water: () => { const r = G.waterCells(S, [i]); if (!r.n) toast('Réserve d’eau insuffisante.'); },
-    harvest: () => { const h = G.harvest(S, i); if (h.ok) toast('+' + fmt(h.kg, 2) + ' kg de ' + h.name.toLowerCase() + '.'); },
+    harvest: () => { const h = G.harvest(S, i); if (h.ok) toast('+' + fmt(h.kg, 2) + ' kg de ' + h.name.toLowerCase() + '.'); else { const c = S.grid[i]; if (c) c.ready = false; toast('Rien à récolter ici pour l’instant.'); } },
     prune: () => { if (G.prune(S, i)) toast('Taillée : +10 % de fruits cette saison.'); },
     heal: () => { if (G.heal(S, i)) toast(msg || 'Soignée.'); },
     compost: () => { if (G.compost(S, i)) toast('Compost étalé : la plante pousse mieux pendant 30 jours.'); },
@@ -696,6 +696,12 @@ function worldBadge(kind, x, y, k) { return '<g class="badge" data-badge="' + ki
 let combo = { n: 0, t: 0 };
 
 function badgePos(b) { try { const svg = $('garden'), r = b.getBoundingClientRect(), pt = svg.createSVGPoint(); pt.x = r.left + r.width / 2; pt.y = r.top + r.height / 2; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return [q.x, q.y]; } catch (e) { return null; } }
+const PB = { water: ['💧', 'Arrosé', 1], mulch: ['🌾', 'Paillé', 0], compost: ['🟤', 'Compost étalé', 0], harvest: ['🍎🥕🍅🫐🥬', 'Récolté', 0], prune: ['✂️🍃', 'Taillé', 0], limaces: ['🐌', 'Limaces ramassées', 0], fongique: ['🍂', 'Parties malades retirées', 0], fleurs: ['🌼🌸', 'Fleurs cueillies', 0], honey: ['🍯', 'Miel récolté', 0] };
+function popBurst(kd, el) {
+  const d = PB[kd]; if (!d || !el) return; const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, em = Array.from(d[0].replace(/️/g, '').match(/\p{Extended_Pictographic}/gu) || [d[0]]);
+  const box = document.createElement('div'); box.className = 'pb-wrap'; for (let k = 0; k < 9; k++) { const s = document.createElement('span'); s.className = 'pb'; s.textContent = em[k % em.length]; const a = (k / 9) * 6.28 + Math.random() * .5, sp = 26 + Math.random() * 34; s.style.cssText = 'left:' + x + 'px;top:' + y + 'px;--dx:' + (Math.cos(a) * sp).toFixed(0) + 'px;--dy:' + (d[2] ? 30 + Math.random() * 40 : Math.sin(a) * sp - 26).toFixed(0) + 'px;--rot:' + ((Math.random() - .5) * 120).toFixed(0) + 'deg;animation-delay:' + (k * 30) + 'ms'; box.appendChild(s); }
+  const lb = document.createElement('div'); lb.className = 'pb-lb'; lb.textContent = d[1]; lb.style.cssText = 'left:' + x + 'px;top:' + (y - 34) + 'px'; box.appendChild(lb); document.body.appendChild(box); setTimeout(() => box.remove(), 1500);
+}
 function flyIcon(kind, pos) {
   if (!pos) return; const svg = $('garden'); if (!svg) return; const now = Date.now(); combo.n = now - combo.t < 2600 ? combo.n + 1 : 1; combo.t = now;
   const col = BD[kind][0], ic = BD[kind][1];
@@ -1689,7 +1695,7 @@ document.addEventListener('click', e => {
     else if (kd === 'honey') { const h2 = G.harvestHoney(S, i); done = h2.ok; if (done) toast('+' + fmt(h2.kg, 1) + ' kg de miel au garde-manger.'); }
     else if (kd === 'compost') done = cellAct('compost', i);
     else if (kd === 'mulch') done = cellAct('mulch', i);
-    render(); if (done) { flyIcon(kd, pos); try { if (window.V3D && V3D.burst && (kd === 'honey' || kd === 'fleurs')) V3D.burst(kd, i); } catch (e) {} } return; }
+    if (done) popBurst(kd, b); render(); if (done) { flyIcon(kd, pos); try { if (window.V3D && V3D.burst && (kd === 'honey' || kd === 'fleurs')) V3D.burst(kd, i); } catch (e) {} } return; }
   const cell = e.target.closest('.cell'); if (cell) { clickCell(+cell.dataset.i); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   const act = a.dataset.act, i = ui.sel;

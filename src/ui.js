@@ -1140,11 +1140,15 @@ function actFeeder() {
 function actRonde() {
   const N = 9, items = []; const kinds = ['🐌', '🐌', '🐌', '✨', '✨', '🍄', '🦉', '✨', '🪲'];
   for (let i = 0; i < N; i++) items.push({ k: kinds[i], x: 8 + Math.random() * 84, y: 12 + Math.random() * 76, f: false });
-  modal('Ronde du soir', '<div class="rd"><p class="note-p" style="text-align:center">Promène la lampe dans le noir. Touche ce que tu trouves : limaces, lucioles, champignons…</p><div class="rd-field" id="rdf" style="--mx:50%;--my:50%">' + items.map((it, i) => '<span class="rd-it" data-i="' + i + '" style="left:' + it.x + '%;top:' + it.y + '%">' + it.k + '</span>').join('') + '<div class="rd-dark"></div></div><div class="rd-sc" id="rds">0 / ' + N + ' trouvés</div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="rdok">Terminer la ronde</button></div></div>');
+  modal('Ronde du soir', '<div class="rd"><p class="note-p" style="text-align:center">Promène la lampe : la lumière est juste au-dessus de ton doigt. Quand un objet est éclairé, touche l’écran pour l’attraper.</p><div class="rd-field" id="rdf" style="--mx:50%;--my:50%">' + items.map((it, i) => '<span class="rd-it" data-i="' + i + '" style="left:' + it.x + '%;top:' + it.y + '%">' + it.k + '</span>').join('') + '<div class="rd-dark"></div></div><div class="rd-sc" id="rds">0 / ' + N + ' trouvés</div><div class="acts" style="justify-content:center"><button type="button" class="btn" id="rdok">Terminer la ronde</button></div></div>');
   const fld = $('rdf'); let found = 0;
-  const mv = e => { const r = fld.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 100, y = (e.clientY - r.top) / r.height * 100; fld.style.setProperty('--mx', x + '%'); fld.style.setProperty('--my', y + '%'); fld.style.setProperty('--r', (r.width * .17) + 'px'); fld._p = [e.clientX - r.left, e.clientY - r.top]; fld.querySelectorAll('.rd-it:not(.got)').forEach(el => { const b = el.getBoundingClientRect(); const d = Math.hypot(b.left + b.width / 2 - e.clientX, b.top + b.height / 2 - e.clientY); el.classList.toggle('lit', d < r.width * .17); }); };
-  fld.addEventListener('pointermove', mv); fld.addEventListener('pointerdown', mv);
-  fld.addEventListener('click', e => { const el = e.target.closest('.rd-it'); if (!el || !el.classList.contains('lit') || el.classList.contains('got')) return; el.classList.add('got'); found++; $('rds').textContent = found + ' / ' + N + ' trouvés'; if (found >= N) $('rdok').click(); });
+  let lp = [0, 0], lr = 90, dn = null;
+  const mv = e => { const r = fld.getBoundingClientRect(), off = e.pointerType === 'mouse' ? 0 : 64; lr = Math.max(90, r.width * .22); lp = [e.clientX, e.clientY - off];
+    fld.style.setProperty('--mx', ((lp[0] - r.left) / r.width * 100) + '%'); fld.style.setProperty('--my', ((lp[1] - r.top) / r.height * 100) + '%'); fld.style.setProperty('--r', lr + 'px');
+    fld.querySelectorAll('.rd-it:not(.got)').forEach(el => { const b = el.getBoundingClientRect(); el.classList.toggle('lit', Math.hypot(b.left + b.width / 2 - lp[0], b.top + b.height / 2 - lp[1]) < lr * .75); }); };
+  const catchIt = () => { let best = null, bd = 1e9; fld.querySelectorAll('.rd-it.lit:not(.got)').forEach(el => { const b = el.getBoundingClientRect(), d = Math.hypot(b.left + b.width / 2 - lp[0], b.top + b.height / 2 - lp[1]); if (d < bd) { bd = d; best = el; } }); if (!best) return; best.classList.add('got'); found++; $('rds').textContent = found + ' / ' + N + ' trouvés'; if (found >= N) $('rdok').click(); };
+  fld.addEventListener('pointermove', mv); fld.addEventListener('pointerdown', e => { mv(e); dn = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+  fld.addEventListener('pointerup', e => { if (dn && Math.hypot(e.clientX - dn.x, e.clientY - dn.y) < 14 && Date.now() - dn.t < 700) catchIt(); dn = null; });
   fld.style.setProperty('--r', '70px');
   $('rdok').onclick = () => { const q = Math.min(1, found / (N * .7)); actDone('ronde', { q }, found ? 'Ronde terminée : ' + found + ' trouvailles.' : 'Ronde terminée.'); closeLayer(); };
 }
@@ -1246,9 +1250,27 @@ function kitchenPreview() {
   $('kprev').innerHTML = sel.length ? '<div class="nm">' + Math.round(kcal) + ' kcal · ' + fmt(prot) + ' g de protéines</div><div class="note-p">La famille a besoin d’environ ' + fn + ' kcal par jour (le jardin vise un quart : fruits, légumes, aromatiques) : ce repas en couvre ' + Math.round(kcal / fn * 100) + ' %.</div><div class="bar"><i style="width:' + bal + '%"></i></div><div class="note-p">Équilibre estimé : ' + bal + ' %. ' + strata + ' strate' + (strata > 1 ? 's' : '') + ' représentée' + (strata > 1 ? 's' : '') + '.</div>' : '<div class="nm">Aucun ingrédient choisi</div>';
   $('cookBtn').disabled = !sel.length;
 }
+function openQuiz(pid) {
+  const p = P[pid], qs = G.quiz(S, pid); if (!qs.length) { toast('Pas de quiz pour cette plante.'); return; }
+  let i = 0, ok = 0;
+  const show = () => {
+    const q = qs[i]; modal('Quiz · ' + p.name, '<div class="qz"><div class="qz-bar">' + qs.map((_, k) => '<span class="' + (k < i ? 'd' : k === i ? 'c' : '') + '"></span>').join('') + '</div><p class="qz-q">' + q.q + '</p><div class="qz-o">' + q.o.map((o, k) => '<button type="button" class="qz-b" data-k="' + k + '">' + esc(o) + '</button>').join('') + '</div><p class="note-p" id="qzw" style="min-height:24px"></p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="qzn" hidden>' + (i + 1 < qs.length ? 'Question suivante' : 'Voir mon résultat') + '</button></div></div>');
+    document.querySelectorAll('.qz-b').forEach(b => b.onclick = () => {
+      if (document.querySelector('.qz-b.ok,.qz-b.ko')) return; const k = +b.dataset.k, good = k === q.ok; if (good) ok++;
+      document.querySelectorAll('.qz-b').forEach(x => { x.disabled = true; if (+x.dataset.k === q.ok) x.classList.add('ok'); }); if (!good) b.classList.add('ko');
+      $('qzw').textContent = (good ? 'Bravo ! ' : 'Pas tout à fait. ') + q.why; $('qzn').hidden = false;
+    });
+    $('qzn').onclick = () => { i++; if (i < qs.length) show(); else end(); };
+  };
+  const end = () => {
+    const r = G.quizResult(S, pid, ok, qs.length); save(); render();
+    modal('Quiz · ' + p.name, '<div class="qz"><p class="qz-q" style="text-align:center">' + ok + ' / ' + qs.length + (ok === qs.length ? ' · parfait !' : ok ? ' · bien joué' : ' · la prochaine fois') + '</p><p class="note-p" style="text-align:center;font-size:18px"><b>+' + (r.g || 0) + ' ginkgos</b></p><p class="note-p" style="text-align:center">' + (ok === qs.length ? 'Trois bonnes réponses : bonus inclus.' : 'Chaque bonne réponse rapporte 2 ginkgos, et 3 de plus si tout est juste.') + '</p><div class="acts" style="justify-content:center"><a class="btn sm" href="https://www.jflab.earth/catalogue-plantes/' + p.cat + '" target="_blank" rel="noopener">Fiche JF Lab ↗</a><button type="button" class="btn primary" data-act="close">Terminer</button></div></div>');
+  };
+  show();
+}
 function openLearn(pre) {
   const r = pre || G.learn(S), p = P[r.pid], m = G.dateOf(S.day).m; save();
-  modal('Savoir du jour', '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div style="flex:none">' + cardHtml(p, {}) + '</div><div style="flex:1 1 240px;min-width:0;display:grid;gap:10px"><h3 style="font-size:20px">' + p.name + '</h3><p class="note-p" style="color:var(--ink)">' + p.note + '</p>' + (r.tips.length ? r.tips.map(t => '<p class="note-p">' + t + '</p>').join('') : '') + '<p class="note-p">' + sw(p) + ' : ' + G.monthRange(p.semis) + '. Récolte : ' + (G.monthRange(p.recolte) === '—' ? 'aucune, elle sert le jardin' : G.monthRange(p.recolte)) + '.</p>' + (p.cat ? '<p class="note-p"><a class="btn sm primary" href="https://www.jflab.earth/catalogue-plantes/' + p.cat + '" target="_blank" rel="noopener">Voir la fiche sur JF Lab ↗</a></p>' : '') + (p.est ? '<span class="est" style="justify-self:start">Valeurs estimées, à vérifier</span>' : '') + '<p class="note-p">Notée dans ton carnet (' + S.knowledge.length + ' plante' + (S.knowledge.length > 1 ? 's' : '') + ' apprise' + (S.knowledge.length > 1 ? 's' : '') + ').</p></div></div>');
+  modal('Savoir du jour', '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div style="flex:none">' + cardHtml(p, {}) + '</div><div style="flex:1 1 240px;min-width:0;display:grid;gap:10px"><h3 style="font-size:20px">' + p.name + '</h3><p class="note-p" style="color:var(--ink)">' + p.note + '</p>' + (r.tips.length ? r.tips.map(t => '<p class="note-p">' + t + '</p>').join('') : '') + '<p class="note-p">' + sw(p) + ' : ' + G.monthRange(p.semis) + '. Récolte : ' + (G.monthRange(p.recolte) === '—' ? 'aucune, elle sert le jardin' : G.monthRange(p.recolte)) + '.</p>' + (p.cat ? '<p class="note-p"><a class="btn sm primary" href="https://www.jflab.earth/catalogue-plantes/' + p.cat + '" target="_blank" rel="noopener">Voir la fiche sur JF Lab ↗</a></p>' : '') + (p.est ? '<span class="est" style="justify-self:start">Valeurs estimées, à vérifier</span>' : '') + (() => { const qi = G.quizInfo(S, p.id); return '<div class="acts" style="justify-content:flex-start;margin:4px 0 0"><button type="button" class="btn sm primary" data-act="quiz" data-pid="' + p.id + '"' + (qi.done ? ' disabled' : '') + '>' + (qi.done ? 'Quiz déjà fait ✓' : 'Quiz : jusqu’à 9 ginkgos') + '</button></div>'; })() + '<p class="note-p">Notée dans ton carnet (' + S.knowledge.length + ' plante' + (S.knowledge.length > 1 ? 's' : '') + ' apprise' + (S.knowledge.length > 1 ? 's' : '') + ').</p></div></div>');
 }
 function useInstant(k) {
   let r;
@@ -1729,6 +1751,7 @@ document.addEventListener('click', e => {
     case 'tool-select': ui.spade = null; ui.hedgeSel = null; ui.tool = 'select'; ui.delPending = -1; ui.mvFrom = -1; render(); break;
     case 'tool-move': ui.tool = ui.tool === 'move' ? 'select' : 'move'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
     case 'tool-delete': ui.tool = ui.tool === 'delete' ? 'select' : 'delete'; ui.mvFrom = -1; ui.mode = null; ui.delPending = -1; render(); break;
+    case 'quiz': openQuiz(+a.dataset.pid); break;
     case 'cam': openCam(); break;
     case 'cam-close': closeCam(); break;
     case 'cam-shot': camShot(); break;
@@ -1880,7 +1903,7 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); claimDaily(); render(); startChars();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }

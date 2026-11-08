@@ -27,7 +27,7 @@ function briefHtml() {
   if (sick) li.push('<b>' + sick + '</b> ' + (sick > 1 ? 'sont malades' : 'est malade'));
   if (nf.length) li.push('nouveau' + (nf.length > 1 ? 'x' : '') + ' visiteur' + (nf.length > 1 ? 's' : '') + ' : <b>' + nf.map(a => a.n.toLowerCase()).join(', ') + '</b>');
   const st = S.streak || 0;
-  return (li.length ? '<ul class="amlist">' + li.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p class="note-p">Tout est calme au jardin.</p>') + (st >= 2 ? '<p class="note-p">🔥 <b>' + st + ' jours</b> de suite au jardin' + (7 - st % 7 <= 3 ? ' : plus que ' + (7 - st % 7) + ' pour 3 ginkgos offerts.' : '.') + '</p>' : '');
+  return (li.length ? '<ul class="amlist">' + li.map(x => '<li>' + x + '</li>').join('') + '</ul>' : '<p class="note-p">Tout est calme au jardin.</p>') + (st >= 2 ? '<p class="note-p">🌱 <b>' + st + ' jours</b> passés au jardin' + (7 - st % 7 <= 3 ? ' : plus que ' + (7 - st % 7) + ' pour 6 ginkgos offerts.' : '.') + '</p>' : '');
 }
 function catchUp() {
   if (!LIVE || S.demo) return false;
@@ -35,9 +35,9 @@ function catchUp() {
   if (S.day === 0 && !S.grid.some(c => c) && !(S.spots || []).length) { S.day = rd - 1; S.born = rd - 1; G.nextDay(S, false); return true; }
   let n = rd - S.day; const away = n; if (n > 60) { S.day = rd - 60; n = 60; }
   const before = S.grid.filter(c => c && !c.treille).length;
-  for (let k = 1; k <= n; k++) { G.neglect(S, k); G.nextDay(S, false); }
+  S.grace = true; try { for (let k = 1; k <= n; k++) G.nextDay(S, false); } finally { S.grace = false; }
   const left = S.grid.filter(c => c && !c.treille), lost = before - left.length, weak = left.filter(c => c.health < 60).length;
-  if (away >= 2) setTimeout(() => { try { modal('Pendant ton absence', '<p class="note-p">Tu n’es pas venu depuis <b>' + away + ' jours</b>. Le jardin a continué sans toi.' + (away > 3 ? ' Sans soins, les plantes s’affaiblissent.' : '') + '</p><p class="note-p">' + (lost ? '<b>' + lost + '</b> plante' + (lost > 1 ? 's sont mortes' : ' est morte') + '. ' : 'Aucune plante n’est morte. ') + (weak ? '<b>' + weak + '</b> ' + (weak > 1 ? 'sont affaiblies' : 'est affaiblie') + ' : arrose, paille, soigne-les.' : '') + '</p>' + briefHtml()); } catch (e) {} }, 900);
+  if (away >= 2) setTimeout(() => { try { modal('Bon retour au jardin', '<p class="note-p">Tu n’es pas venu depuis <b>' + away + ' jours</b>. Pas d’inquiétude : ton jardin t’a attendu, rien n’est perdu et tes plantes ont continué à pousser.</p>' + briefHtml()); } catch (e) {} }, 900);
   else if (S.briefDay !== S.day) { S.briefDay = S.day; setTimeout(() => { try { const h = briefHtml(); if (h && !$('layer').innerHTML) modal('Bonjour au jardin', h); } catch (e) {} }, 900); }
   return true;
 }
@@ -1225,6 +1225,88 @@ function openPhoto(id) {
   const p = photosLoad().find(x => String(x.id) === String(id)); if (!p) { openPhotos(); return; }
   modal(p.label, '<div class="ph-big"><img alt="' + esc(p.label) + '" src="' + p.img + '"></div><p class="note-p">' + dateStr(p.day, true) + '</p><div class="acts" style="justify-content:flex-start"><a class="btn sm primary" href="' + p.img + '" download="jardin-vivant-' + p.id + '.jpg">Télécharger</a><button type="button" class="btn sm" data-act="photos">Retour aux photos</button><button type="button" class="btn sm" data-act="photo-del" data-id="' + p.id + '">Supprimer</button></div>');
 }
+/* ---------- mini-jeux du jour ---------- */
+const MGD = {
+  memoire: ['🧠', 'Retrouve toutes les paires de plantes en retournant le moins de cartes possible.', '6 ou 7 coups : trois étoiles.'],
+  nuisibles: ['🐌', 'Touche limaces, chenilles et pucerons dès qu’ils sortent. Épargne la coccinelle, l’abeille et le papillon !', 'Chaque ami touché te coûte 2 points.'],
+  arrosage: ['💧', 'Arrête la jauge dans la zone verte. Cinq plantes à arroser, et la zone rétrécit à chaque fois.', 'Touche « Arroser » au bon moment.'],
+  fruits: ['🧺', 'Fais glisser ton doigt pour déplacer le panier et attraper les fruits mûrs. Évite les cailloux et les guêpes.', 'Les fruits tombent de plus en plus vite.'],
+  oiseaux: ['🐦', 'Observe l’ordre dans lequel les oiseaux chantent, puis répète-le. La mélodie s’allonge à chaque tour.', 'Jusqu’à 7 chants : trois étoiles.'],
+  tri: ['♻️', 'Épluchures, coquilles et feuilles vont au compost. Plastiques, piles et canettes vont à la poubelle. Vite !', 'Douze objets, le temps se raccourcit.']
+};
+const mgStarsHtml = n => '★★★'.slice(0, n) + '<span style="opacity:.25">' + '★★★'.slice(n) + '</span>';
+const mgStars = sc => sc >= .9 ? 3 : sc >= .7 ? 2 : sc >= .45 ? 1 : 0;
+const shuf = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+function openMgList() {
+  const inf = G.mgInfo(S);
+  modal('Mini-jeux', '<p class="note-p">Chaque jour, deux mini-jeux changent et rapportent des ginkgos selon tes étoiles. Les autres sont en entraînement libre, pour battre tes records.</p><div class="mg-list">' + inf.all.map(id => { const d = inf.today.includes(id), dn = inf.done[id] != null; return '<button type="button" class="mg-row' + (d && !dn ? ' hot' : '') + '" data-act="mg-open" data-id="' + id + '"><span class="mg-e">' + MGD[id][0] + '</span><span class="mg-n"><b>' + inf.names[id] + '</b><small>' + (d ? (dn ? 'Du jour · récompense prise' : 'Du jour · jusqu’à 8 ginkgos') : 'Entraînement') + '</small></span><span class="mg-s">' + mgStarsHtml(inf.best[id] || 0) + '</span></button>'; }).join('') + '</div>');
+}
+function openMg(id) {
+  const inf = G.mgInfo(S), today = inf.today.includes(id), done = inf.done[id] != null, d = MGD[id];
+  modal(inf.names[id], '<div class="mg" style="text-align:center"><div class="mg-ic">' + d[0] + '</div><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : 1, 3, 5 ou 8 ginkgos selon tes étoiles.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><p style="font-size:26px;margin:4px 0">' + mgStarsHtml(inf.best[id] || 0) + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div>');
+  $('mgp').onclick = () => mgPlay(id);
+}
+function mgPlay(id) {
+  const inf = G.mgInfo(S); modal(inf.names[id], '<div class="mg"><div class="mg-hd"><span id="mgt"></span><span id="mgs"></span></div><div class="mg-f" id="mgf"><div class="mg-cd" id="mgc">3</div></div></div>');
+  let n = 3; const tk = setInterval(() => { if (!layerAlive('#mgf')) { clearInterval(tk); return; } n--; if (n > 0) $('mgc').textContent = n; else { clearInterval(tk); $('mgf').innerHTML = ''; MG[id]($('mgf'), t => { const e = $('mgt'); if (e) e.textContent = t; }, s => { const e = $('mgs'); if (e) e.textContent = s; }, sc => mgEnd(id, sc)); } }, 750);
+}
+function mgEnd(id, sc) {
+  const st = mgStars(sc), r = G.mgFinish(S, id, st), inf = G.mgInfo(S); save(); render();
+  modal(inf.names[id], '<div class="mg" style="text-align:center"><p style="font-size:40px;letter-spacing:6px;margin:6px 0">' + mgStarsHtml(st) + '</p><p class="note-p" style="font-size:17px;color:var(--ink)"><b>' + ['Pas cette fois', 'Bien joué !', 'Très bien !', 'Parfait !'][st] + '</b></p><p class="note-p" style="font-size:18px">' + (r.reward ? '<b>+' + r.g + ' ginkgo' + (r.g > 1 ? 's' : '') + '</b>' : 'Entraînement : record ' + (inf.best[id] || 0) + ' étoile' + ((inf.best[id] || 0) > 1 ? 's' : '')) + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn" id="mgr">Rejouer</button><button type="button" class="btn primary" data-act="mglist">Les mini-jeux</button></div></div>');
+  $('mgr').onclick = () => openMg(id);
+}
+const MG = {
+  memoire(f, hd, sc, end) {
+    const em = shuf([...new Set(P.map(p => p.emoji).filter(Boolean))]).slice(0, 6), cards = shuf(em.concat(em)); let first = null, lock = false, moves = 0, found = 0;
+    f.innerHTML = '<div class="mg-mem">' + cards.map((e, i) => '<button type="button" class="mg-card" data-i="' + i + '"><span class="bk">🌱</span><span class="fr">' + e + '</span></button>').join('') + '</div>'; hd('Trouve les 6 paires'); sc('Coups : 0');
+    f.querySelectorAll('.mg-card').forEach(b => b.onclick = () => { if (lock || b.classList.contains('up') || b.classList.contains('ok')) return; b.classList.add('up'); if (!first) { first = b; return; } moves++; sc('Coups : ' + moves); const a = first; first = null;
+      if (cards[+a.dataset.i] === cards[+b.dataset.i]) { a.classList.add('ok'); b.classList.add('ok'); found++; if (found === 6) setTimeout(() => end(Math.max(0, Math.min(1, 1 - (moves - 6) / 10))), 700); } else { lock = true; setTimeout(() => { a.classList.remove('up'); b.classList.remove('up'); lock = false; }, 750); } });
+  },
+  nuisibles(f, hd, sc, end) {
+    const PE = ['🐌', '🐛', '🐜', '🪲'], FR = ['🐞', '🐝', '🦋']; let pts = 0, t0 = Date.now(), T = 22000, done = false, spawned = 0;
+    f.innerHTML = '<div class="mg-holes">' + Array.from({ length: 9 }, (_, i) => '<button type="button" class="mg-hole" data-i="' + i + '"><span></span></button>').join('') + '</div>'; hd('Touche les nuisibles'); sc('Points : 0');
+    const holes = [...f.querySelectorAll('.mg-hole')];
+    holes.forEach(h => h.onpointerdown = ev => { ev.preventDefault(); const s = h.firstChild; if (!s.textContent || h.classList.contains('hit')) return; const bad = h.dataset.k === 'p'; pts += bad ? 1 : -2; h.classList.add('hit', bad ? 'good' : 'bad'); s.textContent = bad ? '💥' : '😬'; sc('Points : ' + Math.max(0, pts)); setTimeout(() => { s.textContent = ''; h.classList.remove('hit', 'good', 'bad'); h.dataset.k = ''; }, 280); });
+    const tick = () => { if (!layerAlive('#mgf') || done) return; const el = Date.now() - t0; if (el >= T) { done = true; end(Math.max(0, Math.min(1, pts / 18))); return; } hd('Temps : ' + Math.ceil((T - el) / 1000) + ' s');
+      const free = holes.filter(h => !h.firstChild.textContent); if (free.length) { const h = free[Math.floor(Math.random() * free.length)], bad = Math.random() < .72; spawned++; h.dataset.k = bad ? 'p' : 'a'; h.firstChild.textContent = (bad ? PE : FR)[Math.floor(Math.random() * (bad ? PE : FR).length)]; h.classList.add('pop'); const life = Math.max(560, 1000 - el / 30); setTimeout(() => { if (h.dataset.k && !h.classList.contains('hit')) { h.firstChild.textContent = ''; h.dataset.k = ''; h.classList.remove('pop'); } }, life); }
+      setTimeout(tick, Math.max(330, 600 - el / 60)); };
+    tick();
+  },
+  arrosage(f, hd, sc, end) {
+    let r = 0, tot = 0, cen = .5, w = .3, t0 = performance.now(), run = true; const R = 5;
+    f.innerHTML = '<div class="mg-ar"><div class="mg-plant" id="arp">🪴</div><div class="mg-gauge" id="arg"><i id="arz"></i><b id="arm"></b></div><div id="arr" class="mg-msg">&nbsp;</div><button type="button" class="btn primary" id="arb">Arroser</button></div>';
+    const setZ = () => { if (!$('arz')) return; cen = .18 + Math.random() * .64; w = .3 - r * .045; const z = $('arz'); z.style.left = (cen - w / 2) * 100 + '%'; z.style.width = w * 100 + '%'; hd('Plante ' + (r + 1) + ' sur ' + R); sc('Score : ' + tot.toFixed(1)); }; setZ();
+    const sp = () => 1.6 + r * .55, pos = () => .5 + .5 * Math.sin((performance.now() - t0) / 1000 * sp() * Math.PI);
+    const loop = () => { if (!run || !layerAlive('#mgf')) return; const m = $('arm'); if (m) m.style.left = pos() * 100 + '%'; requestAnimationFrame(loop); }; loop();
+    $('arb').onclick = () => { if (!run) return; const d = Math.abs(pos() - cen), s = d < w / 2 ? 1 : d < w * .8 ? .5 : 0; tot += s; $('arr').textContent = s === 1 ? 'Parfait ! 💦' : s ? 'Presque…' : 'Raté…'; $('arp').textContent = s === 1 ? '🌿' : s ? '🪴' : '🥀'; r++; if (r >= R) { run = false; sc('Score : ' + tot.toFixed(1)); setTimeout(() => end(tot / R), 700); } else setTimeout(() => { if (!run || !$('arp')) return; $('arp').textContent = '🪴'; $('arr').innerHTML = '&nbsp;'; setZ(); }, 650); };
+  },
+  fruits(f, hd, sc, end) {
+    const G1 = ['🍎', '🍐', '🍒', '🍑', '🍓', '🍊'], B1 = ['🪨', '🐝']; let bx = .5, pts = 0, goodN = 0, items = [], t0 = performance.now(), last = t0, nextS = 0, T = 22000, done = false;
+    f.innerHTML = '<div class="mg-fr" id="frf"><div class="mg-bk" id="frb">🧺</div></div>'; hd('Attrape les fruits'); sc('Fruits : 0');
+    const fr = $('frf'), mv = e => { const r = fr.getBoundingClientRect(); bx = Math.max(.06, Math.min(.94, (e.clientX - r.left) / r.width)); }; fr.addEventListener('pointermove', mv); fr.addEventListener('pointerdown', mv);
+    const loop = now => { if (!layerAlive('#frf') || done) return; const el = now - t0, dt = (now - last) / 1000; last = now; if (el >= T) { done = true; end(Math.max(0, Math.min(1, pts / Math.max(8, goodN * .85)))); return; } hd('Temps : ' + Math.ceil((T - el) / 1000) + ' s');
+      if (el >= nextS) { const bad = Math.random() < .22; if (!bad) goodN++; const d = document.createElement('div'); d.className = 'mg-it'; d.textContent = bad ? B1[Math.floor(Math.random() * 2)] : G1[Math.floor(Math.random() * G1.length)]; fr.appendChild(d); items.push({ d, x: .08 + Math.random() * .84, y: -.05, v: .38 + el / 40000, bad }); nextS = el + Math.max(380, 720 - el / 45); }
+      items = items.filter(it => { it.y += it.v * dt; it.d.style.left = it.x * 100 + '%'; it.d.style.top = it.y * 100 + '%'; if (it.y > .8 && it.y < .95 && Math.abs(it.x - bx) < .11) { pts += it.bad ? -2 : 1; if (it.bad) { fr.classList.add('shake'); setTimeout(() => fr.classList.remove('shake'), 250); } sc('Fruits : ' + Math.max(0, pts)); it.d.remove(); return false; } if (it.y > 1) { it.d.remove(); return false; } return true; });
+      const b = $('frb'); if (b) b.style.left = bx * 100 + '%'; requestAnimationFrame(loop); };
+    requestAnimationFrame(t => { t0 = last = t; loop(t); });
+  },
+  oiseaux(f, hd, sc, end) {
+    const B = [['🐦', '#e9573f'], ['🦉', '#8a6a3f'], ['🐤', '#e8b82e'], ['🕊️', '#4f86c6']]; let seq = [], inp = 0, len = 2, busy = true, best = 1;
+    f.innerHTML = '<div class="mg-pads">' + B.map((b, i) => '<button type="button" class="mg-pad" data-i="' + i + '" style="--c:' + b[1] + '">' + b[0] + '</button>').join('') + '</div><div id="obm" class="mg-msg">&nbsp;</div>';
+    const pads = [...f.querySelectorAll('.mg-pad')], lit = (i, ms) => { pads[i].classList.add('on'); setTimeout(() => pads[i] && pads[i].classList.remove('on'), ms); };
+    const play = () => { busy = true; inp = 0; seq.push(Math.floor(Math.random() * 4)); while (seq.length < len) seq.push(Math.floor(Math.random() * 4)); hd('Écoute… (' + seq.length + ' chants)'); sc('Manche : ' + (len - 1)); const msg = $('obm'); if (msg) msg.textContent = 'Écoute bien'; seq.forEach((s, k) => setTimeout(() => { if (layerAlive('#mgf')) lit(s, 420); }, 600 + k * 650)); setTimeout(() => { if (!layerAlive('#mgf')) return; busy = false; hd('À toi !'); const m = $('obm'); if (m) m.textContent = 'Répète le chant'; }, 600 + seq.length * 650); };
+    pads.forEach(p => p.onclick = () => { if (busy) return; const i = +p.dataset.i; lit(i, 250); if (i !== seq[inp]) { busy = true; $('obm').textContent = 'Raté !'; setTimeout(() => end(Math.max(0, (best - 1) / 6)), 800); return; } inp++; if (inp >= seq.length) { best = seq.length; busy = true; $('obm').textContent = 'Bravo !'; if (seq.length >= 7) { setTimeout(() => end(1), 700); return; } len = seq.length + 1; setTimeout(() => { if (layerAlive('#mgf')) play(); }, 800); } });
+    play();
+  },
+  tri(f, hd, sc, end) {
+    const C = ['🍎', '🥚', '🍂', '🥕', '☕', '🌿', '🍌', '🥬'], W = ['🥫', '🛍️', '🔋', '🧴', '🪥', '📦'], N = 12; let i = 0, ok = 0, t = 0, kind = 'c', answered = false;
+    const order = shuf(Array.from({ length: N }, (_, k) => k < 7 ? 'c' : 'w'));
+    f.innerHTML = '<div class="mg-tri"><div class="mg-item" id="tri-i"></div><div class="mg-tbar"><i id="tri-b"></i></div><div class="mg-bins"><button type="button" class="mg-bin c" data-k="c">🌱<br>Compost</button><button type="button" class="mg-bin w" data-k="w">🗑️<br>Poubelle</button></div><div id="tri-m" class="mg-msg">&nbsp;</div></div>';
+    const next = () => { if (!$('tri-m')) return; if (i >= N) { end(ok / N); return; } kind = order[i]; const arr = kind === 'c' ? C : W; $('tri-i').textContent = arr[Math.floor(Math.random() * arr.length)]; $('tri-i').className = 'mg-item pop'; answered = false; t = Math.max(1500, 2900 - i * 120); hd('Objet ' + (i + 1) + ' sur ' + N); sc('Bien triés : ' + ok); const b = $('tri-b'); b.style.transition = 'none'; b.style.width = '100%'; void b.offsetWidth; b.style.transition = 'width ' + t + 'ms linear'; b.style.width = '0%'; const my = i; setTimeout(() => { if (my === i && !answered && $('tri-m')) { answered = true; $('tri-m').textContent = 'Trop lent…'; i++; setTimeout(next, 450); } }, t); };
+    f.querySelectorAll('.mg-bin').forEach(b => b.onclick = () => { if (answered) return; answered = true; const good = b.dataset.k === kind; if (good) ok++; $('tri-m').textContent = good ? 'Bien vu !' : (kind === 'c' ? 'Ça va au compost' : 'Ça va à la poubelle'); $('tri-i').className = 'mg-item ' + (good ? 'yes' : 'no'); i++; setTimeout(next, 450); });
+    next();
+  }
+};
 function openAlbum() {
   const inf = G.albumInfo(S), A = S.album || {};
   const cards = G.FAUNA.map(f => { const a = A[f.id], seen = !!(S.fauna && S.fauna[f.id]); return '<div class="alb-c' + (a && a.n ? ' got' : seen ? ' seen' : ' lock') + '"><div class="alb-e">' + (seen || (a && a.n) ? anEmoji(f.id) : '❓') + (a && a.rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + (seen || (a && a.n) ? f.n : '???') + '</b><span>' + (a && a.n ? stars((a.best || 40) / 100) + ' · ' + a.n + ' photo' + (a.n > 1 ? 's' : '') : seen ? 'Vu, à photographier' : f.h) + '</span></div>'; }).join('');
@@ -1451,7 +1533,7 @@ async function accountAfterLogin() {
 }
 function openMenu() {
   const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
-  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('album', 'leaf', 'Album de la faune') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('album', 'leaf', 'Album de la faune') + b('mglist', 'leaf', 'Mini-jeux') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
 }
 function applyHud() {
   const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
@@ -1633,6 +1715,7 @@ function doTask(id) {
   const a = t.act;
   if (a.type === 'booster') return openBooster();
   if (a.type === 'act') return openAct(a.id);
+  if (a.type === 'mg') return openMg(a.id);
   if (a.type === 'cook') return openKitchen();
   if (a.type === 'learn') { openLearn(); return; }
   if (a.type === 'sow') { ui.mode = { type: 'plant', pid: a.pid }; render(); $('garden').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); toast('Choisis une parcelle libre.'); return; }
@@ -1768,6 +1851,8 @@ document.addEventListener('click', e => {
     case 'skills': openSkills(); break;
     case 'menu': openMenu(); break;
     case 'album': openAlbum(); break;
+    case 'mglist': openMgList(); break;
+    case 'mg-open': openMg(a.dataset.id); break;
     case 'album-claim': { const g = G.albumClaim(S); save(); toast(g ? '+' + g + ' ginkgos pour ton album !' : 'Rien à récupérer pour l’instant.'); openAlbum(); render(); break; }
     case 'tools-toggle': ui.toolsOpen = !ui.toolsOpen; applyHud(); break;
     case 'stock': openStock(); break;
@@ -1903,7 +1988,7 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+window.__jv = { openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); claimDaily(); render(); startChars();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }

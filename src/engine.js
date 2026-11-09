@@ -125,6 +125,8 @@ function neigh(i, s) {
 
 function make(P) {
   const byName = {}; P.forEach(p => { if (!byName[p.name]) byName[p.name] = p; });
+  // Plantes retirées du jeu : gardées dans la liste (les identifiants = positions ne bougent pas, donc les sauvegardes restent valides) mais jamais proposées.
+  const PA = P.filter(p => !p.retired);
   const maturity = p => p.germ + p.croiss;
   const totalDays = p => maturity(p) + p.juv * 365;
   // rythme de jeu : durée réelle visée jusqu'à maturité selon le type de plante (jours réels)
@@ -504,7 +506,7 @@ function make(P) {
 
   // ----- booster -----
   function pickPlant(s, rng, force) {
-    const u = unlocked(s), m = dateOf(s.day).m, el = P.filter(p => u.has(p.strate) && (!isExo(p) || hasGS(s)) && (!force || (sowable(p, m) && p.rarete !== 'Rare')));
+    const u = unlocked(s), m = dateOf(s.day).m, el = PA.filter(p => u.has(p.strate) && (!isExo(p) || hasGS(s)) && (!force || (sowable(p, m) && p.rarete !== 'Rare')));
     if (!el.length) return P[0];
     const SW = { Arbre: 20, Arbuste: 22, Herbacée: 22, Racine: 12, 'Couvre-sol': 8, Grimpante: 8 };
     const sts = [...new Set(el.map(p => p.strate))]; let xs = rng() * sts.reduce((a, k) => a + SW[k], 0), st = sts[sts.length - 1];
@@ -543,7 +545,7 @@ function make(P) {
     if (s.boosters === 0) {
       const used = new Set(), want = ['Racine', 'Herbacée', 'Couvre-sol', 'Herbacée', 'Racine', 'Arbuste'];
       for (const st of want) {
-        let pool = P.filter(p => p.strate === st && sowable(p, m) && p.rarete !== 'Rare' && !used.has(p.id) && (st !== 'Arbre' && st !== 'Arbuste' || p.kg > 0)); const core = pool.filter(p => p.id < CORE); if (core.length && rng() < .8) pool = core;
+        let pool = PA.filter(p => p.strate === st && sowable(p, m) && p.rarete !== 'Rare' && !used.has(p.id) && (st !== 'Arbre' && st !== 'Arbuste' || p.kg > 0)); const core = pool.filter(p => p.id < CORE); if (core.length && rng() < .8) pool = core;
         if (st === 'Racine' || st === 'Herbacée') { const fp = fastPool({ day: s.day, maxPlantings: 99, plantings: 99 }, m, [st]).filter(p => !used.has(p.id)); if (fp.length) pool = fp; }
         if (pool.length) { const p = pool[Math.floor(rng() * pool.length)]; used.add(p.id); cards.push({ t: 'plant', pid: p.id }); }
       }
@@ -556,13 +558,13 @@ function make(P) {
       if (s.boosters < 14) { const fp = fastPool(s, m).filter(p => !known.has(p.id)); for (let k = 0; k < 2 && fp.length; k++) add(fp.splice(Math.floor(rng() * fp.length), 1)[0]); }
       for (let tries = 0; tries < 60 && cards.length < 3; tries++) add(fresh());
       // de l'automne à la fin de l'hiver : une culture qui se récolte en hiver (le jardin ne doit pas rester vide)
-      if (m >= 8 || m <= 1) { const wp = P.filter(p => u.has(p.strate) && sowable(p, m) && p.kg > 0 && !used.has(p.id) && (p.kind === 'annuelle' || p.juv === 0) && p.rarete !== 'Rare' && p.recolte.some(r => r === 11 || r === 12 || r === 1 || r === 2 || r === 3) && !isExo(p)); if (wp.length) { if (cards.length >= 3) used.delete(P[cards[cards.length - 1].pid].id), cards.pop(); add(wp[Math.floor(rng() * wp.length)]); } }
+      if (m >= 8 || m <= 1) { const wp = PA.filter(p => u.has(p.strate) && sowable(p, m) && p.kg > 0 && !used.has(p.id) && (p.kind === 'annuelle' || p.juv === 0) && p.rarete !== 'Rare' && p.recolte.some(r => r === 11 || r === 12 || r === 1 || r === 2 || r === 3) && !isExo(p)); if (wp.length) { if (cards.length >= 3) used.delete(P[cards[cards.length - 1].pid].id), cards.pop(); add(wp[Math.floor(rng() * wp.length)]); } }
       // au moins un arbre ou arbuste semable quand la strate est débloquée
       if (u.has('Arbuste') && !cards.some(c => wood(P[c.pid]))) { for (let tries = 0; tries < 40; tries++) { const p = pickPlant(s, rng, tries < 10); if (wood(p) && !used.has(p.id) && (tries >= 30 || !known.has(p.id))) { used.delete(P[cards[2].pid].id); cards[2] = { t: 'plant', pid: p.id }; used.add(p.id); break; } } }
       // une espèce encore jamais vue : la découverte de la semaine
-      { const pool = P.filter(p => !known.has(p.id) && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); const pool2 = pool.length ? pool : P.filter(p => !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool2.length) { const fq = pool2.filter(p => p.fc), src = fq.length && rng() < .5 ? fq : pool2; add(src[Math.floor(rng() * src.length)]); } }
+      { const pool = PA.filter(p => !known.has(p.id) && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); const pool2 = pool.length ? pool : PA.filter(p => !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s)) && sowable(p, m) && p.rarete !== 'Rare'); if (pool2.length) { const fq = pool2.filter(p => p.fc), src = fq.length && rng() < .5 ? fq : pool2; add(src[Math.floor(rng() * src.length)]); } }
       // dernière carte : une plante rare (1 fois sur 4) ou une nouvelle plante. Les boosters ne contiennent que des plantes : tout le reste s'achète en boutique.
-      { let done = false; if (rng() < .25) { let rp = P.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); { const nr = rp.filter(p => !known.has(p.id)); if (nr.length) rp = nr; } { const fr = rp.filter(p => p.fc); if (fr.length && rng() < .5) rp = fr; } if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } } }
+      { let done = false; if (rng() < .25) { let rp = PA.filter(p => p.rarete === 'Rare' && !used.has(p.id) && u.has(p.strate) && (!isExo(p) || hasGS(s))); { const nr = rp.filter(p => !known.has(p.id)); if (nr.length) rp = nr; } { const fr = rp.filter(p => p.fc); if (fr.length && rng() < .5) rp = fr; } if (rp.length) { const sw = rp.filter(p => sowable(p, m)), pool = sw.length ? sw : rp; done = add(pool[Math.floor(rng() * pool.length)]); } } }
       while (cards.length < BOOSTER_SIZE) add(fresh());
     }
     for (const c of cards) { if (c.t === 'plant') s.cards[c.pid] = (s.cards[c.pid] || 0) + 1; else { c.q = MAT_QTY[c.k] || 1; s.mats[c.k] = (s.mats[c.k] || 0) + c.q; } }
@@ -625,7 +627,7 @@ function make(P) {
     const p = P[pid], rn = mulberry(s.day * 131 + pid * 7 + 5), mr = x => monthRange(x);
     const shuf = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rn() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
     const mk = (q, right, pool, why) => { const w = shuf([...new Set(pool.map(String))].filter(x => x !== String(right))).slice(0, 3); if (w.length < 2) return null; const o = shuf([String(right), ...w]); return { q, o, ok: o.indexOf(String(right)), why }; };
-    const others = () => shuf(P.map(x => x.id)).slice(0, 40).map(i => P[i]);
+    const others = () => shuf(PA.map(x => x.id)).slice(0, 40).map(i => P[i]);
     const EAU = ['', 'Peu d’eau : elle est sobre', 'Un arrosage modéré', 'Beaucoup d’eau : elle est gourmande'];
     const C = [];
     C.push(() => mk('À quelle strate appartient « ' + p.name + ' » ?', p.strate, ['Arbre', 'Arbuste', 'Herbacée', 'Couvre-sol', 'Grimpante', 'Racine'], p.name + ' est une plante de la strate « ' + p.strate.toLowerCase() + ' ».'));
@@ -650,8 +652,8 @@ function make(P) {
     const seen = new Set(s.knowledge);
     let pool = [...new Set(alive)].filter(id => !seen.has(id));
     if (!pool.length) pool = Object.keys(s.cards).map(Number).filter(id => !seen.has(id));
-    if (!pool.length) pool = P.filter(p => !seen.has(p.id)).map(p => p.id);
-    if (!pool.length) pool = P.map(p => p.id);
+    if (!pool.length) pool = PA.filter(p => !seen.has(p.id)).map(p => p.id);
+    if (!pool.length) pool = PA.map(p => p.id);
     const pid = pool[Math.floor(mulberry(s.day * 53 + s.knowledge.length)() * pool.length)], p = P[pid];
     if (!seen.has(pid)) s.knowledge.push(pid);
     s.learnedDay = s.day; bump(s);
@@ -995,8 +997,8 @@ function make(P) {
     const known = new Set([...Object.keys(s.cards).map(Number), ...s.grid.filter(c => c && !c.treille).map(c => c.pid)]);
     const ok = p => u.has(p.strate) && (!isExo(p) || hasGS(s)) && !used.has(p.id), pick = pool => pool[Math.floor(rng() * pool.length)];
     const out = [];
-    { let rp = P.filter(p => p.rarete === 'Rare' && ok(p)); const nw = rp.filter(p => !known.has(p.id)); if (nw.length) rp = nw; const fc = rp.filter(p => p.fc); if (fc.length && rng() < .5) rp = fc; const sw = rp.filter(p => sowable(p, m)); if (sw.length) rp = sw; if (rp.length) { const p = pick(rp); used.add(p.id); out.push(p); } }
-    for (let k = 0; k < 2; k++) { let np = P.filter(p => p.rarete !== 'Rare' && ok(p) && !known.has(p.id)); const sw = np.filter(p => sowable(p, m)); if (sw.length) np = sw; if (!np.length) np = P.filter(p => p.rarete !== 'Rare' && ok(p) && sowable(p, m)); if (np.length) { const p = pick(np); used.add(p.id); out.push(p); } }
+    { let rp = PA.filter(p => p.rarete === 'Rare' && ok(p)); const nw = rp.filter(p => !known.has(p.id)); if (nw.length) rp = nw; const fc = rp.filter(p => p.fc); if (fc.length && rng() < .5) rp = fc; const sw = rp.filter(p => sowable(p, m)); if (sw.length) rp = sw; if (rp.length) { const p = pick(rp); used.add(p.id); out.push(p); } }
+    for (let k = 0; k < 2; k++) { let np = PA.filter(p => p.rarete !== 'Rare' && ok(p) && !known.has(p.id)); const sw = np.filter(p => sowable(p, m)); if (sw.length) np = sw; if (!np.length) np = PA.filter(p => p.rarete !== 'Rare' && ok(p) && sowable(p, m)); if (np.length) { const p = pick(np); used.add(p.id); out.push(p); } }
     if (!out.length) return { ok: false, msg: 'Aucune carte à tirer pour l’instant.' };
     s.feves -= POCHETTE; s.pochW = Math.floor(s.day / 7); out.forEach(p => { s.cards[p.id] = (s.cards[p.id] || 0) + 1; });
     log(s, 'good', 'Pochette découverte : ' + out.map(p => p.name).join(', ') + '.'); gainXp(s, 15); bump(s, 'shop');
@@ -1090,10 +1092,10 @@ function make(P) {
       for (const j of neigh(i, s)) { const n = s.grid[j]; if (!n) { if (isActive(s, j)) free.push(j); continue; } if (n.treille) continue; const q = P[n.pid]; if (GSTR.includes(q.strate) && q.id !== c.pid) { st.add(q.strate); sp.add(q.id); if (q.tags.includes('azote')) az = true; if (q.tags.includes('mellifere') || q.tags.includes('repulsif')) po = true; } }
       const done = st.size >= 4 && sp.size >= 5, score = (done ? -50 : 0) + st.size * 4 + sp.size + Math.min(free.length, 4) * 1.5; if (!best || score > best.score) best = { score, i, st, sp, az, po, free, done };
     });
-    if (!best) { s.mats.plan--; bump(s); return { ok: true, noTree: true, trees: P.filter(p => p.strate === 'Arbre' && p.kg > 0 && sowable(p, m) && p.id < CORE).slice(0, 4).map(p => p.name) }; }
+    if (!best) { s.mats.plan--; bump(s); return { ok: true, noTree: true, trees: PA.filter(p => p.strate === 'Arbre' && p.kg > 0 && sowable(p, m) && p.id < CORE).slice(0, 4).map(p => p.name) }; }
     s.mats.plan--; bump(s);
     const missing = GSTR.filter(x => !best.st.has(x)), owned = Object.keys(s.cards).map(Number), sug = {};
-    missing.forEach(st => { const mine = owned.map(id => P[id]).filter(p => p.strate === st).slice(0, 2).map(p => p.name + ' (dans ta réserve)'); const more = P.filter(p => p.strate === st && p.id < CORE && p.rarete !== 'Rare' && sowable(p, m)).slice(0, 3).map(p => p.name); sug[st] = mine.concat(more).slice(0, 3); });
+    missing.forEach(st => { const mine = owned.map(id => P[id]).filter(p => p.strate === st).slice(0, 2).map(p => p.name + ' (dans ta réserve)'); const more = PA.filter(p => p.strate === st && p.id < CORE && p.rarete !== 'Rare' && sowable(p, m)).slice(0, 3).map(p => p.name); sug[st] = mine.concat(more).slice(0, 3); });
     return { ok: true, center: best.i, name: P[s.grid[best.i].pid].name, have: [...best.st], missing, speciesHave: best.sp.size, needStrata: Math.max(0, 4 - best.st.size), needSpecies: Math.max(0, 5 - best.sp.size), azote: best.az, pollin: best.po, free: best.free, suggest: sug, done: best.done };
   }
 

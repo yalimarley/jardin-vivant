@@ -3005,8 +3005,8 @@ function catchUp() {
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }
 function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && (o.grid.length === G.NCELL || o.grid.length === 120)) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
 function save() { if (VIS) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
-// ----- compte en ligne (projet Supabase « jardin-vivant », séparé de JF Lab) -----
-const CLOUD = { url: 'https://wbdduslvjqeersekxaxw.supabase.co', key: 'sb_publishable_m47WNomSZ0jqHim34mbc7A_vs6uCZVX', AK: 'jardin-vivant-auth', sess: null, timer: null, status: '', last: 0 };
+// ----- compte en ligne (projet Supabase de JF Lab, tables jv_*) -----
+const CLOUD = { url: 'https://itqvpmdxmzxubhmtezub.supabase.co', key: 'sb_publishable_aUvfqIfrNpQNkDtRIrn5Mg_k6rQDaFM', AK: 'jardin-vivant-auth-carnet', sess: null, timer: null, status: '', last: 0 };
 try { CLOUD.sess = JSON.parse(localStorage.getItem(CLOUD.AK) || 'null'); } catch (e) {}
 function cloudStore(s) { CLOUD.sess = s; try { if (s) localStorage.setItem(CLOUD.AK, JSON.stringify(s)); else localStorage.removeItem(CLOUD.AK); } catch (e) {} }
 async function cloudFetch(path, o) {
@@ -3030,19 +3030,19 @@ async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1
 async function cloudPush() {
   if (VIS) return false;
   if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
-  try { await cloudFetch('/rest/v1/saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; if (S.pub && S.pub.on && (!S.pub.last || Date.now() - S.pub.last > 300000)) gardenPush(); return true; }
+  try { await cloudFetch('/rest/v1/jv_saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; if (S.pub && S.pub.on && (!S.pub.last || Date.now() - S.pub.last > 300000)) gardenPush(); return true; }
   catch (e) { CLOUD.status = 'err'; return false; }
 }
 async function cloudPull() {
   if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return null;
-  const j = await cloudFetch('/rest/v1/saves?select=data,day,updated_at&user_id=eq.' + encodeURIComponent(CLOUD.sess.uid)); return j && j[0] ? j[0] : null;
+  const j = await cloudFetch('/rest/v1/jv_saves?select=data,day,updated_at&user_id=eq.' + encodeURIComponent(CLOUD.sess.uid)); return j && j[0] ? j[0] : null;
 }
 async function gardenPush() {
   if (VIS) return false;
   if (!S.pub || !S.pub.pseudo || !CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
   const sc = G.scores(S), pl = S.grid.filter(c => c && !c.treille && P[c.pid]).length;
   const snap = { day: S.day, size: S.size || 0, spots: (S.spots || []).map(o => ({ id: o.id, t: o.t, n: o.n, x: o.x, z: o.z, a: o.a, cells: o.cells, f: o.f, r: o.r, b: o.b })), grid: S.grid.map(c => c ? (c.treille ? { treille: 1, furn: c.furn } : { pid: c.pid, g: Math.round(c.g), mulch: c.mulch ? 1 : 0, nichoir: c.nichoir ? 1 : 0, health: Math.round(c.health) }) : null), fauna: Object.keys(S.fauna || {}) };
-  try { await cloudFetch('/rest/v1/gardens?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, pseudo: S.pub.pseudo, is_public: !!S.pub.on, bio: sc.bio, rec: sc.rec, esth: sc.esth, game_day: S.day || 0, plants: pl, snapshot: snap } }); S.pub.last = Date.now(); return true; }
+  try { await cloudFetch('/rest/v1/jv_gardens?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, pseudo: S.pub.pseudo, is_public: !!S.pub.on, bio: sc.bio, rec: sc.rec, esth: sc.esth, game_day: S.day || 0, plants: pl, snapshot: snap } }); S.pub.last = Date.now(); return true; }
   catch (e) { S.pub.err = e.message || 'erreur'; return false; }
 }
 function cloudDirty() { if (!CLOUD.sess) return; clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 20000); }
@@ -3968,7 +3968,7 @@ function pubBlock() {
 async function openLeaderboard(k) {
   k = k || 'total'; modal('Classement des jardins', '<p class="note-p">Chargement…</p>', true);
   let rows = [], err = '';
-  try { rows = await cloudFetch('/rest/v1/rpc/leaderboard', { method: 'POST', auth: false, body: { kind: k, lim: 50 } }) || []; } catch (e) { err = 'Classement indisponible pour le moment.'; }
+  try { rows = await cloudFetch('/rest/v1/rpc/jv_leaderboard', { method: 'POST', auth: false, body: { kind: k, lim: 50 } }) || []; } catch (e) { err = 'Classement indisponible pour le moment.'; }
   const tabs = [['total', 'Général'], ['bio', 'Biodiversité'], ['rec', 'Récolte'], ['esth', 'Esthétique']].map(t => '<button class="btn' + (t[0] === k ? ' on' : '') + '" data-act="lb" data-k="' + t[0] + '">' + t[1] + '</button>').join(' ');
   const me = S.pub && S.pub.on ? S.pub.pseudo : null;
   const body = err ? '<p class="note-p">' + err + '</p>' : rows.length ? '<table class="lbt"><tr><th>#</th><th>Jardinier (touche pour visiter)</th><th>Général</th><th>Bio</th><th>Récolte</th><th>Esth.</th></tr>' + rows.map(r => '<tr data-act="visit" data-p="' + esc(r.pseudo) + '" role="button" tabindex="0" style="cursor:pointer"' + (me && r.pseudo === me ? ' class="me"' : '') + '><td>' + r.rank + '</td><td>' + esc(r.pseudo) + '</td><td><b>' + r.total + '</b></td><td>' + r.bio + '</td><td>' + r.rec + '</td><td>' + r.esth + '</td></tr>').join('') + '</table>' : '<p class="note-p">Personne n’a encore publié son jardin. Sois le premier !</p>';
@@ -3977,7 +3977,7 @@ async function openLeaderboard(k) {
 async function visitGarden(pseudo) {
   toast('Chargement du jardin…');
   let row = null;
-  try { const j = await cloudFetch('/rest/v1/gardens?select=pseudo,total,bio,rec,esth,snapshot&is_public=eq.true&pseudo=eq.' + encodeURIComponent(pseudo), { auth: false }); row = j && j[0]; } catch (e) {}
+  try { const j = await cloudFetch('/rest/v1/jv_gardens?select=pseudo,total,bio,rec,esth,snapshot&is_public=eq.true&pseudo=eq.' + encodeURIComponent(pseudo), { auth: false }); row = j && j[0]; } catch (e) {}
   if (!row || !row.snapshot || !row.snapshot.grid) { toast('Ce jardin n’est pas disponible pour la visite.'); return; }
   enterVisit(row);
 }
@@ -4482,7 +4482,7 @@ function openAccount(msg) {
   if (CLOUD.sess) {
     modal('Mon compte', '<p class="note-p">Connecté : <b>' + esc(CLOUD.sess.email || '') + '</b>.<br>Ta partie est sauvegardée en ligne automatiquement, et tu peux la reprendre sur un autre appareil.</p>' + m + '<div class="menu" style="gap:10px"><button type="button" class="btn primary" data-act="cloud-push">Sauvegarder maintenant</button><button type="button" class="btn" data-act="cloud-pull">Reprendre ma partie en ligne</button><button type="button" class="btn" data-act="cloud-out">Se déconnecter</button></div>');
   } else {
-    modal('Compte en ligne', '<p class="note-p">Crée un compte pour sauvegarder ta forêt en ligne et la retrouver partout. Ce compte est propre au jeu, il est indépendant de JF Lab.</p><div class="acc-f"><label>Adresse e-mail<input id="acc-mail" type="email" autocomplete="email" inputmode="email" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label><label>Mot de passe (8 caractères minimum)<input id="acc-pw" type="password" autocomplete="current-password" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label></div>' + m + '<div class="menu" style="gap:10px;margin-top:10px"><button type="button" class="btn primary" data-act="cloud-in">Se connecter</button><button type="button" class="btn" data-act="cloud-up">Créer mon compte</button></div>');
+    modal('Compte en ligne', '<p class="note-p">Crée un compte pour sauvegarder ta forêt en ligne et la retrouver partout. C’est ton compte JF Lab : le même e-mail et le même mot de passe que sur le carnet (jflab.earth). Après l’inscription, un e-mail de confirmation t’est envoyé.</p><div class="acc-f"><label>Adresse e-mail<input id="acc-mail" type="email" autocomplete="email" inputmode="email" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label><label>Mot de passe (8 caractères minimum)<input id="acc-pw" type="password" autocomplete="current-password" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label></div>' + m + '<div class="menu" style="gap:10px;margin-top:10px"><button type="button" class="btn primary" data-act="cloud-in">Se connecter</button><button type="button" class="btn" data-act="cloud-up">Créer mon compte</button></div>');
   }
 }
 async function accountAfterLogin() {

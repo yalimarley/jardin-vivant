@@ -18,6 +18,7 @@ def carnet(ui):
         ("/rest/v1/saves", "/rest/v1/jv_saves"),
         ("/rest/v1/gardens", "/rest/v1/jv_gardens"),
         ("/rest/v1/rpc/leaderboard", "/rest/v1/rpc/jv_leaderboard"),
+        ("Ce compte est propre au jeu, il est indépendant de JF Lab.", "C’est ton compte JF Lab : le même e-mail et le même mot de passe que sur le carnet (jflab.earth). Après l’inscription, un e-mail de confirmation t’est envoyé."),
     ]
     for a, b in reps:
         assert a in ui, a

@@ -67,6 +67,19 @@ async function cloudRefresh() {
 function cloudMap(j, email) { return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Date.now() / 1000 + j.expires_in), email: (j.user && j.user.email) || email, uid: j.user && j.user.id }; }
 async function cloudSignIn(email, pw) { const j = await cloudFetch('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: pw } }); cloudStore(cloudMap(j, email)); }
 async function cloudSignUp(email, pw) { const j = await cloudFetch('/auth/v1/signup', { method: 'POST', auth: false, body: { email, password: pw } }); if (j && j.access_token) { cloudStore(cloudMap(j, email)); return 'ok'; } return 'confirm'; }
+// Connexion avec Google (flux « implicite » de Supabase : retour sur la page avec la session dans l'adresse)
+function cloudGoogle() { location.href = CLOUD.url + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(location.origin + location.pathname); }
+async function cloudHandleReturn() {
+  const h = location.hash || ''; if (!/access_token=|error_description=/.test(h)) return false;
+  const q = new URLSearchParams(h.replace(/^#/, '')); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  if (q.get('error_description')) { toast('Connexion Google impossible : ' + q.get('error_description').replace(/\+/g, ' ')); return true; }
+  try {
+    const at = q.get('access_token'); const u = await cloudFetch('/auth/v1/user', { auth: false, headers: { Authorization: 'Bearer ' + at } });
+    cloudStore({ access_token: at, refresh_token: q.get('refresh_token'), expires_at: +q.get('expires_at') || (Date.now() / 1000 + (+q.get('expires_in') || 3600)), email: u.email, uid: u.id });
+    await accountAfterLogin();
+  } catch (e) { toast('Connexion Google impossible pour le moment.'); }
+  return true;
+}
 async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) {} cloudStore(null); clearTimeout(CLOUD.timer); CLOUD.status = ''; }
 async function cloudPush() {
   if (VIS) return false;
@@ -1523,7 +1536,7 @@ function openAccount(msg) {
   if (CLOUD.sess) {
     modal('Mon compte', '<p class="note-p">Connecté : <b>' + esc(CLOUD.sess.email || '') + '</b>.<br>Ta partie est sauvegardée en ligne automatiquement, et tu peux la reprendre sur un autre appareil.</p>' + m + '<div class="menu" style="gap:10px"><button type="button" class="btn primary" data-act="cloud-push">Sauvegarder maintenant</button><button type="button" class="btn" data-act="cloud-pull">Reprendre ma partie en ligne</button><button type="button" class="btn" data-act="cloud-out">Se déconnecter</button></div>');
   } else {
-    modal('Compte en ligne', '<p class="note-p">Crée un compte pour sauvegarder ta forêt en ligne et la retrouver partout. C’est ton compte JF Lab : le même e-mail et le même mot de passe que sur le carnet (jflab.earth). Après l’inscription, un e-mail de confirmation t’est envoyé.</p><div class="acc-f"><label>Adresse e-mail<input id="acc-mail" type="email" autocomplete="email" inputmode="email" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label><label>Mot de passe (8 caractères minimum)<input id="acc-pw" type="password" autocomplete="current-password" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label></div>' + m + '<div class="menu" style="gap:10px;margin-top:10px"><button type="button" class="btn primary" data-act="cloud-in">Se connecter</button><button type="button" class="btn" data-act="cloud-up">Créer mon compte</button></div>');
+    modal('Compte en ligne', '<p class="note-p">Crée un compte pour sauvegarder ta forêt en ligne et la retrouver partout. C’est ton compte JF Lab : le même e-mail et le même mot de passe que sur le carnet (jflab.earth). Après l’inscription, un e-mail de confirmation t’est envoyé.</p><div class="menu" style="gap:10px;margin-bottom:8px"><button type="button" class="btn primary" data-act="cloud-google">Continuer avec Google</button></div><p class="note-p" style="text-align:center;margin:6px 0">ou avec ton e-mail</p><div class="acc-f"><label>Adresse e-mail<input id="acc-mail" type="email" autocomplete="email" inputmode="email" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label><label>Mot de passe (8 caractères minimum)<input id="acc-pw" type="password" autocomplete="current-password" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);font:inherit"></label></div>' + m + '<div class="menu" style="gap:10px;margin-top:10px"><button type="button" class="btn primary" data-act="cloud-in">Se connecter</button><button type="button" class="btn" data-act="cloud-up">Créer mon compte</button></div>');
   }
 }
 async function accountAfterLogin() {
@@ -1882,6 +1895,7 @@ document.addEventListener('click', e => {
     case 'famille': openFamily(); break;
     case 'compte': openAccount(); break;
     case 'seedmode': if (ui.mode && ui.mode.type === 'plant') { ui.mode.noyau = a.dataset.v === '1'; render(); } break;
+    case 'cloud-google': cloudGoogle(); break;
     case 'cloud-in': case 'cloud-up': {
       const mail = ($('acc-mail') || {}).value, pw = ($('acc-pw') || {}).value, msg = $('acc-msg');
       if (!mail || !/^\S+@\S+\.\S+$/.test(mail)) { if (msg) msg.textContent = 'Entre une adresse e-mail valide.'; break; }
@@ -1994,4 +2008,5 @@ window.__jv = { openMg: id => openMg(id), openMgList: () => openMgList(), openLe
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
 catchUp(); claimDaily(); render(); startChars();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
+cloudHandleReturn();
 })();

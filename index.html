@@ -2960,6 +2960,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 (function () {
 'use strict';
 const G = Engine.make(PLANTS), P = G.P, STR = G.COLS, MONTHS = G.MONTHS;
+// Plantes retirées du jeu : aussi masquées de l'herbier (entrées conservées dans les données).
+const HRET = new Set(); HERB.forEach((h, k) => { if (h.p != null && P[h.p] && P[h.p].retired) HRET.add(k); });
 let COLS = 8, ROWS = 6;
 function syncDims() { const d = G.dims(S); COLS = d[0]; ROWS = d[1]; }
 const KEY = 'jardin-vivant-proto-v2';
@@ -3865,7 +3867,7 @@ function renderFiche0() {
 }
 function renderFoot() {
   const n = P.filter(p => p.id < 22).length, c = P.filter(p => p.id >= 51).length;
-  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + HERB.length + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="tuto-restart">Revoir le tutoriel</button> <button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
+  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + (HERB.length - HRET.size) + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="tuto-restart">Revoir le tutoriel</button> <button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
 }
 
 /* ---------- fenêtres ---------- */
@@ -4515,7 +4517,7 @@ let hLimit = 60;
 function herbRows() {
   const q = nrm(($('hq') || { value: '' }).value.trim()), play = $('hplay') && $('hplay').checked, ed = $('hedible') && $('hedible').checked;
   const out = []; let total = 0;
-  for (let k = 0; k < HERB.length; k++) { const h = HERB[k]; if (play && (h.p == null || (P[h.p] && P[h.p].retired))) continue; if (ed && !h.e) continue; if (q && HI[k].indexOf(q) < 0) continue; total++; if (out.length < hLimit) out.push(h); }
+  for (let k = 0; k < HERB.length; k++) { const h = HERB[k]; if (HRET.has(k)) continue; if (play && (h.p == null || (P[h.p] && P[h.p].retired))) continue; if (ed && !h.e) continue; if (q && HI[k].indexOf(q) < 0) continue; total++; if (out.length < hLimit) out.push(h); }
   return { out, total };
 }
 function herbHtml() {
@@ -4527,7 +4529,7 @@ function herbHtml() {
 }
 function openHerbier() {
   hLimit = 60;
-  modal('Herbier JF Lab', '<p class="note-p">Les ' + HERB.length + ' plantes de ton catalogue. Celles qui sont comestibles et assez documentées sont jouables ; les autres (ornementales, aquatiques, d’intérieur) restent consultables.</p><div class="hbar"><input id="hq" type="search" placeholder="Chercher une plante (nom ou latin)" aria-label="Chercher une plante" autocomplete="off"><label><input type="checkbox" id="hplay"> jouables</label><label><input type="checkbox" id="hedible"> comestibles</label></div><div id="hlist" class="hlist">' + herbHtml() + '</div>', true);
+  modal('Herbier JF Lab', '<p class="note-p">Les ' + (HERB.length - HRET.size) + ' plantes de ton catalogue. Celles qui sont comestibles et assez documentées sont jouables ; les autres (ornementales, aquatiques, d’intérieur) restent consultables.</p><div class="hbar"><input id="hq" type="search" placeholder="Chercher une plante (nom ou latin)" aria-label="Chercher une plante" autocomplete="off"><label><input type="checkbox" id="hplay"> jouables</label><label><input type="checkbox" id="hedible"> comestibles</label></div><div id="hlist" class="hlist">' + herbHtml() + '</div>', true);
 }
 function openPlantInfo(k) {
   const h = HERB[k], p = h.p != null && P[h.p] && !P[h.p].retired ? P[h.p] : null, m = G.dateOf(S.day).m;

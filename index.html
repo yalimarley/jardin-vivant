@@ -4515,13 +4515,13 @@ let hLimit = 60;
 function herbRows() {
   const q = nrm(($('hq') || { value: '' }).value.trim()), play = $('hplay') && $('hplay').checked, ed = $('hedible') && $('hedible').checked;
   const out = []; let total = 0;
-  for (let k = 0; k < HERB.length; k++) { const h = HERB[k]; if (play && h.p == null) continue; if (ed && !h.e) continue; if (q && HI[k].indexOf(q) < 0) continue; total++; if (out.length < hLimit) out.push(h); }
+  for (let k = 0; k < HERB.length; k++) { const h = HERB[k]; if (play && (h.p == null || (P[h.p] && P[h.p].retired))) continue; if (ed && !h.e) continue; if (q && HI[k].indexOf(q) < 0) continue; total++; if (out.length < hLimit) out.push(h); }
   return { out, total };
 }
 function herbHtml() {
   const { out, total } = herbRows();
   return '<p class="note-p" id="hcount">' + total + ' fiche' + (total > 1 ? 's' : '') + '</p>' + out.map(h => {
-    const pl = h.p != null ? P[h.p] : null;
+    const pl = h.p != null && P[h.p] && !P[h.p].retired ? P[h.p] : null;
     return '<button type="button" class="hrow' + (pl ? ' play' : '') + '" data-act="herb-open" data-k="' + HERB.indexOf(h) + '"><span class="hn"><b>' + esc(h.n) + '</b><i>' + esc(h.l) + '</i></span><span class="hm">' + esc(h.t || '—') + (h.h ? ' · ' + esc(h.h) : '') + '</span><span class="hb ' + (pl ? 'ok' : '') + '">' + (pl ? 'Jouable' : 'Herbier') + '</span></button>';
   }).join('') + (total > out.length ? '<button type="button" class="btn sm" data-act="herb-more" style="margin-top:8px">Afficher plus (' + (total - out.length) + ' restantes)</button>' : '');
 }
@@ -4530,10 +4530,10 @@ function openHerbier() {
   modal('Herbier JF Lab', '<p class="note-p">Les ' + HERB.length + ' plantes de ton catalogue. Celles qui sont comestibles et assez documentées sont jouables ; les autres (ornementales, aquatiques, d’intérieur) restent consultables.</p><div class="hbar"><input id="hq" type="search" placeholder="Chercher une plante (nom ou latin)" aria-label="Chercher une plante" autocomplete="off"><label><input type="checkbox" id="hplay"> jouables</label><label><input type="checkbox" id="hedible"> comestibles</label></div><div id="hlist" class="hlist">' + herbHtml() + '</div>', true);
 }
 function openPlantInfo(k) {
-  const h = HERB[k], p = h.p != null ? P[h.p] : null, m = G.dateOf(S.day).m;
+  const h = HERB[k], p = h.p != null && P[h.p] && !P[h.p].retired ? P[h.p] : null, m = G.dateOf(S.day).m;
   let body;
   if (p) body = '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div style="flex:none">' + cardHtml(p, {}) + '</div><div style="flex:1 1 240px;min-width:0;display:grid;gap:10px"><h3 style="font-size:20px">' + esc(p.name) + '</h3><p class="note-p" style="color:var(--ink)">' + esc(p.note) + '</p><p class="note-p">' + sw(p) + ' : ' + G.monthRange(p.semis) + '. Récolte : ' + (G.monthRange(p.recolte) === '—' ? 'aucune' : G.monthRange(p.recolte)) + '.</p>' + cal(p, m) + legend + (p.est ? '<span class="est" style="justify-self:start">Valeurs de jeu estimées' + (p.estH ? ', mois de récolte compris' : '') + '</span>' : '<span class="est" style="justify-self:start;background:color-mix(in srgb,var(--leaf-2) 25%,var(--surface))">Valeurs calibrées</span>') + '<p class="note-p">Source : catalogue JF Lab' + (h.row ? ', ligne ' + h.row + ' du classeur' : '') + '.</p></div></div>';
-  else body = '<div style="display:grid;gap:8px"><h3 style="font-size:20px">' + esc(h.n) + '</h3><p class="note-p"><i>' + esc(h.l || 'nom latin non renseigné') + '</i></p><p class="note-p">' + [h.t, h.h && 'Hauteur ' + h.h, h.x && 'Exposition ' + h.x, h.z && 'Zone ' + h.z, h.ho && 'Récolte ' + h.ho].filter(Boolean).map(esc).join(' · ') + '</p><span class="est" style="justify-self:start">Pas encore jouable : ' + esc(h.why || 'données insuffisantes') + '</span><p class="note-p">Source : catalogue JF Lab' + (h.row ? ', ligne ' + h.row + ' du classeur' : '') + '.</p></div>';
+  else body = '<div style="display:grid;gap:8px"><h3 style="font-size:20px">' + esc(h.n) + '</h3><p class="note-p"><i>' + esc(h.l || 'nom latin non renseigné') + '</i></p><p class="note-p">' + [h.t, h.h && 'Hauteur ' + h.h, h.x && 'Exposition ' + h.x, h.z && 'Zone ' + h.z, h.ho && 'Récolte ' + h.ho].filter(Boolean).map(esc).join(' · ') + '</p><span class="est" style="justify-self:start">Pas encore jouable : ' + esc(h.p != null ? 'retirée du jeu' : (h.why || 'données insuffisantes')) + '</span><p class="note-p">Source : catalogue JF Lab' + (h.row ? ', ligne ' + h.row + ' du classeur' : '') + '.</p></div>';
   modal(p ? 'Fiche plante' : 'Fiche de l’herbier', body);
 }
 document.addEventListener('input', e => { if (e.target.id === 'hq' || e.target.id === 'hplay' || e.target.id === 'hedible') { hLimit = 60; $('hlist').innerHTML = herbHtml(); } });

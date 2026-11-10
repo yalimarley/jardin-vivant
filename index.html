@@ -1194,7 +1194,7 @@ function rebuildPlate() {
   while (gPlate.children.length) gPlate.remove(gPlate.children[0]);
   const sc = sun.shadow.camera, e = Math.max(HW, HH) + 9; sc.left = -e; sc.right = e; sc.top = e; sc.bottom = -e; sc.updateProjectionMatrix();
 }
-const emptyM = new T.MeshLambertMaterial({ color: 0x57402d });
+const emptyM = new T.MeshLambertMaterial({ color: 0x6a5a38 });
 function buildSpot(sp, S, m, sk) {
   const g = new T.Group(); g.position.set(sp.x, 0, sp.z); g.userData.pick = { t: 'spot', id: sp.id }; g.userData.plants = []; g.userData.waters = [];
   const soilMat = new T.MeshLambertMaterial({ color: sp.b ? 0x4a3224 : 0x6e5035 }); g.userData.soil = soilMat;
@@ -1206,17 +1206,15 @@ function buildSpot(sp, S, m, sk) {
   } else if (sp.f) {
     /* aménagement : pas de butte */
   } else if (sp.t === 'single') {
-    g.add(mesh(new T.CylinderGeometry(R * .86, R * .95, .05, 12), L(0x8a6a48), 0, .025, 0, false));
-    g.add(mesh(jitter(new T.CylinderGeometry(R * .7, R * .8, .13, 10), .04), soilMat, 0, .08, 0, false));
+    g.add(mesh(jitter(new T.CylinderGeometry(R * .66, R * .78, .06, 10), .14), soilMat, 0, .04, 0, false));
     const hit = new T.Mesh(new T.CylinderGeometry(R, R, .5, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
   } else {
-    const ring = mesh(new T.CylinderGeometry(R * 1.1, R * 1.17, .05, 18), L(0x8a6a48), 0, .025, 0, false); ring.rotation.y = hs * 6; g.add(ring);
-    const mound = mesh(jitter(new T.CylinderGeometry(R * .96, R * 1.06, .14, 16, 1), .05), soilMat, 0, .09, 0, false); mound.rotation.y = hs * 6; g.add(mound);
+    const mound = mesh(jitter(new T.CylinderGeometry(R * .84, R * .98, .06, 14, 1), .16), soilMat, 0, .04, 0, false); mound.rotation.y = hs * 6; mound.scale.set(1 + (hs - .5) * .22, 1, 1 - (hs - .5) * .22); g.add(mound);
     const hit = new T.Mesh(new T.CylinderGeometry(R, R, .5, 12), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
   }
   sp.cells.forEach((i, k) => {
     const cell = S.grid[i], sl = SL[k]; const w = new T.Group();
-    if (!cell) { const em = mesh(new T.CylinderGeometry(.42, .5, .09, 10), emptyM, sl[0], .12, sl[1], false); g.add(em); const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
+    if (!cell) { const em = mesh(new T.CylinderGeometry(.3, .38, .04, 10), emptyM, sl[0], .06, sl[1], false); g.add(em); const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
     w.position.set(sl[0], .15, sl[1]); w.userData.pick = { t: 'cell', i }; rng = rngMaker(i * 977 + (cell.pid || 0) * 13 + 1);
     if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(sp.f ? 1 : .72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); if (f.userData.rips) g.userData.rips = (g.userData.rips || []).concat(f.userData.rips); }
     else {
@@ -1236,17 +1234,17 @@ function soilColor(w) { return new T.Color(0x5c4433).lerp(new T.Color(0xb09a74),
 let sigPaths = '';
 const hedgeM = new T.MeshLambertMaterial({ color: 0x6e5035 });
 const borderM = new T.MeshLambertMaterial({ color: 0x9a6b3e, side: T.DoubleSide }), postM = new T.MeshLambertMaterial({ color: 0x6f4a28 }), postG = new T.CylinderGeometry(.05, .06, .26, 5);
-const trackM = new T.MeshLambertMaterial({ color: 0xd2b27c, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const trackM = new T.MeshLambertMaterial({ color: 0x9c8156, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 function ribbon(a, b, seed, w0, obst) {
   w0 = w0 || .78; const dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len, N = Math.max(8, Math.round(len * 2.2)), pos = [], idx = [];
-  const base = (hj(seed, 1.7) - .5) * Math.min(2.4, len * .55); let wob = base, bestC = -1e9;
+  const base = (hj(seed, 1.7) - .5) * Math.min(3.4, len * .8); let wob = base, bestC = -1e9;
   [base, -base, base * .4, -base * .4, 0].some(cw => { const cx0 = (a[0] + b[0]) / 2 + nx * cw, cz0 = (a[1] + b[1]) / 2 + nz * cw; let cl = 1e9; for (let k = 1; k < 8; k++) { const t = k / 8, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx0 + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz0 + t * t * b[1]; (obst || []).forEach(o => { cl = Math.min(cl, Math.hypot(x - o[0], z - o[1]) - o[2] - w0); }); } if (cl > bestC) { bestC = cl; wob = cw; } return cl >= .15; });
   const cx = (a[0] + b[0]) / 2 + nx * wob, cz = (a[1] + b[1]) / 2 + nz * wob, cl = [];
-  for (let k = 0; k <= N; k++) { const t = k / N, u = 1 - t, x = u * u * a[0] + 2 * u * t * cx + t * t * b[0], z = u * u * a[1] + 2 * u * t * cz + t * t * b[1], tx = 2 * u * (cx - a[0]) + 2 * t * (b[0] - cx), tz = 2 * u * (cz - a[1]) + 2 * t * (b[1] - cz), tl = Math.hypot(tx, tz) || 1, px = -tz / tl, pz = tx / tl, w = w0 + (hj(seed + k, 3.1) - .5) * .26 * (w0 / .78) + Math.sin(t * Math.PI) * .08;
+  for (let k = 0; k <= N; k++) { const t = k / N, u = 1 - t, sm = Math.sin(t * Math.PI * 3 + hj(seed, 2.3) * 6) * .2 * Math.sin(t * Math.PI), x = u * u * a[0] + 2 * u * t * cx + t * t * b[0] + nx * sm, z = u * u * a[1] + 2 * u * t * cz + t * t * b[1] + nz * sm, tx = 2 * u * (cx - a[0]) + 2 * t * (b[0] - cx), tz = 2 * u * (cz - a[1]) + 2 * t * (b[1] - cz), tl = Math.hypot(tx, tz) || 1, px = -tz / tl, pz = tx / tl, w = w0 + (hj(seed + k, 3.1) - .5) * .26 * (w0 / .78) + Math.sin(t * Math.PI) * .08;
     pos.push(x + px * w, .04, z + pz * w, x - px * w, .04, z - pz * w); cl.push([x, z, px, pz, w, t]); if (k < N) { const q = k * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, trackM); m.receiveShadow = true;
   const grp = new T.Group(); grp.add(m); const t0 = cl.findIndex(q => q[5] > .09), t1 = cl.length - 1 - [...cl].reverse().findIndex(q => q[5] < .91);
-  if (t0 >= 0 && t1 - t0 >= 2) [1, -1].forEach(sd => {
+  if (false) [1, -1].forEach(sd => {
     const bp = [], bi = [], hb = .17, wb = .13; let n = 0;
     for (let k = t0; k <= t1; k++) { const [x, z, px, pz, w] = cl[k], o = w + .06, i0 = o - wb / 2, o0 = o + wb / 2; bp.push(x + px * sd * i0, hb, z + pz * sd * i0, x + px * sd * o0, hb, z + pz * sd * o0, x + px * sd * i0, .02, z + pz * sd * i0, x + px * sd * o0, .02, z + pz * sd * o0);
       if (k < t1) { const q = n * 4; n++; bi.push(q, q + 1, q + 4, q + 1, q + 5, q + 4, q, q + 4, q + 2, q + 4, q + 6, q + 2, q + 1, q + 3, q + 5, q + 5, q + 3, q + 7); } }
@@ -1417,7 +1415,7 @@ function syncTracks(S) {
   const allD = nodes.map((n, k) => n.d.map(q => [q[0], q[1], q[2], k]));
   edges.forEach((e, n) => {
     const obst = []; allD.forEach((ds, k) => { if (k !== e.i && k !== e.j) ds.forEach(q => obst.push(q)); }); fsp.forEach(o => A.G.discsOf(o).forEach(q => obst.push(q)));
-    const w = e.i === 0 ? 1.05 : depth[e.j] <= 2 ? .88 : .72;
+    const w = e.i === 0 ? .78 : depth[e.j] <= 2 ? .6 : .46;
     gPaths.add(ribbon(e.a, e.b, e.i * 31 + e.j * 7 + n, w, obst)); gPaths.add(plate(e.a[0], e.a[1], w * .98)); gPaths.add(plate(e.b[0], e.b[1], w * .98));
   });
 }
@@ -1451,7 +1449,7 @@ function syncCells(S, m, sk) {
       const p = P[cell.pid], ph = G.phase(cell), dry = cell.water < 25; fcells.push(i); wsum += cell.water; wn++;
       sig += [cell.pid, ph.stage, Math.round(ph.prog * 14), cell.ready ? 1 : 0, dry ? 1 : 0, sk, A.leafColor(p, m, dry), cell.mulch ? 1 : 0, cell.supp || '', cell.nichoir ? 1 : 0, cell.oyaUntil > S.day ? 1 : 0].join(',') + '|'; });
     let e = cg[sp.id]; if (!e || e.sig !== sig) { if (e) gBeds.remove(e.g); const g = buildSpot(sp, S, m, sk); gBeds.add(g); e = cg[sp.id] = { g, sig }; }
-    if (e.g.userData.soil) e.g.userData.soil.color.copy(soilColor(wn ? wsum / wn : 40));
+    if (e.g.userData.soil) e.g.userData.soil.color.copy(soilColor(wn ? wsum / wn : 40)).lerp(new T.Color(0x66763f), .5);
   });
   for (const k in cg) if (!live[k]) { gBeds.remove(cg[k].g); delete cg[k]; }
   deco.cells = fcells;

@@ -533,9 +533,10 @@ function make(P) {
   function boosterReady(s) { return boosterIn(s) === 0; }
   // graines du jour : 2 cartes offertes à la première connexion de chaque jour (une culture rapide de saison + une plante au hasard)
   function dailySeeds(s) {
-    if (!RHYTHM || s.seedClaim === s.day || !s.boosters) return null; s.seedClaim = s.day; if (Object.values(s.cards || {}).reduce((x, n) => x + n, 0) >= 3) return [];
+    if (!RHYTHM || s.seedClaim === s.day || !s.boosters) return null; s.seedClaim = s.day; if (Object.values(s.cards || {}).reduce((x, n) => x + n, 0) >= 8) return [];
     const m = dateOf(s.day).m, rng = mulberry(s.day * 211 + (s.boosters || 0) * 5 + 3), got = [], u = unlocked(s);
     const fp = fastPool(s, m); if (fp.length) got.push(fp[Math.floor(rng() * fp.length)].id);
+    { const sp = P.filter(p => u.has(p.strate) && sowable(p, m) && p.rarete !== 'Rare' && !isExo(p) && !got.includes(p.id) && p.kind !== 'continue'), n = s.maxPlantings >= 10 ? 2 : 1; for (let k = 0; k < n && sp.length; k++) { const j = Math.floor(rng() * sp.length); got.push(sp[j].id); sp.splice(j, 1); } }
     got.forEach(id => { s.cards[id] = (s.cards[id] || 0) + 1; }); if (got.length) log(s, 'good', 'Graines du jour : ' + got.map(id => P[id].name.toLowerCase()).join(' et ') + '.');
     return got;
   }

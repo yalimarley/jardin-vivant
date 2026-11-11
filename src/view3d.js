@@ -315,15 +315,15 @@ function furn(k, cell) {
     for (let i = 0; i < 3; i++) { const q = mesh(geo.ico(.22, 0), i % 2 ? mat.leafA : mat.leafB, (i - 1) * .45 * s, .4, (i % 2 ? .3 : -.3) * s); q.scale.y = .8; g.add(q); }
   }
   else if (k === 'mare') {
-    const pg = new T.CircleGeometry(.98, 16); pg.rotateX(-Math.PI / 2); const w = new T.Mesh(pg, new T.MeshPhongMaterial({ color: 0x4d8fb5, specular: 0xffffff, shininess: 90, transparent: true, opacity: .9 })); w.position.y = .07; g.add(w); g.userData.water = w;
-    const rips = []; for (let i = 0; i < 3; i++) { const rg = new T.RingGeometry(.9, 1, 28); rg.rotateX(-Math.PI / 2); const r = new T.Mesh(rg, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide })); const a = i * 2.1; r.position.set(Math.cos(a) * .35, .085, Math.sin(a) * .3); r.userData.ph = i / 3; g.add(r); rips.push(r); }
-    for (let i = 0; i < 5; i++) { const gl = new T.Mesh(new T.PlaneGeometry(.09, .03), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); gl.rotation.x = -Math.PI / 2; const a = i * 1.3 + .4; gl.position.set(Math.cos(a) * (.3 + (i % 3) * .2), .09, Math.sin(a) * (.25 + (i % 2) * .25)); gl.userData.glint = true; gl.userData.ph = i * 1.7; g.add(gl); rips.push(gl); }
+    const pg = new T.CircleGeometry(.98, 16); pg.rotateX(-Math.PI / 2); const w = new T.Mesh(pg, new T.MeshPhongMaterial({ color: 0x4d8fb5, specular: 0xffffff, shininess: 90, transparent: true, opacity: .9 })); w.position.y = .085; g.add(w); g.userData.water = w;
+    const rips = []; for (let i = 0; i < 3; i++) { const rg = new T.RingGeometry(.9, 1, 28); rg.rotateX(-Math.PI / 2); const r = new T.Mesh(rg, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide })); const a = i * 2.1; r.position.set(Math.cos(a) * .35, .1, Math.sin(a) * .3); r.userData.ph = i / 3; g.add(r); rips.push(r); }
+    for (let i = 0; i < 5; i++) { const gl = new T.Mesh(new T.PlaneGeometry(.09, .03), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); gl.rotation.x = -Math.PI / 2; const a = i * 1.3 + .4; gl.position.set(Math.cos(a) * (.3 + (i % 3) * .2), .105, Math.sin(a) * (.25 + (i % 2) * .25)); gl.userData.glint = true; gl.userData.ph = i * 1.7; g.add(gl); rips.push(gl); }
     g.userData.rips = rips;
-    const bk = mesh(new T.CylinderGeometry(1.0, 1.06, .1, 14), mat.soil, 0, .03, 0, false); g.add(bk);
+    const bk = mesh(new T.CylinderGeometry(1.0, 1.06, .07, 14), mat.soil, 0, .03, 0, false); g.add(bk);
     for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28, rk = mesh(rockGeo(.16 + rng() * .1), mat.rock, Math.cos(a) * 1.0, .1, Math.sin(a) * 1.0); g.add(rk); }
-    for (let i = 0; i < 6; i++) { const a = i * 1.1 + .3, pad = mesh(geo.dod(.2), mat.leafA, Math.cos(a) * (.35 + (i % 3) * .2), .09, Math.sin(a) * (.3 + (i % 2) * .2), false); pad.scale.set(1, .1, 1); g.add(pad); }
+    for (let i = 0; i < 6; i++) { const a = i * 1.1 + .3, pad = mesh(geo.dod(.2), mat.leafA, Math.cos(a) * (.35 + (i % 3) * .2), .1, Math.sin(a) * (.3 + (i % 2) * .2), false); pad.scale.set(1, .1, 1); g.add(pad); }
     for (let i = 0; i < 5; i++) { const a = i * 1.3, h = .7 + rng() * .4; g.add(mesh(geo.cyl(.012, .016, h, 3), mat.leafA, Math.cos(a) * .85, h / 2, Math.sin(a) * .8, false)); g.add(mesh(geo.cyl(.04, .04, .18, 5), mat.trunk, Math.cos(a) * .85, h, Math.sin(a) * .8, false)); }
-    if (cell && cell.ducks) [[-.3, .2, 0xf3e7cf], [.35, -.15, 0xc8a46a]].forEach(d => { const b = mesh(geo.ico(.15, 0), L(d[2]), d[0], .17, d[1]); b.scale.set(1, .8, 1.35); g.add(b); const h = mesh(geo.ico(.08, 0), L(d[2]), d[0], .34, d[1] + .1); g.add(h); g.add(mesh(geo.cone(.04, .1, 4), mat.yellow, d[0], .33, d[1] + .2, false)).rotation.x = Math.PI / 2; });
+    if (cell && cell.ducks) [[-.3, .2, 0xf3e7cf], [.35, -.15, 0xc8a46a]].forEach(d => { const b = mesh(geo.ico(.15, 0), L(d[2]), d[0], .17, d[1]); b.scale.set(1, .8, 1.35); g.add(b); const h = mesh(geo.ico(.08, 0), L(d[2]), d[0], .34, d[1] + .1); g.add(h); const bc = mesh(geo.cone(.04, .1, 4), mat.yellow, d[0], .33, d[1] + .2, false); bc.rotation.x = Math.PI / 2; g.add(bc); });
   }
   else if (k === 'ruche') {
     [-.35, .35].forEach(x => B(.08, .35, .08, mat.wood, x, .18, 0)); B(.9, .3, .7, mat.straw, 0, .5, 0); B(.9, .3, .7, mat.white, 0, .8, 0); B(1.0, .08, .8, mat.roof, 0, 1.02, 0); B(.3, .06, .1, mat.dark, 0, .56, .36);
@@ -494,7 +494,7 @@ function setup() {
   sun = new T.DirectionalLight(0xffe4bc, .62); sun.castShadow = true; sun.shadow.mapSize.set(phone ? 1024 : 2048, phone ? 1024 : 2048);
   const sc = sun.shadow.camera; sc.left = -26; sc.right = 26; sc.top = 26; sc.bottom = -26; sc.near = 1; sc.far = 100; sun.shadow.bias = -.0006; scene.add(sun); scene.add(sun.target);
   const skyCv = document.createElement('canvas'); skyCv.width = 4; skyCv.height = 256; skyCx = skyCv.getContext('2d'); skyTex = new T.CanvasTexture(skyCv); scene.background = skyTex;
-  gTerr = new T.Group(); gBeds = new T.Group(); gDecor = new T.Group(); gPaths = new T.Group(); gOver = new T.Group(); gChars = new T.Group(); gFauna = new T.Group(); gAmb = new T.Group();
+  gTerr = new T.Group(); gBeds = new T.Group(); gDecor = new T.Group(); gPaths = new T.Group(); gPaths.visible = false; gOver = new T.Group(); gChars = new T.Group(); gFauna = new T.Group(); gAmb = new T.Group();
   gBloom = new T.Group(); [gTerr, gPlate = new T.Group(), gPaths, gBloom, gBeds, gDecor, gOver, gChars, gFauna, gAmb].forEach(g => scene.add(g));
   // terrain
   const SIZE = 150, SEG = 100; tg = new T.PlaneGeometry(SIZE, SIZE, SEG, SEG); tg.rotateX(-Math.PI / 2);
@@ -614,6 +614,7 @@ function tap(cx, cy) {
   if (A.ui().tool === 'spade') { A.spadeTap(hit.point.x, hit.point.z, -cam.az, [HW, HH]); return; }
   if (pk.t === 'ground') { if (A.furnTap(hit.point.x, hit.point.z, [HW, HH])) return; }
   if (pk.t === 'ground') return;
+  { const q0 = pk.t === 'spot' ? pk.id : pk.t === 'cell' ? (A.G.spotOf(A.S(), pk.i) || {}).id : null; if (q0 !== null && q0 !== undefined) focusSp = { id: q0, t: performance.now() }; }
   { const ui0 = A.ui(), S0 = A.S(), plain = (!ui0.tool || ui0.tool === 'select') && !ui0.mode, sp0 = pk.t === 'spot' ? (S0.spots || []).find(q => q.id === pk.id) : pk.t === 'cell' ? A.G.spotOf(S0, pk.i) : null, c0 = pk.t === 'cell' ? S0.grid[pk.i] : null;
     if (plain && sp0 && !(c0 && c0.treille)) { A.openSpot(sp0.id); return; } }
   if (pk.t === 'cell') fire(svg.querySelector('.cell[data-i="' + pk.i + '"]'));
@@ -630,6 +631,8 @@ function rebuildPlate() {
   const sc = sun.shadow.camera, e = Math.max(HW, HH) + 9; sc.left = -e; sc.right = e; sc.top = e; sc.bottom = -e; sc.updateProjectionMatrix();
 }
 const emptyM = new T.MeshLambertMaterial({ color: 0x6a5a38 });
+const glowM = new T.MeshBasicMaterial({ color: 0x4fc3ff, transparent: true, opacity: .8, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }), glowM2 = new T.MeshBasicMaterial({ color: 0x4fc3ff, transparent: true, opacity: .14, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+let focusSp = null;
 function buildSpot(sp, S, m, sk) {
   const g = new T.Group(); g.position.set(sp.x, 0, sp.z); g.userData.pick = { t: 'spot', id: sp.id }; g.userData.plants = []; g.userData.waters = [];
   const soilMat = new T.MeshLambertMaterial({ color: sp.b ? 0x4a3224 : 0x6e5035 }); g.userData.soil = soilMat;
@@ -641,22 +644,21 @@ function buildSpot(sp, S, m, sk) {
   } else if (sp.f) {
     /* aménagement : pas de butte */
   } else if (sp.t === 'single') {
-    g.add(mesh(jitter(new T.CylinderGeometry(R * .66, R * .78, .06, 10), .14), soilMat, 0, .04, 0, false));
     const hit = new T.Mesh(new T.CylinderGeometry(R, R, .5, 10), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
   } else {
-    const mound = mesh(jitter(new T.CylinderGeometry(R * .84, R * .98, .06, 14, 1), .16), soilMat, 0, .04, 0, false); mound.rotation.y = hs * 6; mound.scale.set(1 + (hs - .5) * .22, 1, 1 - (hs - .5) * .22); g.add(mound);
     const hit = new T.Mesh(new T.CylinderGeometry(R, R, .5, 12), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .25; g.add(hit);
   }
+  if (sp.t !== 'hedge' && !sp.f) { const gl = new T.Group(); gl.visible = false; gl.position.y = .12; const rg = new T.Mesh(new T.RingGeometry(R * .94, R * 1.04, 48), glowM); rg.rotation.x = -Math.PI / 2; const dg = new T.Mesh(new T.CircleGeometry(R * 1.02, 48), glowM2); dg.rotation.x = -Math.PI / 2; rg.renderOrder = dg.renderOrder = 5; gl.add(dg, rg); g.add(gl); g.userData.glow = gl; }
   sp.cells.forEach((i, k) => {
     const cell = S.grid[i], sl = SL[k]; const w = new T.Group();
-    if (!cell) { const em = mesh(new T.CylinderGeometry(.3, .38, .04, 10), emptyM, sl[0], .06, sl[1], false); g.add(em); const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
+    if (!cell) { const hit = new T.Mesh(new T.CylinderGeometry(.7, .7, .6, 8), new T.MeshBasicMaterial({ visible: false })); hit.position.set(sl[0], .3, sl[1]); hit.userData.pick = { t: 'cell', i }; g.add(hit); return; }
     w.position.set(sl[0], .15, sl[1]); w.userData.pick = { t: 'cell', i }; rng = rngMaker(i * 977 + (cell.pid || 0) * 13 + 1);
     if (cell.treille) { const f = furn(cell.furn || 'treille', cell); f.scale.setScalar(sp.f ? 1 : .72); w.add(f); if (f.userData.water) g.userData.waters.push(f.userData.water); if (f.userData.rips) g.userData.rips = (g.userData.rips || []).concat(f.userData.rips); }
     else {
       const p = A.P[cell.pid], ph = A.G.phase(cell), dry = cell.water < 25, st = { stage: ph.stage, prog: ph.prog, ready: !!cell.ready, dry, sk, mo: m };
       if (ph.stage === 'graine') { const s2 = mesh(geo.ico(.09, 0), mat.dark, 0, .08, 0, false); s2.scale.y = .6; w.add(s2); }
       else { const pl = buildPlant(p, cell, st); pl.scale.multiplyScalar(.85); pl.userData.base = pl.scale.x; w.add(pl); g.userData.plants.push(pl); }
-      if (cell.mulch) w.add(mesh(new T.CylinderGeometry(.62, .68, .05, 10), L(0xb4894f), 0, .02, 0, false));
+      if (cell.mulch) w.add(mesh(new T.CylinderGeometry(.42, .5, .03, 10), L(0x9a8456), 0, .01, 0, false));
       if (cell.supp) { const f = furn(cell.supp, cell); f.position.set(0, 0, -.5); f.scale.setScalar(.7); w.add(f); }
       if (cell.nichoir) { const hy = ({ 'Arbre': 2.1, 'Arbuste': 1.15, 'Grimpante': 1.2 })[p.strate] || .9, nb = new T.Group(); nb.position.set(.62, hy, .15); nb.add(mesh(geo.cyl(.012, .012, .5, 3), L(0x6b4a2e), 0, .35, 0, false)); nb.add(mesh(geo.box(.4, .46, .38), L(0xd9a35a), 0, 0, 0)); nb.add(mesh(geo.box(.1, .12, .02), L(0x2a1d14), 0, .04, .2, false)); const rf = mesh(geo.cone(.36, .26, 4), L(0xb5503c), 0, .35, 0); rf.rotation.y = Math.PI / 4; nb.add(rf); nb.add(mesh(geo.box(.2, .03, .06), L(0x6b4a2e), 0, -.12, .22, false)); w.add(nb); }
       if (cell.oyaUntil > S.day) { const oy = new T.Group(); oy.position.set(-.5, 0, .5); const bd = mesh(geo.ico(.26, 0), L(0xc8764a), 0, .16, 0); bd.scale.set(1, 1.1, 1); oy.add(bd); oy.add(mesh(geo.cyl(.1, .13, .14, 8), L(0xb9663c), 0, .42, 0)); oy.add(mesh(geo.cyl(.15, .15, .04, 8), L(0x8a4a2a), 0, .5, 0)); const rg = mesh(new T.RingGeometry(.3, .42, 14), new T.MeshBasicMaterial({ color: 0x6fb7e0, transparent: true, opacity: .5, side: T.DoubleSide }), 0, .04, 0, false); rg.rotation.x = -Math.PI / 2; oy.add(rg); w.add(oy); }
@@ -1091,9 +1093,10 @@ function moveChar(obj, a, dt, t, kind) {
   }
 }
 function frame() {
+  { const now = performance.now(); gBeds.children.forEach(g => { const gl = g.userData && g.userData.glow; if (!gl) return; const on = focusSp && g.userData.pick && g.userData.pick.id === focusSp.id && now - focusSp.t < 9000; if (!on) { gl.visible = false; return; } gl.visible = true; const fade = Math.min(1, (9000 - (now - focusSp.t)) / 1500, (now - focusSp.t) / 200 + .2), p = .75 + .25 * Math.sin(now / 260); gl.children[0].material.opacity = .14 * fade; gl.children[1].material.opacity = .8 * p * fade; gl.scale.setScalar(1 + .015 * Math.sin(now / 260)); }); }
   raf = requestAnimationFrame(frame); if (!V.on || document.hidden) return;
   const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime, now = performance.now() / 1000; timeU.value = t;
-  for (const k in cg) { const u = cg[k].g.userData; if (!reduceM) u.plants.forEach(q => { q.rotation.z = Math.sin(t * .9 + q.userData.phase) * (q.userData.sway || 0); }); u.waters.forEach(w => { w.position.y = .07 + Math.sin(t * 1.6) * .008; }); (u.rips || []).forEach(r => { if (r.userData.glint) { r.material.opacity = Math.max(0, Math.sin(t * 2.6 + r.userData.ph)) * .85; } else { const k = (t * .3 + r.userData.ph) % 1; r.scale.setScalar(.1 + k * .8); r.material.opacity = (1 - k) * .55; } }); }
+  for (const k in cg) { const u = cg[k].g.userData; if (!reduceM) u.plants.forEach(q => { q.rotation.z = Math.sin(t * .9 + q.userData.phase) * (q.userData.sway || 0); }); u.waters.forEach(w => { w.position.y = .085 + Math.sin(t * 1.6) * .006; }); (u.rips || []).forEach(r => { if (r.userData.glint) { r.material.opacity = Math.max(0, Math.sin(t * 2.6 + r.userData.ph)) * .85; } else { const k = (t * .3 + r.userData.ph) % 1; r.scale.setScalar(.1 + k * .8); r.material.opacity = (1 - k) * .55; } }); }
   clouds.forEach(c => { c.position.x += dt * .6; if (c.position.x > 90) c.position.x = -90; c.visible = true; });
   if (parts.visible) { const a = pg.attributes.position, fall = season === 'winter' ? .5 : 1; for (let i = 0; i < NP; i++) { let y = a.getY(i) - pvel[i] * dt * fall; if (y < 0) y = 14; a.setY(i, y); a.setX(i, a.getX(i) + Math.sin(t * .8 + i) * dt * .6); } a.needsUpdate = true; }
   if (rainL.m) { rainL.m.visible = rainOn; if (rainOn) { const pos = rainL.m.geometry.attributes.position; for (let i = 0; i < rainL.N; i++) { const p = rainL.p[i]; p[1] -= dt * 22; if (p[1] < 0) p[1] += 16; const x = cam.tx + p[0], z = cam.tz + p[2]; pos.setXYZ(i * 2, x, p[1], z); pos.setXYZ(i * 2 + 1, x - .08, p[1] + .6, z); } pos.needsUpdate = true; } }

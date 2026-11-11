@@ -1204,7 +1204,13 @@ function buildSpot(sp, S, m, sk) {
   const hs = hj(sp.id, 5), SL = A.G.slotsOf(sp), R = A.G.spotRadius(sp);
   if (sp.t === 'hedge') {
     const len = (sp.cells.length - 1) * 1.15 + 1.7, ring = mesh(new T.BoxGeometry(len + .35, sp.b ? .16 : .06, 1.9), L(sp.b ? 0xb8905a : 0x8a6a48), 0, sp.b ? .08 : .03, 0, false), bed = mesh(new T.BoxGeometry(sp.b ? len - .1 : len, sp.b ? .26 : .18, sp.b ? 1.5 : 1.45), soilMat, 0, sp.b ? .13 : .1, 0, false);
-    ring.rotation.y = bed.rotation.y = -(sp.a || 0); g.add(ring, bed);
+    ring.rotation.y = bed.rotation.y = -(sp.a || 0);
+    if (sp.b) g.add(ring, bed);
+    else { const W = len + .35, D = 1.9, gl = new T.Group(); gl.visible = false; gl.position.y = .12; gl.rotation.y = -(sp.a || 0);
+      const dg = new T.Mesh(new T.PlaneGeometry(W, D), glowM2); dg.rotation.x = -Math.PI / 2; dg.renderOrder = 5; gl.add(dg);
+      const bar = (w, d, x, z) => { const m = new T.Mesh(new T.PlaneGeometry(w, d), glowM); m.rotation.x = -Math.PI / 2; m.position.set(x, 0, z); m.renderOrder = 5; gl.add(m); };
+      bar(W, .08, 0, D / 2); bar(W, .08, 0, -D / 2); bar(.08, D, W / 2, 0); bar(.08, D, -W / 2, 0);
+      g.add(gl); g.userData.glow = gl; }
     const hit = new T.Mesh(new T.BoxGeometry(len, .6, 1.6), new T.MeshBasicMaterial({ visible: false })); hit.position.y = .3; hit.rotation.y = -(sp.a || 0); g.add(hit);
   } else if (sp.f) {
     /* aménagement : pas de butte */

@@ -462,7 +462,10 @@ function make(P) {
     const today = mgToday(s).includes(id); if (!today || st.done[id] != null) return { ok: true, reward: false, g: 0, stars };
     st.done[id] = stars; let g = [1, 3, 5, 8][stars]; if (hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
     s.feves = (s.feves || 0) + g; gainXp(s, 6 + stars * 6); bump(s, 'mg'); { const gq = gqInit(s); if (stars >= 2) gq.cnt.mg2 = (gq.cnt.mg2 || 0) + 1; if (stars >= 3) gq.cnt.mg3 = (gq.cnt.mg3 || 0) + 1; }
-    return { ok: true, reward: true, g, stars };
+    const plants = []; if (stars >= 2) { const m = dateOf(s.day).m, rg = mulberry(s.day * 313 + (MGS.indexOf(id) + 1) * 7), fp = fastPool(s, m), u = unlocked(s); if (fp.length) plants.push(fp[Math.floor(rg() * fp.length)].id);
+      if (stars >= 3) { const sp = P.filter(p => u.has(p.strate) && sowable(p, m) && p.rarete !== 'Rare' && !isExo(p) && !plants.includes(p.id) && p.kind !== 'continue'); if (sp.length) plants.push(sp[Math.floor(rg() * sp.length)].id); }
+      plants.forEach(pid => { s.cards[pid] = (s.cards[pid] || 0) + 1; }); if (plants.length) log(s, 'good', 'Mini-jeu : ' + plants.map(pid => P[pid].name.toLowerCase()).join(' et ') + ' en graines.'); }
+    return { ok: true, reward: true, g, stars, plants };
   }
   function mgInfo(s) { const st = mgState(s), t = mgToday(s); return { today: t, done: st.done, best: s.mgBest, names: MGN, all: MGS }; }
   function pests(s, w, m, ev) {

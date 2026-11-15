@@ -663,13 +663,14 @@ function buildSpot(sp, S, m, sk) {
     else {
       const p = A.P[cell.pid], ph = A.G.phase(cell), dry = cell.water < 25, st = { stage: ph.stage, prog: ph.prog, ready: !!cell.ready, dry, sk, mo: m };
       if (ph.stage === 'graine') { const s2 = mesh(geo.ico(.09, 0), mat.dark, 0, .08, 0, false); s2.scale.y = .6; w.add(s2); }
-      else { const pl = buildPlant(p, cell, st); pl.scale.multiplyScalar(.85); pl.userData.base = pl.scale.x; w.add(pl); g.userData.plants.push(pl); }
+      else { const pl = buildPlant(p, cell, st); pl.scale.multiplyScalar(p.strate === 'Arbre' ? 1.05 : p.strate === 'Arbuste' ? 1.2 : p.strate === 'Grimpante' ? 1 : 1.35); pl.userData.base = pl.scale.x; w.add(pl); g.userData.plants.push(pl); }
       if (cell.mulch) w.add(mesh(new T.CylinderGeometry(.42, .5, .03, 10), L(0x9a8456), 0, .01, 0, false));
       if (cell.supp) { const f = furn(cell.supp, cell); f.position.set(0, 0, -.5); f.scale.setScalar(.7); w.add(f); }
       if (cell.nichoir) { const hy = ({ 'Arbre': 2.1, 'Arbuste': 1.15, 'Grimpante': 1.2 })[p.strate] || .9, nb = new T.Group(); nb.position.set(.62, hy, .15); nb.add(mesh(geo.cyl(.012, .012, .5, 3), L(0x6b4a2e), 0, .35, 0, false)); nb.add(mesh(geo.box(.4, .46, .38), L(0xd9a35a), 0, 0, 0)); nb.add(mesh(geo.box(.1, .12, .02), L(0x2a1d14), 0, .04, .2, false)); const rf = mesh(geo.cone(.36, .26, 4), L(0xb5503c), 0, .35, 0); rf.rotation.y = Math.PI / 4; nb.add(rf); nb.add(mesh(geo.box(.2, .03, .06), L(0x6b4a2e), 0, -.12, .22, false)); w.add(nb); }
       if (cell.oyaUntil > S.day) { const oy = new T.Group(); oy.position.set(-.5, 0, .5); const bd = mesh(geo.ico(.26, 0), L(0xc8764a), 0, .16, 0); bd.scale.set(1, 1.1, 1); oy.add(bd); oy.add(mesh(geo.cyl(.1, .13, .14, 8), L(0xb9663c), 0, .42, 0)); oy.add(mesh(geo.cyl(.15, .15, .04, 8), L(0x8a4a2a), 0, .5, 0)); const rg = mesh(new T.RingGeometry(.3, .42, 14), new T.MeshBasicMaterial({ color: 0x6fb7e0, transparent: true, opacity: .5, side: T.DoubleSide }), 0, .04, 0, false); rg.rotation.x = -Math.PI / 2; oy.add(rg); w.add(oy); }
     }
     g.add(w);
+    if (!cell.treille && !sp.b) { const nb = ({ 'Arbre': 2, 'Arbuste': 4, 'Herbacée': 3 })[A.P[cell.pid].strate] || 3; for (let q = 0; q < nb; q++) { const a = rng() * 6.28, d = .45 + rng() * .5, s0 = .13 + rng() * .14, c = mesh(geo.ico(s0, 0), rng() < .5 ? mat.leafA : mat.leafB, sl[0] + Math.cos(a) * d, .08 + s0 * .35, sl[1] + Math.sin(a) * d, false); c.scale.set(1.5, .8 + rng() * .7, 1.3); c.rotation.y = rng() * 3; g.add(c); } }
   });
   return g;
 }

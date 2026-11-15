@@ -785,8 +785,8 @@ function renderGarden() {
     const cx = isoX(c + .5, r + .5), cyTop = isoY(c + .5, r + .5) - lift; centers[i] = [cx, cyTop];
     const fk = cell && cell.treille ? (cell.furn || 'treille') : null, flat = fk && fk !== 'treille';
     const soilTop = free ? '#8a6a4a' : fk ? '#8a6a4a' : (() => { const base = mix('#5c4433', '#b09a74', 1 - cell.water / 100), sc = STRC[P[cell.pid].strate]; if (!sc) return base; const t = ui.strF ? (ui.strF === P[cell.pid].strate ? .78 : 0) : .5; return mix(base, sc, t); })();
-    const climbPick = picking && P[ui.mode.pid].strate === 'Grimpante' && fk && (fk === 'treille' || fk === 'pergola'), duckPick = ui.mode && ui.mode.k === 'canard' && fk === 'mare' && !cell.ducks;
-    const relT = ui.tool === 'reloc' && ui.mvFrom >= 0 && ui.mvFrom !== i && G.moveCheck(S, ui.mvFrom, i).ok, cls = 'cell ' + (free ? 'free ' : '') + ((picking || tre) && free || climbPick || duckPick || relT || (free && ui.planHl && ui.planHl.includes(i)) ? 'pick ' : '') + (ui.sel === i ? 'sel' : '') + (ui.delPending === i ? ' delp' : '');
+    const pOK = picking && free && G.plantCheck(S, i, ui.mode.pid).ok, climbPick = picking && P[ui.mode.pid].strate === 'Grimpante' && fk && (fk === 'treille' || fk === 'pergola'), duckPick = ui.mode && ui.mode.k === 'canard' && fk === 'mare' && !cell.ducks;
+    const relT = ui.tool === 'reloc' && ui.mvFrom >= 0 && ui.mvFrom !== i && G.moveCheck(S, ui.mvFrom, i).ok, cls = 'cell ' + (free ? 'free ' : '') + ((picking ? pOK : tre && free) || climbPick || duckPick || relT || (free && ui.planHl && ui.planHl.includes(i)) ? 'pick ' : '') + (ui.sel === i ? 'sel' : '') + (ui.delPending === i ? ' delp' : '');
     let lab = free ? 'Parcelle libre' : fk ? FURN_INFO[fk].n : P[cell.pid].name;
     h += '<g class="' + cls + '" data-i="' + i + '" tabindex="0" role="button" aria-label="' + lab + ', colonne ' + (c + 1) + ' rangée ' + (r + 1) + '">';
     // faces latérales du bac
@@ -807,7 +807,7 @@ function renderGarden() {
     } else if (fk) {
       h += furnTile(fk, cx, flat ? isoY(c + .5, r + .5) : cyTop, m, i, cell);
       if (climbPick || duckPick) h += '<circle cx="' + cx + '" cy="' + (cyTop - 30) + '" r="11" fill="var(--leaf)" opacity=".92"/><path d="M' + cx + ' ' + (cyTop - 36) + 'v12M' + (cx - 6) + ' ' + (cyTop - 30) + 'h12" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>';
-    } else if (!qd && (picking || tre || relT || (ui.planHl && ui.planHl.includes(i)))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
+    } else if (!qd && ((picking && (pOK || climbPick)) || tre || relT || (ui.planHl && ui.planHl.includes(i)))) h += '<path d="M' + cx + ' ' + (cyTop - 8) + 'v16M' + (cx - 8) + ' ' + cyTop + 'h16" stroke="var(--leaf)" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>';
     h += '<polygon class="frame" points="' + T.join(' ') + '"/><polygon points="' + [pt(c, r, lift), pt(c + 1, r, lift), pt(c + 1, r + 1, lift), pt(c, r + 1, lift)].join(' ') + '" fill="transparent"/></g>';
   }
   h += enclavedSvg();
@@ -1246,19 +1246,25 @@ const MGD = {
   nuisibles: ['🐌', 'Touche limaces, chenilles et pucerons dès qu’ils sortent. Épargne la coccinelle, l’abeille et le papillon !', 'Chaque ami touché te coûte 2 points.'],
   arrosage: ['💧', 'Arrête la jauge dans la zone verte. Cinq plantes à arroser, et la zone rétrécit à chaque fois.', 'Touche « Arroser » au bon moment.'],
   fruits: ['🧺', 'Fais glisser ton doigt pour déplacer le panier et attraper les fruits mûrs. Évite les cailloux et les guêpes.', 'Les fruits tombent de plus en plus vite.'],
-  oiseaux: ['🐦', 'Observe l’ordre dans lequel les oiseaux chantent, puis répète-le. La mélodie s’allonge à chaque tour.', 'Jusqu’à 7 chants : trois étoiles.'],
+  oiseaux: ['🐦', 'Observe l’ordre dans lequel les oiseaux chantent, puis répète-le. La mélodie s’allonge à chaque tour.', 'Jusqu’à 6 chants : trois étoiles.'],
   tri: ['♻️', 'Épluchures, coquilles et feuilles vont au compost. Plastiques, piles et canettes vont à la poubelle. Vite !', 'Douze objets, le temps se raccourcit.']
 };
 const mgStarsHtml = n => '★★★'.slice(0, n) + '<span style="opacity:.25">' + '★★★'.slice(n) + '</span>';
 const mgStars = sc => sc >= .9 ? 3 : sc >= .7 ? 2 : sc >= .45 ? 1 : 0;
 const shuf = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+function planSlots(pid) {
+  let n = 0; const why = {};
+  for (let i = 0; i < S.grid.length; i++) { const r = G.plantCheck(S, i, pid); if (r.ok) n++; else if (!/occupée|pas encore à toi|prévue ici/.test(r.msg)) why[r.msg] = (why[r.msg] || 0) + 1; }
+  const top = Object.keys(why).sort((a, b) => why[b] - why[a])[0];
+  return { n, why: top || 'Pas d’emplacement libre : pose une guilde ou une haie avec la pelle.' };
+}
 function openMgList() {
   const inf = G.mgInfo(S);
-  modal('Mini-jeux', '<p class="note-p">Chaque jour, deux mini-jeux changent et rapportent des ginkgos selon tes étoiles. Les autres sont en entraînement libre, pour battre tes records.</p><div class="mg-list">' + inf.all.map(id => { const d = inf.today.includes(id), dn = inf.done[id] != null; return '<button type="button" class="mg-row' + (d && !dn ? ' hot' : '') + '" data-act="mg-open" data-id="' + id + '"><span class="mg-e">' + MGD[id][0] + '</span><span class="mg-n"><b>' + inf.names[id] + '</b><small>' + (d ? (dn ? 'Du jour · récompense prise' : 'Du jour · jusqu’à 8 ginkgos') : 'Entraînement') + '</small></span><span class="mg-s">' + mgStarsHtml(inf.best[id] || 0) + '</span></button>'; }).join('') + '</div>');
+  modal('Mini-jeux', '<p class="note-p">Chaque jour, deux mini-jeux changent et rapportent des ginkgos selon tes étoiles. Les autres sont en entraînement libre, pour battre tes records.</p><div class="mg-list">' + inf.all.map(id => { const d = inf.today.includes(id), dn = inf.done[id] != null; return '<button type="button" class="mg-row' + (d && !dn ? ' hot' : '') + '" data-act="mg-open" data-id="' + id + '"><span class="mg-e">' + MGD[id][0] + '</span><span class="mg-n"><b>' + inf.names[id] + '</b><small>' + (d ? (dn ? 'Du jour · récompense prise' : 'Du jour · ginkgos et graines') : 'Entraînement') + '</small></span><span class="mg-s">' + mgStarsHtml(inf.best[id] || 0) + '</span></button>'; }).join('') + '</div>');
 }
 function openMg(id) {
   const inf = G.mgInfo(S), today = inf.today.includes(id), done = inf.done[id] != null, d = MGD[id];
-  modal(inf.names[id], '<div class="mg" style="text-align:center"><div class="mg-ic">' + d[0] + '</div><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : 1, 3, 5 ou 8 ginkgos selon tes étoiles.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><p style="font-size:26px;margin:4px 0">' + mgStarsHtml(inf.best[id] || 0) + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div>');
+  modal(inf.names[id], '<div class="mg" style="text-align:center"><div class="mg-ic">' + d[0] + '</div><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : des ginkgos (1, 3, 5 ou 8) et, dès 2 étoiles, des cartes de plantes.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><p style="font-size:26px;margin:4px 0">' + mgStarsHtml(inf.best[id] || 0) + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div>');
   $('mgp').onclick = () => mgPlay(id);
 }
 function mgPlay(id) {
@@ -1267,7 +1273,7 @@ function mgPlay(id) {
 }
 function mgEnd(id, sc) {
   const st = mgStars(sc), r = G.mgFinish(S, id, st), inf = G.mgInfo(S); save(); render();
-  modal(inf.names[id], '<div class="mg" style="text-align:center"><p style="font-size:40px;letter-spacing:6px;margin:6px 0">' + mgStarsHtml(st) + '</p><p class="note-p" style="font-size:17px;color:var(--ink)"><b>' + ['Pas cette fois', 'Bien joué !', 'Très bien !', 'Parfait !'][st] + '</b></p><p class="note-p" style="font-size:18px">' + (r.reward ? '<b>+' + r.g + ' ginkgo' + (r.g > 1 ? 's' : '') + '</b>' : 'Entraînement : record ' + (inf.best[id] || 0) + ' étoile' + ((inf.best[id] || 0) > 1 ? 's' : '')) + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn" id="mgr">Rejouer</button><button type="button" class="btn primary" data-act="mglist">Les mini-jeux</button></div></div>');
+  modal(inf.names[id], '<div class="mg" style="text-align:center"><p style="font-size:40px;letter-spacing:6px;margin:6px 0">' + mgStarsHtml(st) + '</p><p class="note-p" style="font-size:17px;color:var(--ink)"><b>' + ['Pas cette fois', 'Bien joué !', 'Très bien !', 'Parfait !'][st] + '</b></p><p class="note-p" style="font-size:18px">' + (r.reward ? '<b>+' + r.g + ' ginkgo' + (r.g > 1 ? 's' : '') + '</b>' + (r.plants && r.plants.length ? '<br>🌱 ' + r.plants.map(pid => '<b>' + esc(P[pid].name) + '</b>').join(' et ') + ' <small>(carte' + (r.plants.length > 1 ? 's' : '') + ' ajoutée' + (r.plants.length > 1 ? 's' : '') + ')</small>' : (st < 2 ? '<br><small>2 étoiles ou plus : des graines en plus</small>' : '')) : 'Entraînement : record ' + (inf.best[id] || 0) + ' étoile' + ((inf.best[id] || 0) > 1 ? 's' : '')) + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn" id="mgr">Rejouer</button><button type="button" class="btn primary" data-act="mglist">Les mini-jeux</button></div></div>');
   $('mgr').onclick = () => openMg(id);
 }
 const MG = {
@@ -1282,9 +1288,9 @@ const MG = {
     f.innerHTML = '<div class="mg-holes">' + Array.from({ length: 9 }, (_, i) => '<button type="button" class="mg-hole" data-i="' + i + '"><span></span></button>').join('') + '</div>'; hd('Touche les nuisibles'); sc('Points : 0');
     const holes = [...f.querySelectorAll('.mg-hole')];
     holes.forEach(h => h.onpointerdown = ev => { ev.preventDefault(); const s = h.firstChild; if (!s.textContent || h.classList.contains('hit')) return; const bad = h.dataset.k === 'p'; pts += bad ? 1 : -2; h.classList.add('hit', bad ? 'good' : 'bad'); s.textContent = bad ? '💥' : '😬'; sc('Points : ' + Math.max(0, pts)); setTimeout(() => { s.textContent = ''; h.classList.remove('hit', 'good', 'bad'); h.dataset.k = ''; }, 280); });
-    const tick = () => { if (!layerAlive('#mgf') || done) return; const el = Date.now() - t0; if (el >= T) { done = true; end(Math.max(0, Math.min(1, pts / 18))); return; } hd('Temps : ' + Math.ceil((T - el) / 1000) + ' s');
-      const free = holes.filter(h => !h.firstChild.textContent); if (free.length) { const h = free[Math.floor(Math.random() * free.length)], bad = Math.random() < .72; spawned++; h.dataset.k = bad ? 'p' : 'a'; h.firstChild.textContent = (bad ? PE : FR)[Math.floor(Math.random() * (bad ? PE : FR).length)]; h.classList.add('pop'); const life = Math.max(560, 1000 - el / 30); setTimeout(() => { if (h.dataset.k && !h.classList.contains('hit')) { h.firstChild.textContent = ''; h.dataset.k = ''; h.classList.remove('pop'); } }, life); }
-      setTimeout(tick, Math.max(330, 600 - el / 60)); };
+    const tick = () => { if (!layerAlive('#mgf') || done) return; const el = Date.now() - t0; if (el >= T) { done = true; end(Math.max(0, Math.min(1, pts / 13))); return; } hd('Temps : ' + Math.ceil((T - el) / 1000) + ' s');
+      const free = holes.filter(h => !h.firstChild.textContent); if (free.length) { const h = free[Math.floor(Math.random() * free.length)], bad = Math.random() < .72; spawned++; h.dataset.k = bad ? 'p' : 'a'; h.firstChild.textContent = (bad ? PE : FR)[Math.floor(Math.random() * (bad ? PE : FR).length)]; h.classList.add('pop'); const life = Math.max(750, 1200 - el / 40); setTimeout(() => { if (h.dataset.k && !h.classList.contains('hit')) { h.firstChild.textContent = ''; h.dataset.k = ''; h.classList.remove('pop'); } }, life); }
+      setTimeout(tick, Math.max(420, 700 - el / 70)); };
     tick();
   },
   arrosage(f, hd, sc, end) {
@@ -1310,7 +1316,7 @@ const MG = {
     f.innerHTML = '<div class="mg-pads">' + B.map((b, i) => '<button type="button" class="mg-pad" data-i="' + i + '" style="--c:' + b[1] + '">' + b[0] + '</button>').join('') + '</div><div id="obm" class="mg-msg">&nbsp;</div>';
     const pads = [...f.querySelectorAll('.mg-pad')], lit = (i, ms) => { pads[i].classList.add('on'); setTimeout(() => pads[i] && pads[i].classList.remove('on'), ms); };
     const play = () => { busy = true; inp = 0; seq.push(Math.floor(Math.random() * 4)); while (seq.length < len) seq.push(Math.floor(Math.random() * 4)); hd('Écoute… (' + seq.length + ' chants)'); sc('Manche : ' + (len - 1)); const msg = $('obm'); if (msg) msg.textContent = 'Écoute bien'; seq.forEach((s, k) => setTimeout(() => { if (layerAlive('#mgf')) lit(s, 420); }, 600 + k * 650)); setTimeout(() => { if (!layerAlive('#mgf')) return; busy = false; hd('À toi !'); const m = $('obm'); if (m) m.textContent = 'Répète le chant'; }, 600 + seq.length * 650); };
-    pads.forEach(p => p.onclick = () => { if (busy) return; const i = +p.dataset.i; lit(i, 250); if (i !== seq[inp]) { busy = true; $('obm').textContent = 'Raté !'; setTimeout(() => end(Math.max(0, (best - 1) / 6)), 800); return; } inp++; if (inp >= seq.length) { best = seq.length; busy = true; $('obm').textContent = 'Bravo !'; if (seq.length >= 7) { setTimeout(() => end(1), 700); return; } len = seq.length + 1; setTimeout(() => { if (layerAlive('#mgf')) play(); }, 800); } });
+    pads.forEach(p => p.onclick = () => { if (busy) return; const i = +p.dataset.i; lit(i, 250); if (i !== seq[inp]) { busy = true; $('obm').textContent = 'Raté !'; setTimeout(() => end(Math.max(0, (best - 1) / 5)), 800); return; } inp++; if (inp >= seq.length) { best = seq.length; busy = true; $('obm').textContent = 'Bravo !'; if (seq.length >= 6) { setTimeout(() => end(1), 700); return; } len = seq.length + 1; setTimeout(() => { if (layerAlive('#mgf')) play(); }, 800); } });
     play();
   },
   tri(f, hd, sc, end) {
@@ -1733,7 +1739,7 @@ function doTask(id) {
   if (a.type === 'mg') return openMg(a.id);
   if (a.type === 'cook') return openKitchen();
   if (a.type === 'learn') { openLearn(); return; }
-  if (a.type === 'sow') { ui.mode = { type: 'plant', pid: a.pid }; render(); $('garden').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); toast('Choisis une parcelle libre.'); return; }
+  if (a.type === 'sow') { const ps = planSlots(a.pid); if (!ps.n) { toast(ps.why); return; } ui.mode = { type: 'plant', pid: a.pid }; render(); $('garden').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); toast('Choisis un « + » : ' + ps.n + ' emplacement' + (ps.n > 1 ? 's' : '') + ' possible' + (ps.n > 1 ? 's' : '') + '.'); return; }
   const firstCell = a.cells && a.cells[0];
   if (charsLive && a.cells && a.cells.length && ['water', 'harvest', 'heal', 'prune', 'mulch'].includes(a.type)) {
     let n = 0; a.cells.forEach(i => { if (cellAct(a.type, i)) n++; });
@@ -1825,7 +1831,7 @@ document.addEventListener('click', e => {
     case 'task': ui.gOpen = false; doTask(a.dataset.id); break;
     case 'next': if (LIVE) { toast('Le jardin vit en temps réel : reviens demain, la nuit fait pousser tes plantes.'); break; } advance(1); break;
     case 'skip': if (LIVE) break; $('layer').innerHTML = ''; advance(+a.dataset.n); break;
-    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid; ui.mode = (ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid) ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
+    case 'mode-plant': { ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const pid = +a.dataset.pid, same = ui.mode && ui.mode.type === 'plant' && ui.mode.pid === pid, ps = same ? null : planSlots(pid); if (ps && !ps.n) { ui.mode = null; render(); toast(ps.why); break; } ui.mode = same ? null : { type: 'plant', pid }; render(); if (ui.mode && PHONE()) $('hint').scrollIntoView({ block: 'start', behavior: 'smooth' }); break; }
     case 'mode-mat': { if (a.closest('#layer')) closeModal(); ui.tool = 'select'; ui.mvFrom = -1; ui.delPending = -1; const k = a.dataset.k; if (INSTANT.includes(k)) { ui.mode = null; useInstant(k); break; } ui.mode = (ui.mode && ui.mode.k === k) ? null : { type: 'mat', k }; render(); break; }
     case 'strate-menu': ui.strOpen = !ui.strOpen; render(); break;
     case 'strate-set': ui.strF = a.dataset.s || ''; render(); break;

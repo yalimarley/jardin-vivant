@@ -577,6 +577,52 @@ function humanG() {
   const pl = new T.PointLight(0xffe2a0, 1.5, 8, 1.4); pl.position.set(0, .35, 0); torch.add(pl); torch.position.set(hL[5], hL[6] + .08, hL[7] + .05); torch.rotation.x = Math.PI / 2; torch.visible = false; armL.add(torch);
   g.userData = { body, head, legL, legR, armL, armR, can, bask, torch, heading: 0, lx: 0, lz: 0, rzL: armRz(G[3]), rzR: armRz(G[4]) }; return g;
 }
+/* ---------- tenues du jardinier : recoloration des sommets + accessoires ---------- */
+const OUT_COL = { coat: { vert: null, marine: [.17, .25, .45], jaune: [.93, .74, .13], rouge: [.72, .2, .17], gris: [.42, .44, .48] }, boots: { marron: null, vert: [.2, .42, .24], jaune: [.9, .72, .12], noir: [.1, .1, .12] }, hat: { bonnet: 0xb5503c, casquette: 0x4f6f45, nu: 0x4a3626 }, neck: { rouge: 0xc43a2e, gris: 0x8d949c, bleu: 0x3f6fb0 } };
+function dressGeo(m, G, i, fn, hide) {
+  if (!m.userData.orig) { m.geometry = G[i].clone(); m.userData.orig = new Uint8Array(G[i].attributes.color.array); m.userData.idx = new Uint16Array(G[i].index.array); }
+  const g = m.geometry, c = g.attributes.color, p = g.attributes.position, o = m.userData.orig;
+  for (let k = 0; k < p.count; k++) { const r = o[k * 3] / 255, gg = o[k * 3 + 1] / 255, b = o[k * 3 + 2] / 255, t = fn(p.getX(k), p.getY(k), p.getZ(k), r, gg, b); const v = t || [r, gg, b]; c.array[k * 3] = Math.round(v[0] * 255); c.array[k * 3 + 1] = Math.round(v[1] * 255); c.array[k * 3 + 2] = Math.round(v[2] * 255); }
+  c.needsUpdate = true;
+  if (hide) { const ix = m.userData.idx, keep = []; for (let k = 0; k < ix.length; k += 3) { const a = ix[k], b2 = ix[k + 1], c2 = ix[k + 2]; if (!(hide(p.getX(a), p.getY(a), p.getZ(a)) || hide(p.getX(b2), p.getY(b2), p.getZ(b2)) || hide(p.getX(c2), p.getY(c2), p.getZ(c2)))) keep.push(a, b2, c2); } g.setIndex(keep); }
+  else g.setIndex(new T.BufferAttribute(m.userData.idx, 1));
+}
+const HAT_HIDE = (x, y, z) => y > 1.12 && (Math.hypot(x, z) > .19 || y > 1.25);
+function tintOf(col, r, g, b, ref) { const l = (.3 * r + .59 * g + .11 * b) / ref; return [Math.min(1, col[0] * l), Math.min(1, col[1] * l), Math.min(1, col[2] * l)]; }
+function dressG(g, o) {
+  const u = g.userData, G = gjGeos(); o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, o || {});
+  const parts = [u.body.children[0], u.legL.children[0], u.legR.children[0], u.armL.children[0], u.armR.children[0]], cc = OUT_COL.coat[o.coat], bc = OUT_COL.boots[o.boots];
+  dressGeo(parts[0], G, 0, (x, y, z, r, gg, b) => (cc && y < .99) ? tintOf(cc, r, gg, b, .4) : null, o.hat === 'paille' ? null : HAT_HIDE);
+  [1, 2].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => (bc && y < -.36) ? tintOf(bc, r, gg, b, .2) : null));
+  [3, 4].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => (cc && y > -.2) ? tintOf(cc, r, gg, b, .4) : null));
+  if (u.dre) { u.body.remove(u.dre); } const d = u.dre = new T.Group(); u.body.add(d);
+  const lm = c => new T.MeshLambertMaterial({ color: c, side: T.DoubleSide });
+  const dome = (r, col, y, sy) => { const m = new T.Mesh(new T.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), lm(col)); m.position.set(0, y, 0); m.scale.y = sy || 1; m.castShadow = true; d.add(m); return m; };
+  if (o.hat === 'bonnet') { dome(.225, OUT_COL.hat.bonnet, 1.2, 1); const band = new T.Mesh(new T.TorusGeometry(.222, .035, 6, 16), lm(0x8a3a2c)); band.rotation.x = Math.PI / 2; band.position.y = 1.21; d.add(band); const pom = new T.Mesh(new T.IcosahedronGeometry(.055, 1), lm(0xf0e6d0)); pom.position.y = 1.43; d.add(pom); }
+  else if (o.hat === 'casquette') { dome(.222, OUT_COL.hat.casquette, 1.2, .85); const v = new T.Mesh(new T.BoxGeometry(.24, .018, .17), lm(0x3a5434)); v.position.set(0, 1.21, .24); v.rotation.x = .12; d.add(v); }
+  else if (o.hat === 'nu') { dome(.215, OUT_COL.hat.nu, 1.2, .95); }
+  if (o.neck !== 'aucun') { const col = OUT_COL.neck[o.neck]; const t = new T.Mesh(new T.TorusGeometry(.14, .05, 8, 16), lm(col)); t.rotation.x = Math.PI / 2; t.position.set(0, .99, .01); t.scale.set(1, 1, .85); d.add(t); const tail = new T.Mesh(new T.BoxGeometry(.075, .26, .03), lm(col)); tail.position.set(.07, .86, .17); tail.rotation.z = .08; d.add(tail); }
+  if (o.coat === 'marine' || o.coat === 'gris') { const sk = new T.Mesh(new T.CylinderGeometry(.235, .31, .3, 14, 1, true), lm(new T.Color(cc[0], cc[1], cc[2]))); sk.position.set(0, .5, 0); d.add(sk); }
+  u.osig = JSON.stringify(o);
+}
+function portrait(who) {
+  if (!R) return '';
+  const W = 220, H = 250, sc = new T.Scene(); sc.add(new T.HemisphereLight(0xffffff, 0xb8c4a8, .8)); const dl = new T.DirectionalLight(0xffffff, .6); dl.position.set(1.5, 2.2, 3); sc.add(dl);
+  let m; if (who === 'gardener') { m = humanG(); dressG(m, A.S().outfit); const u = m.userData; u.armL.rotation.z = u.rzL || 0; u.armR.rotation.z = u.rzR || 0; } else m = human(who === 'camille' ? 0 : 1);
+  m.rotation.y = .3; sc.add(m); const bx = new T.Box3().setFromObject(m), top = bx.max.y, cam2 = new T.PerspectiveCamera(30, W / H, .1, 20);
+  cam2.position.set(0, top - .52, 2.1); cam2.lookAt(0, top - .5, 0);
+  const rt = new T.WebGLRenderTarget(W * 2, H * 2); rt.texture.encoding = R.outputEncoding;
+  const pr = R.getRenderTarget(), pc = R.getClearColor(new T.Color()), pa = R.getClearAlpha(), ps = R.shadowMap.enabled;
+  R.shadowMap.enabled = false; R.setRenderTarget(rt); R.setClearColor(0xe6efdc, 1); R.clear(); R.render(sc, cam2);
+  const buf = new Uint8Array(W * 2 * H * 2 * 4); R.readRenderTargetPixels(rt, 0, 0, W * 2, H * 2, buf);
+  R.setRenderTarget(pr); R.setClearColor(pc, pa); R.shadowMap.enabled = ps; rt.dispose();
+  const cv = document.createElement('canvas'); cv.width = W * 2; cv.height = H * 2; const cx = cv.getContext('2d'), id = cx.createImageData(W * 2, H * 2);
+  for (let y = 0; y < H * 2; y++) id.data.set(buf.subarray((H * 2 - 1 - y) * W * 2 * 4, (H * 2 - y) * W * 2 * 4), y * W * 2 * 4);
+  cx.putImageData(id, 0, 0); return cv.toDataURL('image/png');
+}
+V.portrait = portrait;
+V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
+function dressSync() { if (!gardener) return; const o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, A.S().outfit || {}); if (gardener.userData.osig !== JSON.stringify(o)) dressG(gardener, o); }
 const fmCache = {};
 function fmGeos(n) {
   if (fmCache[n]) return fmCache[n];
@@ -925,6 +971,8 @@ function tap(cx, cy) {
   else if (pk.t === 'spot') { const sp = (A.S().spots || []).find(q => q.id === pk.id); if (sp) { const els = sp.cells.map(i => svg.querySelector('.cell[data-i="' + i + '"]')).filter(Boolean), el = els.find(x => x.classList.contains('pick')) || els.find(x => !A.S().grid[+x.dataset.i]) || els[0]; fire(el); } }
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
   else if (pk.t === 'lawn') fire(svg.querySelector('.lawn[data-k="' + pk.k + '"]'));
+  else if (pk.t === 'deco' && pk.k === 'house') A.openHouse();
+  else if (pk.t === 'deco' && pk.k === 'atelier') A.openAtelier();
   else if (pk.t === 'deco') fire(svg.querySelector('[data-' + pk.k + ']'));
 }
 
@@ -1219,7 +1267,7 @@ function syncDecor(S, sk) {
   if (sg === sigDec) return; sigDec = sg;
   while (gDecor.children.length) gDecor.remove(gDecor.children[0]); pickRoots.length = 0; pickRoots.push(gBeds, gDecor, terrain); rng = rngMaker(4242);
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
-  const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
+  const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5, { t: 'deco', k: 'house' }); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
   for (let k = 0; k < Math.max(0, S.cuves || 0) && k < 3; k++) add(barrel(lvl), bp[0] + 1.1 * (k + 1), bp[1] + .3 * (k % 2 ? -1 : 1));
   add(puits(), hp[0] + 3.2, hp[1] + 5.2, 0);
@@ -1326,7 +1374,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
+  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); dressSync(); syncOver(S); syncBadges(); syncPlus();
   { const fl = []; S.grid.forEach((c, i) => { if (c && c.furn && ['mare', 'boismort', 'pierres', 'hotel', 'mangeoire'].indexOf(c.furn) >= 0) fl.push({ k: c.furn, i }); }); deco.furn = fl; deco.seen = S.fauna || {}; deco.feed = S.feed || 0; }
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;

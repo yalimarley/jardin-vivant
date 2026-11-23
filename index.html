@@ -255,6 +255,7 @@ button.card.on{outline:3px solid var(--leaf);outline-offset:1px}
 .lawn,.tree{cursor:pointer}.tree.pick circle{animation:pulse 1.2s ease-in-out infinite alternate}@keyframes pulse{from{opacity:.55}to{opacity:1}}
 @media (prefers-reduced-motion:no-preference){.duck{animation:duckw 2.4s ease-in-out infinite alternate}.duck.d1{animation-delay:-1.1s}@keyframes duckw{from{transform:translateX(-3px)}to{transform:translateX(4px)}}}
 .garden-wrap{position:relative}
+.hs-head{display:flex;gap:14px;align-items:center;margin:10px 0 4px}.portrait{border-radius:16px;flex:none;background:#e6efdc}.hs-head .sk-id{flex:1;min-width:0}.wd-row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}.wd-n{min-width:64px;font-weight:600;font-size:13px}.wd-opts{display:flex;gap:5px;flex-wrap:wrap}.cel{display:flex;flex-wrap:wrap;gap:6px}.cel-i{background:#f1f5ea;border-radius:10px;padding:5px 9px;font-size:13px}
 .sk-head{display:flex;gap:14px;align-items:center;margin-bottom:12px}.sk-head svg{flex:none;border-radius:14px}
 .sk-id{flex:1;min-width:0;display:grid;gap:2px}.sk-id b{font-size:18px}.sk-id span{font-size:13px;color:var(--ink-2)}.sk-id strong{font-size:15px;margin-top:4px}.sk-xp{color:var(--muted,#6b6b60);font-size:12px;text-align:right}
 .sk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}.sk-stats div{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:10px 6px;text-align:center}
@@ -1142,6 +1143,52 @@ function humanG() {
   const pl = new T.PointLight(0xffe2a0, 1.5, 8, 1.4); pl.position.set(0, .35, 0); torch.add(pl); torch.position.set(hL[5], hL[6] + .08, hL[7] + .05); torch.rotation.x = Math.PI / 2; torch.visible = false; armL.add(torch);
   g.userData = { body, head, legL, legR, armL, armR, can, bask, torch, heading: 0, lx: 0, lz: 0, rzL: armRz(G[3]), rzR: armRz(G[4]) }; return g;
 }
+/* ---------- tenues du jardinier : recoloration des sommets + accessoires ---------- */
+const OUT_COL = { coat: { vert: null, marine: [.17, .25, .45], jaune: [.93, .74, .13], rouge: [.72, .2, .17], gris: [.42, .44, .48] }, boots: { marron: null, vert: [.2, .42, .24], jaune: [.9, .72, .12], noir: [.1, .1, .12] }, hat: { bonnet: 0xb5503c, casquette: 0x4f6f45, nu: 0x4a3626 }, neck: { rouge: 0xc43a2e, gris: 0x8d949c, bleu: 0x3f6fb0 } };
+function dressGeo(m, G, i, fn, hide) {
+  if (!m.userData.orig) { m.geometry = G[i].clone(); m.userData.orig = new Uint8Array(G[i].attributes.color.array); m.userData.idx = new Uint16Array(G[i].index.array); }
+  const g = m.geometry, c = g.attributes.color, p = g.attributes.position, o = m.userData.orig;
+  for (let k = 0; k < p.count; k++) { const r = o[k * 3] / 255, gg = o[k * 3 + 1] / 255, b = o[k * 3 + 2] / 255, t = fn(p.getX(k), p.getY(k), p.getZ(k), r, gg, b); const v = t || [r, gg, b]; c.array[k * 3] = Math.round(v[0] * 255); c.array[k * 3 + 1] = Math.round(v[1] * 255); c.array[k * 3 + 2] = Math.round(v[2] * 255); }
+  c.needsUpdate = true;
+  if (hide) { const ix = m.userData.idx, keep = []; for (let k = 0; k < ix.length; k += 3) { const a = ix[k], b2 = ix[k + 1], c2 = ix[k + 2]; if (!(hide(p.getX(a), p.getY(a), p.getZ(a)) || hide(p.getX(b2), p.getY(b2), p.getZ(b2)) || hide(p.getX(c2), p.getY(c2), p.getZ(c2)))) keep.push(a, b2, c2); } g.setIndex(keep); }
+  else g.setIndex(new T.BufferAttribute(m.userData.idx, 1));
+}
+const HAT_HIDE = (x, y, z) => y > 1.12 && (Math.hypot(x, z) > .19 || y > 1.25);
+function tintOf(col, r, g, b, ref) { const l = (.3 * r + .59 * g + .11 * b) / ref; return [Math.min(1, col[0] * l), Math.min(1, col[1] * l), Math.min(1, col[2] * l)]; }
+function dressG(g, o) {
+  const u = g.userData, G = gjGeos(); o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, o || {});
+  const parts = [u.body.children[0], u.legL.children[0], u.legR.children[0], u.armL.children[0], u.armR.children[0]], cc = OUT_COL.coat[o.coat], bc = OUT_COL.boots[o.boots];
+  dressGeo(parts[0], G, 0, (x, y, z, r, gg, b) => (cc && y < .99) ? tintOf(cc, r, gg, b, .4) : null, o.hat === 'paille' ? null : HAT_HIDE);
+  [1, 2].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => (bc && y < -.36) ? tintOf(bc, r, gg, b, .2) : null));
+  [3, 4].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => (cc && y > -.2) ? tintOf(cc, r, gg, b, .4) : null));
+  if (u.dre) { u.body.remove(u.dre); } const d = u.dre = new T.Group(); u.body.add(d);
+  const lm = c => new T.MeshLambertMaterial({ color: c, side: T.DoubleSide });
+  const dome = (r, col, y, sy) => { const m = new T.Mesh(new T.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), lm(col)); m.position.set(0, y, 0); m.scale.y = sy || 1; m.castShadow = true; d.add(m); return m; };
+  if (o.hat === 'bonnet') { dome(.225, OUT_COL.hat.bonnet, 1.2, 1); const band = new T.Mesh(new T.TorusGeometry(.222, .035, 6, 16), lm(0x8a3a2c)); band.rotation.x = Math.PI / 2; band.position.y = 1.21; d.add(band); const pom = new T.Mesh(new T.IcosahedronGeometry(.055, 1), lm(0xf0e6d0)); pom.position.y = 1.43; d.add(pom); }
+  else if (o.hat === 'casquette') { dome(.222, OUT_COL.hat.casquette, 1.2, .85); const v = new T.Mesh(new T.BoxGeometry(.24, .018, .17), lm(0x3a5434)); v.position.set(0, 1.21, .24); v.rotation.x = .12; d.add(v); }
+  else if (o.hat === 'nu') { dome(.215, OUT_COL.hat.nu, 1.2, .95); }
+  if (o.neck !== 'aucun') { const col = OUT_COL.neck[o.neck]; const t = new T.Mesh(new T.TorusGeometry(.14, .05, 8, 16), lm(col)); t.rotation.x = Math.PI / 2; t.position.set(0, .99, .01); t.scale.set(1, 1, .85); d.add(t); const tail = new T.Mesh(new T.BoxGeometry(.075, .26, .03), lm(col)); tail.position.set(.07, .86, .17); tail.rotation.z = .08; d.add(tail); }
+  if (o.coat === 'marine' || o.coat === 'gris') { const sk = new T.Mesh(new T.CylinderGeometry(.235, .31, .3, 14, 1, true), lm(new T.Color(cc[0], cc[1], cc[2]))); sk.position.set(0, .5, 0); d.add(sk); }
+  u.osig = JSON.stringify(o);
+}
+function portrait(who) {
+  if (!R) return '';
+  const W = 220, H = 250, sc = new T.Scene(); sc.add(new T.HemisphereLight(0xffffff, 0xb8c4a8, .8)); const dl = new T.DirectionalLight(0xffffff, .6); dl.position.set(1.5, 2.2, 3); sc.add(dl);
+  let m; if (who === 'gardener') { m = humanG(); dressG(m, A.S().outfit); const u = m.userData; u.armL.rotation.z = u.rzL || 0; u.armR.rotation.z = u.rzR || 0; } else m = human(who === 'camille' ? 0 : 1);
+  m.rotation.y = .3; sc.add(m); const bx = new T.Box3().setFromObject(m), top = bx.max.y, cam2 = new T.PerspectiveCamera(30, W / H, .1, 20);
+  cam2.position.set(0, top - .52, 2.1); cam2.lookAt(0, top - .5, 0);
+  const rt = new T.WebGLRenderTarget(W * 2, H * 2); rt.texture.encoding = R.outputEncoding;
+  const pr = R.getRenderTarget(), pc = R.getClearColor(new T.Color()), pa = R.getClearAlpha(), ps = R.shadowMap.enabled;
+  R.shadowMap.enabled = false; R.setRenderTarget(rt); R.setClearColor(0xe6efdc, 1); R.clear(); R.render(sc, cam2);
+  const buf = new Uint8Array(W * 2 * H * 2 * 4); R.readRenderTargetPixels(rt, 0, 0, W * 2, H * 2, buf);
+  R.setRenderTarget(pr); R.setClearColor(pc, pa); R.shadowMap.enabled = ps; rt.dispose();
+  const cv = document.createElement('canvas'); cv.width = W * 2; cv.height = H * 2; const cx = cv.getContext('2d'), id = cx.createImageData(W * 2, H * 2);
+  for (let y = 0; y < H * 2; y++) id.data.set(buf.subarray((H * 2 - 1 - y) * W * 2 * 4, (H * 2 - y) * W * 2 * 4), y * W * 2 * 4);
+  cx.putImageData(id, 0, 0); return cv.toDataURL('image/png');
+}
+V.portrait = portrait;
+V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
+function dressSync() { if (!gardener) return; const o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, A.S().outfit || {}); if (gardener.userData.osig !== JSON.stringify(o)) dressG(gardener, o); }
 const fmCache = {};
 function fmGeos(n) {
   if (fmCache[n]) return fmCache[n];
@@ -1490,6 +1537,8 @@ function tap(cx, cy) {
   else if (pk.t === 'spot') { const sp = (A.S().spots || []).find(q => q.id === pk.id); if (sp) { const els = sp.cells.map(i => svg.querySelector('.cell[data-i="' + i + '"]')).filter(Boolean), el = els.find(x => x.classList.contains('pick')) || els.find(x => !A.S().grid[+x.dataset.i]) || els[0]; fire(el); } }
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
   else if (pk.t === 'lawn') fire(svg.querySelector('.lawn[data-k="' + pk.k + '"]'));
+  else if (pk.t === 'deco' && pk.k === 'house') A.openHouse();
+  else if (pk.t === 'deco' && pk.k === 'atelier') A.openAtelier();
   else if (pk.t === 'deco') fire(svg.querySelector('[data-' + pk.k + ']'));
 }
 
@@ -1784,7 +1833,7 @@ function syncDecor(S, sk) {
   if (sg === sigDec) return; sigDec = sg;
   while (gDecor.children.length) gDecor.remove(gDecor.children[0]); pickRoots.length = 0; pickRoots.push(gBeds, gDecor, terrain); rng = rngMaker(4242);
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
-  const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
+  const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5, { t: 'deco', k: 'house' }); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
   for (let k = 0; k < Math.max(0, S.cuves || 0) && k < 3; k++) add(barrel(lvl), bp[0] + 1.1 * (k + 1), bp[1] + .3 * (k % 2 ? -1 : 1));
   add(puits(), hp[0] + 3.2, hp[1] + 5.2, 0);
@@ -1891,7 +1940,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); syncOver(S); syncBadges(); syncPlus();
+  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); dressSync(); syncOver(S); syncBadges(); syncPlus();
   { const fl = []; S.grid.forEach((c, i) => { if (c && c.furn && ['mare', 'boismort', 'pierres', 'hotel', 'mangeoire'].indexOf(c.furn) >= 0) fl.push({ k: c.furn, i }); }); deco.furn = fl; deco.seen = S.fauna || {}; deco.feed = S.feed || 0; }
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
@@ -2120,6 +2169,7 @@ const XPB = { fleurs: 3, harvest: 4, water: 2, mulch: 3, soin: 5, honey: 8, prun
 const xpNeed = L => 100 + 25 * (L * (L + 1) / 2 - 1);
 function levelOf(xp) { let L = 1, r = xp || 0; while (r >= xpNeed(L)) { r -= xpNeed(L); L++; } return { lvl: L, into: r, need: xpNeed(L) }; }
 
+const OUTFIT = { hat: { n: 'Chapeau', o: [['paille', 'Chapeau de paille'], ['bonnet', 'Bonnet de laine'], ['casquette', 'Casquette'], ['nu', 'Tête nue']] }, coat: { n: 'Veste', o: [['vert', 'Veste verte'], ['marine', 'Manteau marine'], ['jaune', 'Ciré jaune'], ['rouge', 'Gilet rouge'], ['gris', 'Manteau gris']] }, boots: { n: 'Bottes', o: [['marron', 'Bottes brunes'], ['vert', 'Bottes vertes'], ['jaune', 'Bottes jaunes'], ['noir', 'Bottes noires']] }, neck: { n: 'Écharpe', o: [['aucun', 'Aucune'], ['rouge', 'Foulard rouge'], ['gris', 'Écharpe grise'], ['bleu', 'Foulard bleu']] } };
 const RECIPES = { ortie: { lvl: 1, paillage: 2, compost: 1 }, prele: { lvl: 1, paillage: 2, compost: 1 }, nichoir: { lvl: 2, paillage: 3 }, oya: { lvl: 2, paillage: 4, compost: 1 }, cuve: { lvl: 3, paillage: 6, compost: 3 } };
 const RECYCLE = { 'Commune': 2, 'Peu commune': 3, 'Rare': 6 };
 const MAT_UNLOCK = { savoir: 3, cuve: 4, plan: 5, ortie: 6, prele: 8, bocaux: 8, atelier: 10, poulailler: 12, nichoir: 10, oya: 10, sechoir: 12, mycor: 14, piege: 4 };
@@ -2447,7 +2497,7 @@ function make(P) {
       lv.plantation = Math.max(1, lv.plantation || 0); lv.tonte = Math.max(1, lv.tonte || 0); lv.cuisine = Math.max(1, lv.cuisine || 0);
       const sp = {}; (s.grid || []).forEach(c => { if (c && !c.treille) sp[c.pid] = 1; });
       s.skills = { lv, use, adv: {}, species: sp, seen: o.seen || {} }; s.xp = s.xp || tot * 6; s.ptsSpent = s.ptsSpent || 0; s.pts = s.pts != null ? s.pts : levelOf(s.xp).lvl - 1 + 1; }
-    if (!s.skills.adv) s.skills.adv = {}; if (!s.skills.use) s.skills.use = {}; if (!s.skills.species) s.skills.species = {}; if (s.xp == null) s.xp = 0; if (s.pts == null) s.pts = 0; if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
+    if (!s.outfit) s.outfit = { hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }; if (!s.cellar) s.cellar = []; if (!s.skills.adv) s.skills.adv = {}; if (!s.skills.use) s.skills.use = {}; if (!s.skills.species) s.skills.species = {}; if (s.xp == null) s.xp = 0; if (s.pts == null) s.pts = 0; if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
   function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 4 ? 3 : 0); }
   function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH + Math.max(0, skillLevel(s, 'tonte') - 1); gainSkill(s, 'tonte', 1); bump(s, 'mow'); return true; }
   function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 15 : 0)); }
@@ -3330,7 +3380,7 @@ function make(P) {
     Object.keys(byK).forEach((k, idx) => { const cs = byK[k].slice(), want = cs.length <= 3 ? 3 : 5, tot = GSL[want].length; for (let i = 0; i < NCELL && cs.length < tot; i++) if (isActive(s, i) && !used.has(i)) { cs.push(i); used.add(i); }
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
-  return { dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, shoot, mgToday, mgFinish, mgInfo, quiz, quizInfo, quizResult, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
+  return { OUTFIT, dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, forecastInfo, buildPoulailler, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, shoot, mgToday, mgFinish, mgInfo, quiz, quizInfo, quizResult, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
     albumInfo, albumClaim, finishAct, actStatus, hasFurn, calmBonus, trapPick, scareWild, WILD, flReady, flSeason, harvestFleurs, neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
@@ -4839,10 +4889,43 @@ const SK_ORDER = ['plantation', 'tonte', 'trogne', 'bouture', 'greffe', 'fabrica
 function gardenerPortrait() {
   return '<svg viewBox="0 0 72 80" width="72" height="80" aria-hidden="true"><rect width="72" height="80" rx="14" fill="#e6efdc"/><path d="M14 80c0-16 10-24 22-24s22 8 22 24z" fill="#5f8f4a"/><path d="M28 56h16v24H28z" fill="#e9d9a8"/><path d="M24 66l4-10M48 66l-4-10" stroke="#3d6a34" stroke-width="3" stroke-linecap="round"/><circle cx="36" cy="38" r="13" fill="#f1c9a0"/><ellipse cx="36" cy="27" rx="25" ry="5.5" fill="#d9ad52"/><path d="M23 27c0-12 6-18 13-18s13 6 13 18z" fill="#e7bf63"/><path d="M23 25h26" stroke="#b9442f" stroke-width="3"/><circle cx="31" cy="38" r="1.6" fill="#2b2018"/><circle cx="41" cy="38" r="1.6" fill="#2b2018"/><path d="M31 44q5 4 10 0" stroke="#8a4b2d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
 }
+
+/* ---------- la maison : profil du jardinier, tenues, famille, cellier ---------- */
+const CELLAR_N = { confiture: 'Confiture', sirop: 'Sirop', pickles: 'Pickles', dessert: 'Dessert', tisane: 'Tisane séchée', conserve: 'Bocal', sec: 'Séché', panier: 'Panier frais' };
+const CELLAR_E = { confiture: '🍓', sirop: '🍯', pickles: '🥒', dessert: '🥧', tisane: '🍵', conserve: '🫙', sec: '🌿', panier: '🧺' };
+function portraitImg(who, sz) { let u = ''; try { u = window.V3D && V3D.portrait ? V3D.portrait(who) : ''; } catch (e) { u = ''; } return u ? '<img class="portrait" src="' + u + '" width="' + sz + '" height="' + Math.round(sz * 250 / 220) + '" alt="">' : ''; }
+function cellarItems() {
+  const out = [], seen = {};
+  S.stock.forEach(it => { if (it.kg <= .03) return; const k = (it.keep ? it.keep : 'panier') + ':' + it.pid; (seen[k] = seen[k] || { t: it.keep === 'bocal' ? 'conserve' : it.keep === 'sec' ? 'sec' : 'panier', name: P[it.pid].name, kg: 0 }).kg += it.kg; });
+  Object.values(seen).forEach(x => out.push(x));
+  (S.cellar || []).forEach(x => out.push({ t: x.k, name: x.name, n: x.n }));
+  return out;
+}
+function openHouse(tab) {
+  ui.houseTab = tab || ui.houseTab || 'jardinier'; const t = ui.houseTab, X = G.xpInfo(S);
+  const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  let h = '<div class="sk-tabs" role="tablist">' + [['jardinier', 'Mon jardinier'], ['famille', 'La famille'], ['cellier', 'Le cellier']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="house-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  if (t === 'jardinier') {
+    const o = S.outfit || {};
+    h += '<div class="hs-head">' + (portraitImg('gardener', 150) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP</small><div class="acts" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn sm" data-act="skills">Compétences</button></div></div></div>';
+    h += '<h3 style="margin:12px 0 6px">Garde-robe</h3><p class="note-p">' + (season4() === 'winter' ? 'Il fait froid : le bonnet et le manteau tiennent chaud.' : season4() === 'summer' ? 'Plein soleil : le chapeau de paille protège.' : 'Habille ton jardinier comme tu veux.') + '</p>';
+    Object.keys(G.OUTFIT).forEach(sl => { const d = G.OUTFIT[sl]; h += '<div class="wd-row"><span class="wd-n">' + d.n + '</span><span class="wd-opts">' + d.o.map(([id, nm]) => '<button type="button" class="btn sm' + ((o[sl] || d.o[0][0]) === id ? ' primary' : '') + '" data-act="outfit" data-slot="' + sl + '" data-id="' + id + '">' + nm + '</button>').join('') + '</span></div>'; });
+  } else if (t === 'famille') {
+    h += '<p class="note-p">Plus ils mangent de ton jardin, des repas variés, plus ils sont heureux.</p><div class="fam">' + S.family.map((m, k) => { const img = k === 0 ? portraitImg('camille', 64) : k === 2 ? portraitImg('lea', 64) : ''; const tk = m.hist.filter(x => S.day - x.day < 1).reduce((a, b) => a + b.kcal, 0); return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + (img || face(k, m.joy, 56)) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + tk + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
+  } else {
+    const it = cellarItems(), groups = {}; it.forEach(x => (groups[x.t] = groups[x.t] || []).push(x));
+    h += '<p class="note-p">Le cellier garde tes paniers, conserves et transformations de l’atelier.</p>';
+    if (!it.length) h += '<p class="empty-f">Le cellier est vide. Récolte, puis transforme à l’atelier.</p>';
+    else h += Object.keys(CELLAR_N).filter(k => groups[k]).map(k => '<h3 style="margin:10px 0 4px">' + CELLAR_E[k] + ' ' + CELLAR_N[k] + (k === 'panier' ? ' (à cuisiner vite)' : '') + '</h3><div class="cel">' + groups[k].map(x => '<span class="cel-i"><b>' + x.name + '</b> · ' + (x.kg != null ? fmt(x.kg, 2) + ' kg' : '×' + x.n) + '</span>').join('') + '</div>').join('');
+    h += '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm" data-act="kitchen">Garde-manger et cuisine</button>' + (S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Atelier</button>' : '') + '</div>';
+  }
+  modal('La maison', h, true);
+}
+function season4() { const m = G.dateOf(S.day).m; return m >= 2 && m <= 4 ? 'spring' : m >= 5 && m <= 7 ? 'summer' : m >= 8 && m <= 10 ? 'autumn' : 'winter'; }
 function openSkills() {
   const L = G.skillList(S), X = G.xpInfo(S), tab = ui.skTab || 'all';
   const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
-  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
+  let h = '<div class="sk-head">' + (portraitImg('gardener', 72) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
   h += '<div class="sk-stats"><div><b>' + X.pts + '</b><span>Points libres</span></div><div><b>' + X.spent + '</b><span>Points investis</span></div><div><b>' + X.acq + '/' + X.total + '</b><span>Skills acquis</span></div></div>';
   h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + X.pts + ' point' + (X.pts > 1 ? 's' : '') + ' libre' + (X.pts > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte de l’XP. À chaque niveau, tu gagnes 1 point à dépenser ici. Monter une compétence demande 1 point et assez de pratique.</p>';
   h += '<div class="sk-tabs" role="tablist">' + [['all', 'Toutes'], ['culture', 'Culture'], ['entretien', 'Entretien'], ['expertise', 'Expertise']].map(([t, n]) => '<button type="button" role="tab" aria-selected="' + (tab === t) + '" class="sk-tab' + (tab === t ? ' on' : '') + '" data-act="skill-tab" data-t="' + t + '">' + n + '</button>').join('') + '</div><div class="sk-grid">';
@@ -5277,6 +5360,9 @@ document.addEventListener('click', e => {
     case 'mow1': G.mow(S, i); toast('Consoude fauchée : +2 paillage.'); render(); break;
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
+    case 'house-tab': openHouse(a.dataset.t); break;
+    case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); openHouse('jardinier'); break;
+    case 'skills': openSkills(); break;
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
     case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
@@ -5353,7 +5439,7 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openAtelier: () => openAtelier() });
 catchUp(); claimDaily(); render(); startChars(); calNote();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 cloudHandleReturn();

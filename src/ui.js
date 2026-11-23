@@ -1498,10 +1498,43 @@ const SK_ORDER = ['plantation', 'tonte', 'trogne', 'bouture', 'greffe', 'fabrica
 function gardenerPortrait() {
   return '<svg viewBox="0 0 72 80" width="72" height="80" aria-hidden="true"><rect width="72" height="80" rx="14" fill="#e6efdc"/><path d="M14 80c0-16 10-24 22-24s22 8 22 24z" fill="#5f8f4a"/><path d="M28 56h16v24H28z" fill="#e9d9a8"/><path d="M24 66l4-10M48 66l-4-10" stroke="#3d6a34" stroke-width="3" stroke-linecap="round"/><circle cx="36" cy="38" r="13" fill="#f1c9a0"/><ellipse cx="36" cy="27" rx="25" ry="5.5" fill="#d9ad52"/><path d="M23 27c0-12 6-18 13-18s13 6 13 18z" fill="#e7bf63"/><path d="M23 25h26" stroke="#b9442f" stroke-width="3"/><circle cx="31" cy="38" r="1.6" fill="#2b2018"/><circle cx="41" cy="38" r="1.6" fill="#2b2018"/><path d="M31 44q5 4 10 0" stroke="#8a4b2d" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
 }
+
+/* ---------- la maison : profil du jardinier, tenues, famille, cellier ---------- */
+const CELLAR_N = { confiture: 'Confiture', sirop: 'Sirop', pickles: 'Pickles', dessert: 'Dessert', tisane: 'Tisane séchée', conserve: 'Bocal', sec: 'Séché', panier: 'Panier frais' };
+const CELLAR_E = { confiture: '🍓', sirop: '🍯', pickles: '🥒', dessert: '🥧', tisane: '🍵', conserve: '🫙', sec: '🌿', panier: '🧺' };
+function portraitImg(who, sz) { let u = ''; try { u = window.V3D && V3D.portrait ? V3D.portrait(who) : ''; } catch (e) { u = ''; } return u ? '<img class="portrait" src="' + u + '" width="' + sz + '" height="' + Math.round(sz * 250 / 220) + '" alt="">' : ''; }
+function cellarItems() {
+  const out = [], seen = {};
+  S.stock.forEach(it => { if (it.kg <= .03) return; const k = (it.keep ? it.keep : 'panier') + ':' + it.pid; (seen[k] = seen[k] || { t: it.keep === 'bocal' ? 'conserve' : it.keep === 'sec' ? 'sec' : 'panier', name: P[it.pid].name, kg: 0 }).kg += it.kg; });
+  Object.values(seen).forEach(x => out.push(x));
+  (S.cellar || []).forEach(x => out.push({ t: x.k, name: x.name, n: x.n }));
+  return out;
+}
+function openHouse(tab) {
+  ui.houseTab = tab || ui.houseTab || 'jardinier'; const t = ui.houseTab, X = G.xpInfo(S);
+  const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  let h = '<div class="sk-tabs" role="tablist">' + [['jardinier', 'Mon jardinier'], ['famille', 'La famille'], ['cellier', 'Le cellier']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="house-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  if (t === 'jardinier') {
+    const o = S.outfit || {};
+    h += '<div class="hs-head">' + (portraitImg('gardener', 150) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP</small><div class="acts" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn sm" data-act="skills">Compétences</button></div></div></div>';
+    h += '<h3 style="margin:12px 0 6px">Garde-robe</h3><p class="note-p">' + (season4() === 'winter' ? 'Il fait froid : le bonnet et le manteau tiennent chaud.' : season4() === 'summer' ? 'Plein soleil : le chapeau de paille protège.' : 'Habille ton jardinier comme tu veux.') + '</p>';
+    Object.keys(G.OUTFIT).forEach(sl => { const d = G.OUTFIT[sl]; h += '<div class="wd-row"><span class="wd-n">' + d.n + '</span><span class="wd-opts">' + d.o.map(([id, nm]) => '<button type="button" class="btn sm' + ((o[sl] || d.o[0][0]) === id ? ' primary' : '') + '" data-act="outfit" data-slot="' + sl + '" data-id="' + id + '">' + nm + '</button>').join('') + '</span></div>'; });
+  } else if (t === 'famille') {
+    h += '<p class="note-p">Plus ils mangent de ton jardin, des repas variés, plus ils sont heureux.</p><div class="fam">' + S.family.map((m, k) => { const img = k === 0 ? portraitImg('camille', 64) : k === 2 ? portraitImg('lea', 64) : ''; const tk = m.hist.filter(x => S.day - x.day < 1).reduce((a, b) => a + b.kcal, 0); return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + (img || face(k, m.joy, 56)) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + tk + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
+  } else {
+    const it = cellarItems(), groups = {}; it.forEach(x => (groups[x.t] = groups[x.t] || []).push(x));
+    h += '<p class="note-p">Le cellier garde tes paniers, conserves et transformations de l’atelier.</p>';
+    if (!it.length) h += '<p class="empty-f">Le cellier est vide. Récolte, puis transforme à l’atelier.</p>';
+    else h += Object.keys(CELLAR_N).filter(k => groups[k]).map(k => '<h3 style="margin:10px 0 4px">' + CELLAR_E[k] + ' ' + CELLAR_N[k] + (k === 'panier' ? ' (à cuisiner vite)' : '') + '</h3><div class="cel">' + groups[k].map(x => '<span class="cel-i"><b>' + x.name + '</b> · ' + (x.kg != null ? fmt(x.kg, 2) + ' kg' : '×' + x.n) + '</span>').join('') + '</div>').join('');
+    h += '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm" data-act="kitchen">Garde-manger et cuisine</button>' + (S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Atelier</button>' : '') + '</div>';
+  }
+  modal('La maison', h, true);
+}
+function season4() { const m = G.dateOf(S.day).m; return m >= 2 && m <= 4 ? 'spring' : m >= 5 && m <= 7 ? 'summer' : m >= 8 && m <= 10 ? 'autumn' : 'winter'; }
 function openSkills() {
   const L = G.skillList(S), X = G.xpInfo(S), tab = ui.skTab || 'all';
   const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
-  let h = '<div class="sk-head">' + gardenerPortrait() + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
+  let h = '<div class="sk-head">' + (portraitImg('gardener', 72) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
   h += '<div class="sk-stats"><div><b>' + X.pts + '</b><span>Points libres</span></div><div><b>' + X.spent + '</b><span>Points investis</span></div><div><b>' + X.acq + '/' + X.total + '</b><span>Skills acquis</span></div></div>';
   h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + X.pts + ' point' + (X.pts > 1 ? 's' : '') + ' libre' + (X.pts > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte de l’XP. À chaque niveau, tu gagnes 1 point à dépenser ici. Monter une compétence demande 1 point et assez de pratique.</p>';
   h += '<div class="sk-tabs" role="tablist">' + [['all', 'Toutes'], ['culture', 'Culture'], ['entretien', 'Entretien'], ['expertise', 'Expertise']].map(([t, n]) => '<button type="button" role="tab" aria-selected="' + (tab === t) + '" class="sk-tab' + (tab === t ? ' on' : '') + '" data-act="skill-tab" data-t="' + t + '">' + n + '</button>').join('') + '</div><div class="sk-grid">';
@@ -1936,6 +1969,9 @@ document.addEventListener('click', e => {
     case 'mow1': G.mow(S, i); toast('Consoude fauchée : +2 paillage.'); render(); break;
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
+    case 'house-tab': openHouse(a.dataset.t); break;
+    case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); openHouse('jardinier'); break;
+    case 'skills': openSkills(); break;
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
     case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
@@ -2012,7 +2048,7 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openAtelier: () => openAtelier() });
 catchUp(); claimDaily(); render(); startChars(); calNote();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 cloudHandleReturn();

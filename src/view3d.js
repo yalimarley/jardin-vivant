@@ -628,6 +628,13 @@ function syncWork() {
   if (!abtn) { abtn = document.createElement('button'); abtn.type = 'button'; abtn.className = 'v3b v3drop v3work'; bdiv.appendChild(abtn); abtn.addEventListener('click', ev => { ev.stopPropagation(); if (A.G.jobsReady(A.S()).length) A.collect(); else A.openAtelier(); }); }
   abtn.innerHTML = '<i>' + (ready ? A.G.TF[rd[0].k].e : '⏳') + '</i>'; abtn.setAttribute('aria-label', ready ? 'Ranger les préparations au cellier' : 'Préparations en cours'); abtn.title = ready ? 'Prêt ! Touche pour ranger au cellier' : 'Prêt demain'; abtn.classList.toggle('ready', ready);
 }
+let smokeT = 0;
+function smokeTick(dt) {
+  const S = A.S(); if (!S.fire || !V.on || !R) return; smokeT -= dt; if (smokeT > 0) return; smokeT = .5;
+  const hp = V.houseXZ(), x = hp[0] + SMK[0], z = hp[1] + SMK[1], y0 = hAt(hp[0], hp[1]) + SMK[2], r = () => Math.random() - .5;
+  spawn(FXG.smoke, fxm(0xcfcfd2), new T.Vector3(x + r() * .15, y0, z + r() * .15), new T.Vector3(.25 + r() * .1, .55, r() * .2), 3.2, -.02);
+}
+const SMK = [0.5, -0.2, 4.4];
 V.fx = kind => burst(kind, V.atelierXZ());
 V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
 function dressSync() { if (!gardener) return; const o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, A.S().outfit || {}); if (gardener.userData.osig !== JSON.stringify(o)) dressG(gardener, o); }
@@ -981,6 +988,7 @@ function tap(cx, cy) {
   else if (pk.t === 'lawn') fire(svg.querySelector('.lawn[data-k="' + pk.k + '"]'));
   else if (pk.t === 'deco' && pk.k === 'house') A.openHouse();
   else if (pk.t === 'deco' && pk.k === 'atelier') A.openAtelier();
+  else if (pk.t === 'wild') A.scare(pk.i);
   else if (pk.t === 'deco') fire(svg.querySelector('[data-' + pk.k + ']'));
 }
 
@@ -1108,7 +1116,7 @@ function gaBuild(k, body, hd, tailComp) {
   let tail = null; if (P[6]) { tail = mk(6); if (tailComp) { const me = tail.children[0]; me.rotation.x = tailComp; } body.add(tail); }
   return { legs, head, tail };
 }
-let gWild = null, wild = null, wildSig = '';
+let gWild = null, wild = null, wilds = [], wildSig = '';
 function mkWild(k) {
   const g = new T.Group(), body = new T.Group(); g.add(body); const legs = [], head = new T.Group(); let tail = null, sp = 1.5;
   const leg = (x, z, h, r, col) => { const l = new T.Group(); l.position.set(x, h, z); l.add(mesh(geo.cyl(r, r * .75, h, 6), L(col), 0, -h / 2, 0)); hoof(l, h, r * .8, 0x1c1410); body.add(l); legs.push(l); };
@@ -1151,17 +1159,21 @@ function mkWild(k) {
   g.userData = { body, legs, head, tail, sp, heading: 0, lx: 0, lz: 0, ears: [] }; g.traverse(o => { if (o.isMesh && o !== sh) o.castShadow = true; }); return g;
 }
 function syncWild(S) {
-  if (!gWild) { gWild = new T.Group(); scene.add(gWild); }
-  const w = S.wild, sg = w ? w.k + w.day : ''; if (sg === wildSig) return; wildSig = sg;
-  while (gWild.children.length) gWild.remove(gWild.children[0]); wild = null; if (!w) return;
-  const r = rngMaker(w.day * 31 + 7), side = r() < .5 ? -1 : 1, onX = r() < .5, ex = onX ? side * (HW + 3.5) : (r() * 2 - 1) * HW, ez = onX ? (r() * 2 - 1) * HH : side * (HH + 3.5);
-  const g = mkWild(w.k); g.scale.setScalar({ chevreuil: 1.25, sanglier: 1.3, renard: 1.5, belette: 1.8, herisson: 1.6 }[w.k] || 1.3); g.position.set(ex, hAt(ex, ez), ez); gWild.add(g);
-  const tg = (w.cells || []).map(i => { const q = cellXZ(i); return [q[0] + (ex < q[0] ? -1.25 : 1.25), q[1] + .5]; });
-  if (!tg.length) { const a = r() * 6.28; tg.push([Math.cos(a) * HW * .5, Math.sin(a) * HH * .5]); tg.push([Math.cos(a + 2) * HW * .5, Math.sin(a + 2) * HH * .5]); }
-  wild = { g, k: w.k, st: 'go', ti: 0, tg, ex, ez, wait: 0, flee: false };
+  if (!gWild) { gWild = new T.Group(); scene.add(gWild); if (pickRoots.indexOf(gWild) < 0) pickRoots.push(gWild); }
+  const L = S.wilds || (S.wild ? [S.wild] : []), sg = L.map(w => w.k + w.day + (w.id || 0)).join('|'); if (sg === wildSig) return; wildSig = sg;
+  while (gWild.children.length) gWild.remove(gWild.children[0]); wilds = [];
+  L.forEach((w, wi) => {
+    const r = rngMaker(w.day * 31 + 7 + wi * 977), side = r() < .5 ? -1 : 1, onX = r() < .5, ex = onX ? side * (HW + 3.5) : (r() * 2 - 1) * HW, ez = onX ? (r() * 2 - 1) * HH : side * (HH + 3.5);
+    const g = mkWild(w.k); g.scale.setScalar({ chevreuil: 1.25, sanglier: 1.3, renard: 1.5, belette: 1.8, herisson: 1.6 }[w.k] || 1.3); g.position.set(ex, hAt(ex, ez), ez); g.userData.pick = { t: 'wild', i: wi }; gWild.add(g);
+    const tg = (w.cells || []).map(i => { const q = cellXZ(i); return [q[0] + (ex < q[0] ? -1.25 : 1.25), q[1] + .5]; });
+    if (!tg.length) { const a = r() * 6.28; tg.push([Math.cos(a) * HW * .5, Math.sin(a) * HH * .5]); tg.push([Math.cos(a + 2) * HW * .5, Math.sin(a + 2) * HH * .5]); }
+    wilds.push({ g, k: w.k, i: wi, st: w.scared && w.dog ? 'gone' : 'go', ti: 0, tg, ex, ez, wait: 0, flee: false });
+  });
+  wild = wilds[0] || null;
 }
-function wildTick(t, dt) {
-  if (!wild) return; const S = A.S(), w = S.wild, u = wild.g.userData, g = wild.g;
+function wildTick(t, dt) { wilds.forEach(wd => wildOne(wd, t, dt)); }
+function wildOne(wild, t, dt) {
+  const S = A.S(), w = (S.wilds || [])[wild.i], u = wild.g.userData, g = wild.g;
   if (w && w.scared && wild.st !== 'flee' && wild.st !== 'gone') { wild.st = 'flee'; wild.tg = [[wild.ex * 1.3, wild.ez * 1.3]]; wild.ti = 0; }
   if (wild.st === 'gone') { g.visible = false; return; }
   const tgp = wild.tg[wild.ti], px = g.position.x, pz = g.position.z, d = Math.hypot(tgp[0] - px, tgp[1] - pz), flee = wild.st === 'flee', sp = u.sp * (flee ? 3 : 1);
@@ -1430,7 +1442,7 @@ const dropGeo = new T.IcosahedronGeometry(.045, 0), dropMat = new T.MeshLambertM
 function spawn(geom, m, pos, v, life, g, spin) { const o = new T.Mesh(geom, m); o.position.copy(pos); o.scale.setScalar(1.7); gAmb.add(o); fx.push({ m: o, v, life, g: g, s: spin }); }
 const FXM = {}; const fxm = c => FXM[c] || (FXM[c] = new T.MeshLambertMaterial({ color: c, side: T.DoubleSide }));
 const slugG = (() => { const g = new T.IcosahedronGeometry(.06, 0); g.scale(1, .6, 2.6); return g; })();
-const FXG = { slug: slugG, drop: new T.IcosahedronGeometry(.05, 0), straw: new T.BoxGeometry(.025, .025, .26), leaf: (() => { const g = new T.PlaneGeometry(.17, .11); return g; })(), crumb: new T.IcosahedronGeometry(.04, 0), carrot: new T.ConeGeometry(.06, .26, 6), tom: new T.IcosahedronGeometry(.1, 1), pea: new T.IcosahedronGeometry(.055, 0), stick: new T.BoxGeometry(.02, .02, .2), spark: new T.OctahedronGeometry(.07, 0), petal: new T.CircleGeometry(.07, 6), blade: new T.ConeGeometry(.02, .3, 3), eggp: T.CapsuleGeometry ? new T.CapsuleGeometry(.06, .14, 3, 6) : new T.IcosahedronGeometry(.09, 0) };
+const FXG = { smoke: new T.IcosahedronGeometry(.1, 1), slug: slugG, drop: new T.IcosahedronGeometry(.05, 0), straw: new T.BoxGeometry(.025, .025, .26), leaf: (() => { const g = new T.PlaneGeometry(.17, .11); return g; })(), crumb: new T.IcosahedronGeometry(.04, 0), carrot: new T.ConeGeometry(.06, .26, 6), tom: new T.IcosahedronGeometry(.1, 1), pea: new T.IcosahedronGeometry(.055, 0), stick: new T.BoxGeometry(.02, .02, .2), spark: new T.OctahedronGeometry(.07, 0), petal: new T.CircleGeometry(.07, 6), blade: new T.ConeGeometry(.02, .3, 3), eggp: T.CapsuleGeometry ? new T.CapsuleGeometry(.06, .14, 3, 6) : new T.IcosahedronGeometry(.09, 0) };
 function burst(kind, i) {
   if (!V.on || !R) return; let x, z; if (typeof i === 'number') { const q = cellXZ(i); x = q[0]; z = q[1]; } else { x = i[0]; z = i[1]; }
   const y0 = hAt(x, z), r = () => Math.random() - .5, P = (dy, sp) => new T.Vector3(x + r() * (sp || .6), y0 + dy, z + r() * (sp || .6)), Vv = (a, b, c) => new T.Vector3(a, b, c);
@@ -1537,7 +1549,7 @@ function frame() {
   mists.forEach(m => { m.position.x += dt * m.userData.sp; if (m.position.x > 40) m.position.x = -40; });
   const ag = A.agents; moveChar(gardener, ag.g, dt, t, 'g'); moveChar(dogM, ag.d, dt, t, 'd'); ['f0', 'f1'].forEach(k => { if (ag[k]) moveChar(fam[k], ag[k], dt, t, 'f'); });
   for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.life -= dt; if (f.life <= 0) { gAmb.remove(f.m); fx.splice(i, 1); continue; } f.v.y -= 9 * (f.g == null ? 1 : f.g) * dt; f.m.position.addScaledVector(f.v, dt); if (f.s) { f.m.rotation.x += f.s * dt; f.m.rotation.z += f.s * .7 * dt; } if (f.life < .25) f.m.scale.multiplyScalar(Math.max(.2, 1 - dt * 5)); }
-  fauna(t); critters(t, dt); slugTick(t); wildTick(t, dt);
+  fauna(t); critters(t, dt); slugTick(t); wildTick(t, dt); smokeTick(dt);
   pulse.forEach((o, i) => { if (o.userData.bob) { o.position.y = .75 + Math.sin(t * 3 + i) * .1; o.rotation.y = t * 1.2; } else o.scale.setScalar(1 + Math.sin(t * 4) * .06); });
   if (cam.taz !== null) { cam.az += (cam.taz - cam.az) * Math.min(1, dt * 6); if (Math.abs(cam.taz - cam.az) < .003) { cam.az = cam.taz; cam.taz = null; } }
   if (cam.tdist !== null) { cam.dist += (cam.tdist - cam.dist) * Math.min(1, dt * 6); if (Math.abs(cam.tdist - cam.dist) < .05) { cam.tdist = null; } }

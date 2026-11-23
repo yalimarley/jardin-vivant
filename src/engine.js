@@ -52,7 +52,7 @@ const NOT_EXO = new Set(['Maïs', 'Tournesol', 'Basilic vivace', 'Basilic']), EX
 const isExo = p => !NOT_EXO.has(p.name) && p.gel >= -1 && (p.strate === "Arbre" || p.strate === "Arbuste" || EXO_EXTRA.has(p.name) || /^Bananier/.test(p.name));
 const age = s => Math.max(0, (s.day || 0) - (s.born || 0)), gshare = s => Math.min(.25, .04 + .0002 * age(s)), BOOSTER_SIZE = 5, RCY_CAP = 12, KGM = { annuelle: 2.4, continue: 2, vivace: 1.4 }, NEED_KCAL = 2000, CORE = 51;
 const SAVE_VERSION = 1;
-const LAWN_N = 8, LAWN_DAYS = 14, TREE_N = 5, TREE_DAYS = 90, LAWN_MULCH = 2, TREE_MULCH = 4;
+const LAWN_N = 8, LAWN_DAYS = 14, TREE_N = 5, TREE_DAYS = 30, LAWN_MULCH = 2, TREE_MULCH = 4;
 function defaultFamily() { return [{ n: 'Camille', role: 'Adulte', need: 2100, joy: 50, hist: [] }, { n: 'Julien', role: 'Adulte', need: 2400, joy: 50, hist: [] }, { n: 'Léa', role: '10 ans', need: 1900, joy: 50, hist: [] }, { n: 'Noé', role: '6 ans', need: 1500, joy: 50, hist: [] }]; }
 const famNeed = s => (s.family || []).reduce((a, m) => a + m.need, 0) || NEED_KCAL;
 
@@ -367,11 +367,11 @@ function make(P) {
       lv.plantation = Math.max(1, lv.plantation || 0); lv.tonte = Math.max(1, lv.tonte || 0); lv.cuisine = Math.max(1, lv.cuisine || 0);
       const sp = {}; (s.grid || []).forEach(c => { if (c && !c.treille) sp[c.pid] = 1; });
       s.skills = { lv, use, adv: {}, species: sp, seen: o.seen || {} }; s.xp = s.xp || tot * 6; s.ptsSpent = s.ptsSpent || 0; s.pts = s.pts != null ? s.pts : levelOf(s.xp).lvl - 1 + 1; }
-    if (!s.outfit) s.outfit = { hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }; if (!s.cellar) s.cellar = []; if (!s.jobs) s.jobs = []; if (!s.skills.adv) s.skills.adv = {}; if (!s.skills.use) s.skills.use = {}; if (!s.skills.species) s.skills.species = {}; if (s.xp == null) s.xp = 0; if (s.pts == null) s.pts = 0; if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
+    if (!s.outfit) s.outfit = { hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }; if (s.wood == null) s.wood = 0; if (!s.cellar) s.cellar = []; if (!s.jobs) s.jobs = []; if (!s.skills.adv) s.skills.adv = {}; if (!s.skills.use) s.skills.use = {}; if (!s.skills.species) s.skills.species = {}; if (s.xp == null) s.xp = 0; if (s.pts == null) s.pts = 0; if (!s.pq) s.pq = []; if (!s.tuto) s.tuto = (s.day > 1 || (s.boosters || 0) > 1 || s.maxPlantings > 6) ? { done: true } : { step: 0 }; if (s.waste == null) { s.waste = 0; s.compostPts = 0; s.compostMade = 0; } Object.keys(SKILLS).forEach(k => { if (skillLevel(s, k) > 0) s.skills.seen[k] = 1; }); if (s.feves == null) s.feves = 15; NEWMATS.forEach(k => { s.mats[k] = s.mats[k] || 0; }); s.cuves = s.cuves || 0; if (s.atelier == null) s.atelier = false; if (s.poulailler == null) { s.poulailler = false; s.poules = 0; s.eggs = 0; s.eggsMade = 0; } if (s.sechoir == null) s.sechoir = false; if (!s.prod) s.prod = []; s.lawn = s.lawn && s.lawn.length === LAWN_N ? s.lawn : Array(LAWN_N).fill(-99); s.trees = s.trees && s.trees.length === TREE_N ? s.trees : Array.from({ length: TREE_N }, () => ({ formed: false, last: -999 })); if (s.boostUntil == null) s.boostUntil = -1; s.mats.trogne = s.mats.trogne || 0; s.mats.canard = s.mats.canard || 0; s.honey = s.honey || 0; return s; }
   function lawnReady(s, k) { return s.day - s.lawn[k] >= LAWN_DAYS - (skillLevel(s, 'tonte') >= 4 ? 3 : 0); }
   function mowLawn(s, k) { if (!lawnReady(s, k)) return false; s.lawn[k] = s.day; s.mats.paillage += LAWN_MULCH + Math.max(0, skillLevel(s, 'tonte') - 1); gainSkill(s, 'tonte', 1); bump(s, 'mow'); return true; }
-  function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 15 : 0)); }
-  function trogneReward(s) { const lv = skillLevel(s, 'trogne'), mu = TREE_MULCH + 2 * Math.max(0, lv - 1); s.mats.paillage += mu; s.boostUntil = Math.min(s.day + 60, Math.max(s.boostUntil, s.day) + (lv >= 3 ? 30 : 20)); log(s, 'good', 'Trogne coupée : +' + mu + ' paillage, les plantes poussent plus vite pendant ' + Math.min(60, s.boostUntil - s.day) + ' jours.'); }
+  function treeReady(s, k) { const t = s.trees[k]; return !!(t && t.formed && s.day - t.last >= TREE_DAYS - (skillLevel(s, 'trogne') >= 3 ? 6 : 0)); }
+  function trogneReward(s) { const lv = skillLevel(s, 'trogne'), mu = TREE_MULCH + 2 * Math.max(0, lv - 1); s.mats.paillage += mu; const wd = 6 + 2 * Math.max(0, lv - 1); s.wood = r2((s.wood || 0) + wd); s.boostUntil = Math.min(s.day + 60, Math.max(s.boostUntil, s.day) + (lv >= 3 ? 30 : 20)); log(s, 'good', 'Trogne coupée : +' + mu + ' paillage, +' + wd + ' bûches pour la cheminée, les plantes poussent plus vite pendant ' + Math.min(60, s.boostUntil - s.day) + ' jours.'); }
   function formTrogne(s, k) { const t = s.trees[k]; if (!t || t.formed || !(s.mats.trogne > 0 || skillLevel(s, 'trogne') >= 1)) return false; if (s.mats.trogne > 0) s.mats.trogne--; t.formed = true; t.last = s.day; trogneReward(s); gainSkill(s, 'trogne', 2); bump(s, 'trogne'); return true; }
   function cutTrogne(s, k) { if (!treeReady(s, k)) return false; s.trees[k].last = s.day; trogneReward(s); gainSkill(s, 'trogne', 3); bump(s, 'trogne'); return true; }
   function honeyReady(s, i) { const c = s.grid[i], m = dateOf(s.day).m; return !!(c && c.furn === 'ruche' && m >= 4 && m <= 8 && s.day - (c.honeyDay == null ? -999 : c.honeyDay) >= 45); }
@@ -392,28 +392,33 @@ function make(P) {
   function faunaYield(s) { return 1 + .03 * POLL.filter(id => s.fauna && s.fauna[id]).length; }
   const WILD = { chevreuil: { n: 'chevreuil', art: 'Un chevreuil', dmg: 12, kn: 3, tg: ['Arbre', 'Arbuste', 'Herbacée', 'Grimpante'] }, sanglier: { n: 'sanglier', art: 'Un sanglier', dmg: 18, kn: 2, tg: ['Racine', 'Herbacée', 'Couvre-sol'] }, renard: { n: 'renard', art: 'Un renard', eggs: 3 }, belette: { n: 'belette', art: 'Une belette', eggs: 1 }, herisson: { n: 'hérisson', art: 'Un hérisson', good: true } };
   function wildResolve(s, ev) {
-    const v = s.wild; if (!v || v.done) return; v.done = true; if (v.scared) return; const d = WILD[v.k]; if (!d) return;
-    if (d.good) { let n = 0; (v.cells || []).forEach(i => { const c = s.grid[i]; if (c && c.sick && c.sick.k === 'limaces') { c.sick = null; n++; } }); if (n) ev.push({ t: 'good', text: 'Un hérisson a mangé les limaces de ' + n + ' plante' + (n > 1 ? 's' : '') + '.' }); return; }
-    if (d.eggs) { if (s.poulailler && (s.eggs || 0) > 0) { const l = Math.min(s.eggs, d.eggs); s.eggs = r2(s.eggs - l); ev.push({ t: 'warn', text: v.k === 'renard' ? 'Un renard a volé ' + l + ' œuf' + (l > 1 ? 's' : '') + ' au poulailler.' : 'Une belette a croqué ' + l + ' œuf au poulailler.' }); } return; }
-    let n = 0; (v.cells || []).forEach(i => { const c = s.grid[i]; if (c && !c.treille && s.day - (c.wildDay == null ? -99 : c.wildDay) >= 4) { c.health = Math.max(5, c.health - d.dmg * (1 - resistance(s, i).pct / 100)); c.wildDay = s.day; n++; } });
-    if (n) ev.push({ t: 'warn', text: d.art + ' a abîmé ' + n + ' plante' + (n > 1 ? 's' : '') + ' cette nuit. Effarouche-le plus vite la prochaine fois.' });
+    (s.wilds || (s.wild ? [s.wild] : [])).forEach(v => {
+      if (!v || v.done) return; v.done = true; if (v.scared) return; const d = WILD[v.k]; if (!d) return;
+      if (d.good) { let n = 0; (v.cells || []).forEach(i => { const c = s.grid[i]; if (c && c.sick && c.sick.k === 'limaces') { c.sick = null; n++; } }); if (n) ev.push({ t: 'good', text: 'Un hérisson a mangé les limaces de ' + n + ' plante' + (n > 1 ? 's' : '') + '.' }); return; }
+      if (d.eggs) { if (s.poulailler && (s.eggs || 0) > 0) { const l = Math.min(s.eggs, d.eggs); s.eggs = r2(s.eggs - l); ev.push({ t: 'warn', text: v.k === 'renard' ? 'Un renard a volé ' + l + ' œuf' + (l > 1 ? 's' : '') + ' au poulailler.' : 'Une belette a croqué ' + l + ' œuf au poulailler.' }); } return; }
+      let n = 0; (v.cells || []).forEach(i => { const c = s.grid[i]; if (c && !c.treille && s.day - (c.wildDay == null ? -99 : c.wildDay) >= 2) { c.health = Math.max(5, c.health - d.dmg * (1 - resistance(s, i).pct / 100)); c.wildDay = s.day; n++; } });
+      if (n) ev.push({ t: 'warn', text: d.art + ' a abîmé ' + n + ' plante' + (n > 1 ? 's' : '') + ' cette nuit. Effarouche-le plus vite la prochaine fois.' });
+    });
   }
   function wildVisit(s, ev, away) {
-    const rn = mulberry(s.day * 4001 + 29), m = dateOf(s.day).m, wint = m >= 10 || m <= 1;
-    if (rn() > .72) { s.wild = null; return; }
-    const W = { chevreuil: 30, sanglier: wint ? 20 : 10, renard: 20, belette: 14, herisson: (m >= 3 && m <= 9) ? 26 : 0 }; let tot = 0; for (const k in W) tot += W[k]; let r = rn() * tot, k = 'renard'; for (const q in W) { r -= W[q]; if (r <= 0) { k = q; break; } }
-    const d = WILD[k], cand = []; s.grid.forEach((c, i) => { if (!c || c.treille || !P[c.pid]) return; if (d.tg) { if (!d.tg.includes(P[c.pid].strate)) return; } else if (k === 'herisson' && !(c.sick && c.sick.k === 'limaces')) return; cand.push(i); });
-    let cells = []; const nt = d.kn || (k === 'herisson' ? 2 : 1); while (cells.length < nt && cand.length) cells.push(cand.splice(Math.floor(rn() * cand.length), 1)[0]);
-    if ((d.tg || k === 'herisson') && !cells.length) { if (k === 'herisson' || !s.grid.some(c => c && !c.treille)) { s.wild = null; return; } }
-    if (d.eggs && !s.poulailler) cells = [];
-    const v = { k, day: s.day, cells, scared: false, done: false, away: !!away }; s.fauna = s.fauna || {};
-    if (!s.fauna[k]) { s.fauna[k] = s.day; ev.push({ t: 'good', text: 'Premier ' + d.n + ' dans ton jardin !' }); gainXp(s, 30); }
-    if (!d.good && (d.dmg || d.eggs) && rn() < .25) { v.scared = true; v.dog = true; }
-    s.wild = v;
-    if (!d.good && (d.dmg || d.eggs) && !v.scared && !away) ev.push({ t: 'warn', text: d.art + ' rôde dans le jardin. Effarouche-le avant qu’il fasse des dégâts !' });
-    else if (d.good) ev.push({ t: 'good', text: d.art + ' fait sa ronde dans le jardin.' });
+    const rn = mulberry(s.day * 4001 + 29), m = dateOf(s.day).m, wint = m >= 10 || m <= 1; s.wilds = []; s.wild = null;
+    const nv = (rn() < .97 ? 1 : 0) + (rn() < (wint ? .75 : .6) ? 1 : 0) + (rn() < (wint ? .45 : .3) ? 1 : 0), taken = new Set(), W = { chevreuil: 32, sanglier: wint ? 24 : 14, renard: 20, belette: 12, herisson: (m >= 3 && m <= 9) ? 22 : 0 };
+    for (let n = 0; n < nv; n++) {
+      let tot = 0; for (const k in W) if (!taken.has(k)) tot += W[k]; if (tot <= 0) break; let r = rn() * tot, k = 'renard'; for (const q in W) { if (taken.has(q)) continue; r -= W[q]; if (r <= 0) { k = q; break; } } taken.add(k);
+      const d = WILD[k], cand = []; s.grid.forEach((c, i) => { if (!c || c.treille || !P[c.pid]) return; if (d.tg) { if (!d.tg.includes(P[c.pid].strate)) return; } else if (k === 'herisson' && !(c.sick && c.sick.k === 'limaces')) return; cand.push(i); });
+      let cells = []; const nt = d.kn || (k === 'herisson' ? 2 : 1); while (cells.length < nt && cand.length) cells.push(cand.splice(Math.floor(rn() * cand.length), 1)[0]);
+      if ((d.tg || k === 'herisson') && !cells.length) { if (k === 'herisson' || !s.grid.some(c => c && !c.treille)) continue; }
+      if (d.eggs && !s.poulailler) cells = [];
+      const v = { k, day: s.day, cells, scared: false, done: false, away: !!away, id: n }; s.fauna = s.fauna || {};
+      if (!s.fauna[k]) { s.fauna[k] = s.day; ev.push({ t: 'good', text: 'Premier ' + d.n + ' dans ton jardin !' }); gainXp(s, 30); }
+      if (!d.good && (d.dmg || d.eggs) && rn() < .12) { v.scared = true; v.dog = true; }
+      s.wilds.push(v);
+      if (!d.good && (d.dmg || d.eggs) && !v.scared && !away) ev.push({ t: 'warn', text: d.art + ' rôde dans le jardin. Effarouche-le avant qu’il fasse des dégâts !' });
+      else if (d.good) ev.push({ t: 'good', text: d.art + ' fait sa ronde dans le jardin.' });
+    }
+    s.wilds.forEach((v, i) => { v.id = i; }); s.wild = s.wilds[0] || null;
   }
-  function scareWild(s) { const v = s.wild; if (!v || v.scared || v.done) return { ok: false }; v.scared = true; gainXp(s, 6); log(s, 'good', 'Tu as effarouché le ' + (WILD[v.k] || {}).n + '.'); bump(s, 'scare'); return { ok: true, k: v.k }; }
+  function scareWild(s, idx) { const L = s.wilds || (s.wild ? [s.wild] : []); const v = idx != null ? L[idx] : L.find(x => !x.scared && !x.done && WILD[x.k] && !WILD[x.k].good); if (!v || v.scared || v.done) return { ok: false }; v.scared = true; gainXp(s, 6); log(s, 'good', 'Tu as effarouché le ' + (WILD[v.k] || {}).n + '.'); bump(s, 'scare'); return { ok: true, k: v.k }; }
   /* ---------- activités quotidiennes : observation, détente, esthétique ---------- */
   const ACT_XP = { photo: 10, affut: 14, trap: 10, trapset: 3, feeder: 6, ronde: 14, bouquet: 8, tisane: 8, detente: 6, bois: 8, glanage: 10 };
   function actState(s) { if (!s.act || s.act.day !== s.day) s.act = { day: s.day, done: {} }; return s.act; }
@@ -438,7 +443,7 @@ function make(P) {
     else if (id === 'bouquet') { const c = s.grid.find(c => c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .3); if (c) c.fl = r2(Math.max(0, (c.fl == null ? 1 : c.fl) - .05)); s.bouquet = { day: s.day }; addCalm(s, 4); g = 1; }
     else if (id === 'tisane') { const used = (data && data.pids) || []; used.forEach(p => { if (p === 'fleurs') s.fleurs = r2(Math.max(0, (s.fleurs || 0) - .012)); else if (p === 'honey') s.honey = r2(Math.max(0, (s.honey || 0) - .01)); else { let need = .012; for (const it of s.stock) { if (it.pid !== p || need <= 0) continue; const t = Math.min(it.kg, need); it.kg = r2(it.kg - t); need -= t; } } }); s.stock = s.stock.filter(it => it.kg > 0.004); addCalm(s, Math.round((3 + Math.min(3, used.length)) * (skillLevel(s, 'herboristerie') >= 3 ? 1.5 : 1))); gainSkill(s, 'herboristerie', 1); g = used.length >= 3 ? 2 : 1; }
     else if (id === 'detente') { addCalm(s, 6 + (hasFurn(s, 'banc') || hamacOk(s) ? 3 : 0)); g = 1; }
-    else if (id === 'bois') { s.mats.paillage = (s.mats.paillage || 0) + 3; out.paillage = 3; g = 1; addCalm(s, 2); }
+    else if (id === 'bois') { s.mats.paillage = (s.mats.paillage || 0) + 2; s.wood = r2((s.wood || 0) + 3); out.paillage = 2; out.wood = 3; g = 1; addCalm(s, 2); }
     else if (id === 'glanage') { const pool = s.grid.filter(c => c && !c.treille && P[c.pid] && P[c.pid].kg > 0 && ['Arbre', 'Arbuste'].includes(P[c.pid].strate) && phase(c).stage !== 'graine' && phase(c).stage !== 'pousse'); const c = pool.length ? pool[Math.floor(mulberry(s.day * 37 + 11)() * pool.length)] : null; if (c) { const kg = r2(.2 + .25 * q); s.stock.push({ pid: c.pid, kg, day: s.day }); out.pid = c.pid; out.kg = kg; } else { s.fleurs = r2((s.fleurs || 0) + .05); } g = 1; }
     if (['photo', 'affut', 'trap'].includes(id)) gainSkill(s, 'observation', 1);
     if (g && hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
@@ -696,7 +701,7 @@ function make(P) {
     if (sk.length) T.push({ id: 'heal', prio: 0, icon: 'leaf', label: 'Soigner ' + sk.length + (sk.length > 1 ? ' plantes attaquées' : ' plante attaquée'), sub: 'Limaces ou maladie fongique', act: { type: 'heal', cells: sk } });
     const hn = []; s.grid.forEach((c, i) => { if (honeyReady(s, i)) hn.push(i); });
     if (hn.length) T.push({ id: 'honey', prio: 1, icon: 'basket', label: 'Récolter le miel de ' + (hn.length > 1 ? hn.length + ' ruches' : 'la ruche'), sub: '≈ ' + String(honeyKg(s)).replace('.', ',') + ' kg par ruche', act: { type: 'honey', cells: hn } });
-    if (s.wild && !s.wild.done && !s.wild.scared && WILD[s.wild.k] && (WILD[s.wild.k].dmg || (WILD[s.wild.k].eggs && s.poulailler))) T.push({ id: 'scare', prio: 1, icon: 'leaf', label: 'Effaroucher le ' + WILD[s.wild.k].n, sub: 'avant qu’il abîme tes plantes', act: { type: 'scare' } });
+    (s.wilds || []).forEach((v, vi) => { if (!v.done && !v.scared && WILD[v.k] && (WILD[v.k].dmg || (WILD[v.k].eggs && s.poulailler))) T.push({ id: 'scare-' + vi, prio: 1, icon: 'leaf', label: 'Effaroucher le ' + WILD[v.k].n, sub: 'avant qu’il abîme ' + (WILD[v.k].eggs ? 'les œufs' : 'tes plantes'), act: { type: 'scare', idx: vi } }); });
     { const A = actState(s), hr = new Date().getHours(), dusk = hr < 8 || hr >= 18, eve = hr >= 18 || hr < 7, known = FAUNA.some(f => s.fauna && s.fauna[f.id]);
       if (s.wild && !A.done.photo && WILD[s.wild.k]) T.push({ id: 'act-photo', prio: 1, icon: 'leaf', label: 'Photographier ' + WILD[s.wild.k].art.toLowerCase().replace(/^un /, 'le ').replace(/^une /, 'la '), sub: 'Il est dans le jardin aujourd’hui', act: { type: 'act', id: 'photo' } });
       if (dusk && !A.done.affut && (s.maxPlantings || 0) >= 3) T.push({ id: 'act-affut', prio: 2, icon: 'leaf', label: 'Affût à la tombée du jour', sub: 'Reste immobile pour voir un animal discret', act: { type: 'act', id: 'affut' } });
@@ -708,7 +713,7 @@ function make(P) {
       if (!A.done.tisane && ((s.fleurs || 0) > .015 || s.stock.some(it => it.kg > .02 && P[it.pid] && P[it.pid].strate === 'Couvre-sol'))) T.push({ id: 'act-tisane', prio: 3, icon: 'pot', label: 'Préparer une tisane', sub: 'Fleurs et herbes du jardin', act: { type: 'act', id: 'tisane' } });
       { const mst = mgState(s); mgToday(s).forEach(id => { if (mst.done[id] == null) T.push({ id: 'mg-' + id, prio: 2, icon: 'leaf', label: MGN[id], sub: 'Mini-jeu du jour · jusqu’à 8 ginkgos', act: { type: 'mg', id } }); }); }
       if (m >= 10 || m <= 1) {
-        if (!A.done.bois && s.grid.some(c => c && !c.treille && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-bois', prio: 2, icon: 'leaf', label: 'Ramasser le bois mort', sub: 'Hiver : +3 paillage', act: { type: 'act', id: 'bois' } });
+        if (!A.done.bois && s.grid.some(c => c && !c.treille && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-bois', prio: 2, icon: 'leaf', label: 'Ramasser le bois mort', sub: '+2 paillage, +3 bûches pour la cheminée', act: { type: 'act', id: 'bois' } });
         if (!A.done.glanage && s.grid.some(c => c && !c.treille && P[c.pid].kg > 0 && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-glanage', prio: 2, icon: 'basket', label: 'Glaner dans le verger', sub: 'Hiver : fruits tardifs, cynorrhodons, noix', act: { type: 'act', id: 'glanage' } });
       }
       if (!A.done.detente) T.push({ id: 'act-detente', prio: 3, icon: 'leaf', label: 'Prendre un moment au jardin', sub: 'Respirer, regarder, écouter', act: { type: 'act', id: 'detente' } });
@@ -718,7 +723,7 @@ function make(P) {
     const lr = []; for (let k = 0; k < LAWN_N; k++) if (lawnReady(s, k)) lr.push(k);
     if (lr.length) T.push({ id: 'lawn', prio: 2, icon: 'leaf', label: 'Tondre ' + lr.length + (lr.length > 1 ? ' zones d’herbe' : ' zone d’herbe'), sub: '+' + lr.length * LAWN_MULCH + ' paillage', act: { type: 'lawn', cells: lr } });
     const tr = []; for (let k = 0; k < TREE_N; k++) if (treeReady(s, k)) tr.push(k);
-    if (tr.length) T.push({ id: 'trogne', prio: 1, icon: 'leaf', label: 'Couper ' + tr.length + (tr.length > 1 ? ' trognes' : ' trogne'), sub: 'Paillage et croissance accélérée', act: { type: 'trogne', cells: tr } });
+    if (tr.length) T.push({ id: 'trogne', prio: 1, icon: 'leaf', label: 'Couper ' + tr.length + (tr.length > 1 ? ' trognes' : ' trogne'), sub: 'Paillage, bûches pour la cheminée, croissance accélérée', act: { type: 'trogne', cells: tr } });
     const pr = listCells(s, c => needsPrune(s, c));
     if (pr.length) T.push({ id: 'prune', prio: 2, icon: 'leaf', label: 'Tailler ' + pr.length + (pr.length > 1 ? ' arbres et arbustes' : ' arbre ou arbuste'), sub: 'Hiver : +10 % de fruits à la saison', act: { type: 'prune', cells: pr } });
     const mw = listCells(s, (c, i) => mowReady(s, c));
@@ -734,7 +739,7 @@ function make(P) {
     if (a.type === 'harvest') { let kg = 0; a.cells.forEach(i => { const h = harvest(s, i); if (h.ok) kg += h.kg; }); return { r: { kg } }; }
     if (a.type === 'mulch') { let n = 0; a.cells.forEach(i => { if (mulch(s, i)) n++; }); return { r: { n } }; }
     if (a.type === 'heal') { let n = 0; a.cells.forEach(i => { if (heal(s, i)) n++; }); return { r: { n } }; }
-    if (a.type === 'scare') { const r0 = scareWild(s); return { r: { k: r0.k } }; }
+    if (a.type === 'scare') { const r0 = scareWild(s, a.idx); return { r: { k: r0.k } }; }
     if (a.type === 'fleurs') { let kg = 0; a.cells.forEach(i => { const h = harvestFleurs(s, i); if (h.ok) kg += h.kg; }); return { r: { kg: r2(kg) } }; }
     if (a.type === 'honey') { let kg = 0; a.cells.forEach(i => { const h = harvestHoney(s, i); if (h.ok) kg += h.kg; }); return { r: { kg: r2(kg) } }; }
     if (a.type === 'lawn') { let n = 0; a.cells.forEach(k => { if (mowLawn(s, k)) n++; }); return { r: { n } }; }
@@ -800,6 +805,7 @@ function make(P) {
     { const sea = Math.floor((m % 12) / 3); if (s.lastSea == null) s.lastSea = sea; else if (s.lastSea !== sea) { s.lastSea = sea; gainXp(s, 350); ev.push({ t: 'good', text: 'Une nouvelle saison s’installe : ton jardin a bien vécu, de l’expérience en plus.' }); } }
     if (!s.grace) pests(s, w, m, ev);
     if ((s.feed || 0) > 0) { s.feed--; if (hasFurn(s, 'mangeoire') && s.feed >= 0) { s.fauna = s.fauna || {}; } }
+    { const cold = m >= 10 || m <= 2; if (!s.grace) { if (cold) { if ((s.wood || 0) >= .5) { s.wood = r2(s.wood - .5); s.fire = true; (s.family || []).forEach(f => { f.joy = Math.min(100, f.joy + 1); }); if (s.wood < 3 && s.wood >= .5) ev.push({ t: 'warn', text: 'Plus que ' + String(s.wood).replace('.', ',') + ' bûches : coupe une trogne ou ramasse du bois mort.' }); } else { s.wood = 0; s.fire = false; (s.family || []).forEach(f => { f.joy = Math.max(0, f.joy - 3); }); ev.push({ t: 'warn', text: 'La cheminée est éteinte : la maison est froide. Coupe une trogne ou ramasse du bois mort.' }); } } else s.fire = false; } }
     wildResolve(s, ev); if (!s.grace) wildVisit(s, ev, false);
     for (const f of (s.family || [])) { if (s.grace) break; const rec = f.hist.filter(x => s.day - x.day < 3).reduce((a, b) => a + b.kcal, 0) / 3, ratio = rec / (f.need * gshare(s)); const tgt = clamp((ratio <= 0 ? 12 : clamp(18 + ratio * 70, 12, 100)) + (hamacOk(s) ? 10 : 0) + pathJoy(s) + calmBonus(s), 12, 100); f.joy = clamp(f.joy + (tgt - f.joy) * .12 - (ratio < .25 ? (age(s) < 120 ? 1 : 3) : 0), age(s) < 45 ? 35 : age(s) < 120 ? 14 : 0, 100); }
     { const hungry = (s.family || []).filter(f => f.joy < 25); if (hungry.length && s.day % 3 === 0) ev.push({ t: 'warn', text: hungry.map(f => f.n).join(', ') + (hungry.length > 1 ? ' ont faim' : ' a faim') + ' : cuisine avec ta récolte.' }); }

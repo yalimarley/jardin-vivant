@@ -621,6 +621,14 @@ function portrait(who) {
   cx.putImageData(id, 0, 0); return cv.toDataURL('image/png');
 }
 V.portrait = portrait;
+let abtn = null;
+function syncWork() {
+  const S = A.S(), jb = S.jobs || []; if (!S.atelier || !jb.length) { if (abtn) { abtn.remove(); abtn = null; } return; }
+  const rd = A.G.jobsReady(S), ready = rd.length > 0;
+  if (!abtn) { abtn = document.createElement('button'); abtn.type = 'button'; abtn.className = 'v3b v3drop v3work'; bdiv.appendChild(abtn); abtn.addEventListener('click', ev => { ev.stopPropagation(); if (A.G.jobsReady(A.S()).length) A.collect(); else A.openAtelier(); }); }
+  abtn.innerHTML = '<i>' + (ready ? A.G.TF[rd[0].k].e : '⏳') + '</i>'; abtn.setAttribute('aria-label', ready ? 'Ranger les préparations au cellier' : 'Préparations en cours'); abtn.title = ready ? 'Prêt ! Touche pour ranger au cellier' : 'Prêt demain'; abtn.classList.toggle('ready', ready);
+}
+V.fx = kind => burst(kind, V.atelierXZ());
 V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
 function dressSync() { if (!gardener) return; const o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, A.S().outfit || {}); if (gardener.userData.osig !== JSON.stringify(o)) dressG(gardener, o); }
 const fmCache = {};
@@ -1348,6 +1356,7 @@ const vtmp = new T.Vector3();
 function placeBadges() {
   const S = A.S(), w = canvas.clientWidth, h = canvas.clientHeight, bs = Math.min(1, Math.max(.52, 30 / cam.dist));
   for (const k in wbtn) { const b = wbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
+  if (abtn) { const at = V.atelierXZ(); vtmp.set(at[0], hAt(at[0], at[1]) + 3.1, at[1]).project(camera); if (vtmp.z > 1 || vtmp.z < -1) abtn.style.display = 'none'; else { abtn.style.display = ''; abtn.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; } }
   for (const k in gbtn) { const b = gbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
   for (const id in btns) {
     const b = btns[id]; let x, y, z, ox = 0, oy = 0;
@@ -1374,7 +1383,7 @@ function sync() {
   if (rn !== rainOn) { rainOn = rn; sk2 = true; } if (fr !== frostPrev) { frostPrev = fr; frost = fr; paintTerrain(); }
   const h = new Date(); hour = Math.min(20, Math.max(6.2, h.getHours() + h.getMinutes() / 60)); const hq = Math.round(hour * 4) + (rainOn ? 100 : 0); if (hq !== lastHour || sk2) { lastHour = hq; gradientSky(); }
   { const hn = document.getElementById('hint'); if (hn && hn.innerHTML) hn.innerHTML = hn.innerHTML.replace('Choisis une parcelle libre', 'Touche un emplacement libre').replace('Touche une parcelle libre pour poser', 'Touche le sol pour poser'); }
-  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); dressSync(); syncOver(S); syncBadges(); syncPlus();
+  syncCells(S, m, sk); syncTracks(S); syncPrairie(S); syncSlugs(S); syncWild(S); syncDecor(S, sk); dressSync(); syncWork(); syncOver(S); syncBadges(); syncPlus();
   { const fl = []; S.grid.forEach((c, i) => { if (c && c.furn && ['mare', 'boismort', 'pierres', 'hotel', 'mangeoire'].indexOf(c.furn) >= 0) fl.push({ k: c.furn, i }); }); deco.furn = fl; deco.seen = S.fauna || {}; deco.feed = S.feed || 0; }
   const st = A.G.stats(S); deco.biodiv = st.biodiv || 0; deco.ruches = 0; S.grid.forEach(c => { if (c && c.furn === 'ruche') deco.ruches++; });
   first = false;
@@ -1425,7 +1434,7 @@ const FXG = { slug: slugG, drop: new T.IcosahedronGeometry(.05, 0), straw: new T
 function burst(kind, i) {
   if (!V.on || !R) return; let x, z; if (typeof i === 'number') { const q = cellXZ(i); x = q[0]; z = q[1]; } else { x = i[0]; z = i[1]; }
   const y0 = hAt(x, z), r = () => Math.random() - .5, P = (dy, sp) => new T.Vector3(x + r() * (sp || .6), y0 + dy, z + r() * (sp || .6)), Vv = (a, b, c) => new T.Vector3(a, b, c);
-  const n = { water: 30, mulch: 36, compost: 28, harvest: 9, prune: 18, heal: 16, honey: 14, fleurs: 18, mow: 22, lawn: 22 }[kind] || 12;
+  const JCL = { confiture: 0xc0392b, sirop: 0xe8a21a, pickles: 0x8bc34a, dessert: 0xf3d9a0, tisane: 0x6fae4a }, n = { water: 30, mulch: 36, compost: 28, harvest: 9, prune: 18, heal: 16, honey: 14, fleurs: 18, mow: 22, lawn: 22 }[kind] || (JCL[kind] ? 26 : 12);
   for (let k = 0; k < n; k++) {
     if (kind === 'water') spawn(FXG.drop, fxm(k % 3 ? 0x6fb6e8 : 0xbfe3f8), P(1.1, .5), Vv(r() * 1.6, 1 + Math.random() * 1.6, r() * 1.6), .9, 1);
     else if (kind === 'mulch') spawn(FXG.straw, fxm(k % 2 ? 0xe0b84a : 0xc99a3a), P(1.5 + Math.random() * .6, .9), Vv(r() * .9, -.4 - Math.random() * .6, r() * .9), 1.3, .25, 5 + Math.random() * 4);
@@ -1433,6 +1442,7 @@ function burst(kind, i) {
     else if (kind === 'harvest') { const T0 = [['carrot', 0xe8832a], ['tom', 0xd8412f], ['pea', 0x7fc04a], ['tom', 0xf0b83a], ['eggp', 0x6a3c8a], ['tom', 0xc0392b], ['pea', 0x9ad05a], ['carrot', 0xe8832a], ['tom', 0xe8d050]][k % 9], o = new T.Mesh(FXG[T0[0]], fxm(T0[1])); o.position.copy(P(.5, .3)); o.scale.setScalar(T0[0] === 'tom' ? 1.7 : 2.4); gAmb.add(o); fx.push({ m: o, v: Vv(r() * 1.5, 3.2 + Math.random() * 1.4, r() * 1.5), life: 1.25, g: .85, s: 4 }); }
     else if (kind === 'prune') spawn(k % 3 ? FXG.leaf : FXG.stick, fxm(k % 3 ? 0x6ab04a : 0x7a5632), P(1, .6), Vv(r() * 1.6, .6 + Math.random() * 1.2, r() * 1.6), 1.2, .5, 6);
     else if (kind === 'heal') spawn(FXG.spark, fxm(k % 2 ? 0xfff3a8 : 0xc9f0b0), P(.2, .7), Vv(r() * .4, .8 + Math.random() * .8, r() * .4), 1.3, -.3, 3);
+    else if (JCL[kind]) { if (k % 4 === 3) spawn(FXG.petal, fxm(0xffffff), P(1.3, .5), Vv(r() * .6, .9 + Math.random() * .6, r() * .6), 1.6, -.2, 2); else spawn(FXG.drop, fxm(JCL[kind]), P(1.4, .8), Vv(r() * 1.3, 1.8 + Math.random() * 1.4, r() * 1.3), 1.3, .7); }
     else if (kind === 'honey') spawn(FXG.drop, fxm(k % 2 ? 0xe8a21a : 0xf6c84a), P(.8, .5), Vv(r() * 1.2, 1.4 + Math.random() * 1.2, r() * 1.2), 1, 1);
     else if (kind === 'fleurs') spawn(FXG.petal, fxm([0xf08ab8, 0xf6d84a, 0xb48be0, 0xffffff, 0xf08a3a][k % 5]), P(.6, .5), Vv(r() * 1.4, 1.6 + Math.random() * 1.2, r() * 1.4), 1.6, .3, 5);
     else if (kind === 'mow' || kind === 'lawn') spawn(FXG.blade, fxm(k % 2 ? 0x7fc04a : 0x5a9a3a), P(.2, .7), Vv(r() * 1.6, 1.4 + Math.random() * 1.2, r() * 1.6), 1.2, .8, 6);

@@ -1111,6 +1111,8 @@ function openAct(id) {
   if (id === 'bouquet') return actBouquet();
   if (id === 'tisane') return actTisane();
   if (id === 'detente') return actDetente();
+  if (id === 'bois') { const r = actDone('bois', { q: 1 }, 'Un bon tas de bois mort : +3 paillage.'); try { V3D.fx && V3D.fx('mulch'); } catch (e) {} return r; }
+  if (id === 'glanage') { const r = actDone('glanage', { q: .5 + Math.random() * .5 }, 'Tu glanes quelques fruits d’hiver.'); return r; }
 }
 function polaroid(id, q, rare, label) { return '<div class="pol"><div class="pol-img">' + anEmoji(id) + (rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + FNAME(id) + '</b><span>' + stars(q) + (label ? ' · ' + label : '') + '</span></div>'; }
 /* 1. appareil photo */
@@ -1398,6 +1400,7 @@ function openPlan(r) {
   }
   render(); modal('Plan de guilde', h);
 }
+function collectAtelier() { const r = G.collectJobs(S); if (!r.ok) { toast(r.msg); return; } toast(r.items.map(j => G.TF[j.k].e).join(' ') + ' Rangé au cellier de la maison.'); try { V3D.fx && V3D.fx('heal'); } catch (e) {} save(); render(); if ($('layer').innerHTML) openAtelier(); }
 function openAtelier() {
   if (!S.atelier) { toast('Pas encore d’atelier : achète-le à la boutique.'); return; }
   const JKG = [0, .5, .7, 1][Math.max(1, G.skillLevel(S, 'transformation'))], DCAP = [0, 3, 5, 8][Math.max(1, G.skillLevel(S, 'sechage'))];
@@ -1405,6 +1408,11 @@ function openAtelier() {
   const dried = S.dryDay === S.day ? S.dryKg : 0, jars = S.mats.bocaux || 0, fid = Object.keys(fresh).map(Number).filter(id => fresh[id] > .03), kid = Object.keys(kept).map(Number).filter(id => kept[id] > .03);
   let h = '<p class="note-p">Ici tu transformes la récolte fraîche pour la garder longtemps. <b>Bocaux</b> : ' + jars + ' en réserve (un bocal = ' + fmt(JKG, 1) + ' kg, se garde plus d’un an). <b>Séchoir</b> : ' + (S.sechoir ? fmt(Math.max(0, DCAP - dried), 1) + ' kg libres aujourd’hui sur ' + DCAP + ' kg.' : 'pas encore installé.') + '</p>';
   if (!S.sechoir) h += S.mats.sechoir > 0 ? '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="inst-sechoir">Installer le séchoir</button></div>' : '<p class="note-p">Achète un séchoir à la boutique pour sécher herbes et fruits.</p>';
+  { const jb = S.jobs || [], rd = G.jobsReady(S).length, opt = G.tfOptions(S);
+    h += '<h3 style="margin:10px 0 6px">En préparation <span class="k">· ' + jb.length + ' / ' + G.tfSlots(S) + ' places</span></h3>' + (jb.length ? '<div class="kit">' + jb.map(j => '<div class="ing"><span><b>' + G.TF[j.k].e + ' ' + G.TF[j.k].n + '</b> <span class="k">· ' + j.name + '</span></span><span class="k">' + (j.ready <= S.day ? 'Prêt !' : 'Prêt demain') + '</span></div>').join('') + '</div>' + (rd ? '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="collect">Ranger au cellier (' + rd + ')</button></div>' : '<p class="note-p">Reviens demain : une icône apparaîtra au-dessus de l’atelier.</p>') : '<p class="empty-f">Rien en cours. Lance une confiture, un sirop, des pickles, un dessert ou une tisane.</p>');
+    h += '<h3 style="margin:12px 0 6px">Lancer une préparation</h3>';
+    const byK = {}; opt.forEach(o => (byK[o.k] = byK[o.k] || []).push(o));
+    h += Object.keys(G.TF).map(k => { const t = G.TF[k], L = byK[k] || []; return '<div class="tf-row"><div class="tf-h"><b>' + t.e + ' ' + t.n + '</b> <span class="k">· ' + t.d + ' · ' + fmt(t.kg, 2) + ' kg' + (t.jar ? ' + 1 bocal' : '') + '</span></div>' + (L.length ? '<div class="wd-opts">' + L.map(o => '<button type="button" class="btn sm" data-act="tf-start" data-k="' + k + '" data-pid="' + o.pid + '"' + (o.why ? ' disabled title="' + o.why + '"' : '') + '>' + o.name + (o.why ? ' · ' + o.why : '') + '</button>').join('') + '</div>' : '<span class="k">Rien de frais qui convient pour l’instant.</span>') + '</div>'; }).join(''); }
   h += '<h3 style="margin:10px 0 6px">À transformer</h3>' + (fid.length ? '<div class="kit">' + fid.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ' + fmt(fresh[id], 2) + ' kg frais</span></span><span class="acts" style="margin:0;gap:6px"><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="bocal"' + (jars > 0 ? '' : ' disabled') + '>Bocaux</button><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="sec"' + (S.sechoir && dried < DCAP ? '' : ' disabled') + '>Sécher</button></span></div>').join('') + '</div>' : '<p class="empty-f">Rien de frais pour l’instant. Récolte d’abord.</p>');
   if (kid.length) h += '<h3 style="margin:12px 0 6px">En conserve</h3><p class="note-p">' + kid.map(id => P[id].name + ' ' + fmt(kept[id], 2) + ' kg').join(' · ') + '</p><p class="note-p">La cuisine utilise d’abord le frais, puis la conserve : rien ne se perd pendant l’hiver.</p>';
   modal('Atelier de transformation', h);
@@ -1507,7 +1515,7 @@ function cellarItems() {
   const out = [], seen = {};
   S.stock.forEach(it => { if (it.kg <= .03) return; const k = (it.keep ? it.keep : 'panier') + ':' + it.pid; (seen[k] = seen[k] || { t: it.keep === 'bocal' ? 'conserve' : it.keep === 'sec' ? 'sec' : 'panier', name: P[it.pid].name, kg: 0 }).kg += it.kg; });
   Object.values(seen).forEach(x => out.push(x));
-  (S.cellar || []).forEach(x => out.push({ t: x.k, name: x.name, n: x.n }));
+  (S.cellar || []).forEach((x, i) => out.push({ t: x.k, name: x.name, n: x.n, i }));
   return out;
 }
 function openHouse(tab) {
@@ -1525,7 +1533,7 @@ function openHouse(tab) {
     const it = cellarItems(), groups = {}; it.forEach(x => (groups[x.t] = groups[x.t] || []).push(x));
     h += '<p class="note-p">Le cellier garde tes paniers, conserves et transformations de l’atelier.</p>';
     if (!it.length) h += '<p class="empty-f">Le cellier est vide. Récolte, puis transforme à l’atelier.</p>';
-    else h += Object.keys(CELLAR_N).filter(k => groups[k]).map(k => '<h3 style="margin:10px 0 4px">' + CELLAR_E[k] + ' ' + CELLAR_N[k] + (k === 'panier' ? ' (à cuisiner vite)' : '') + '</h3><div class="cel">' + groups[k].map(x => '<span class="cel-i"><b>' + x.name + '</b> · ' + (x.kg != null ? fmt(x.kg, 2) + ' kg' : '×' + x.n) + '</span>').join('') + '</div>').join('');
+    else h += Object.keys(CELLAR_N).filter(k => groups[k]).map(k => '<h3 style="margin:10px 0 4px">' + CELLAR_E[k] + ' ' + CELLAR_N[k] + (k === 'panier' ? ' (à cuisiner vite)' : '') + '</h3><div class="cel">' + groups[k].map(x => '<span class="cel-i"><b>' + x.name + '</b> · ' + (x.kg != null ? fmt(x.kg, 2) + ' kg' : '×' + x.n + ' <button type="button" class="btn sm" data-act="cellar-use" data-i="' + x.i + '">Servir</button>') + '</span>').join('') + '</div>').join('');
     h += '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm" data-act="kitchen">Garde-manger et cuisine</button>' + (S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Atelier</button>' : '') + '</div>';
   }
   modal('La maison', h, true);
@@ -1969,6 +1977,9 @@ document.addEventListener('click', e => {
     case 'mow1': G.mow(S, i); toast('Consoude fauchée : +2 paillage.'); render(); break;
     case 'remove': if (!ui.confirmDel) { ui.confirmDel = true; renderFiche(); } else { G.remove(S, i); ui.confirmDel = false; ui.sel = -1; render(); } break;
     case 'demo': S = G.demo(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Jardin de démonstration : touche une plante pour voir ses voisines.'); break;
+    case 'tf-start': { const pid = a.dataset.pid === 'fleurs' ? 'fleurs' : +a.dataset.pid, r = G.startJob(S, a.dataset.k, pid); if (!r.ok) { toast(r.msg); break; } toast(G.TF[a.dataset.k].e + ' ' + G.TF[a.dataset.k].n + ' en préparation : reviens demain.'); try { V3D.fx && V3D.fx(a.dataset.k); } catch (e) {} save(); render(); openAtelier(); break; }
+    case 'collect': collectAtelier(); break;
+    case 'cellar-use': { const r = G.useCellar(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('La famille se régale (+' + r.v + ' de bonheur).'); save(); render(); openHouse('cellier'); break; }
     case 'house-tab': openHouse(a.dataset.t); break;
     case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); openHouse('jardinier'); break;
     case 'skills': openSkills(); break;
@@ -2048,7 +2059,7 @@ const trace = (function initTrace() {
   return { gridAt, vertexClient, startVertex };
 })();
 window.__jv = { openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openAtelier: () => openAtelier() });
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openAtelier: () => openAtelier(), collect: () => collectAtelier() });
 catchUp(); claimDaily(); render(); startChars(); calNote();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 cloudHandleReturn();

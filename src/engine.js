@@ -55,7 +55,10 @@ const LAWN_N = 8, LAWN_DAYS = 14, TREE_N = 5, TREE_DAYS = 90, LAWN_MULCH = 2, TR
 function defaultFamily() { return [{ n: 'Camille', role: 'Adulte', need: 2100, joy: 50, hist: [] }, { n: 'Julien', role: 'Adulte', need: 2400, joy: 50, hist: [] }, { n: 'Léa', role: '10 ans', need: 1900, joy: 50, hist: [] }, { n: 'Noé', role: '6 ans', need: 1500, joy: 50, hist: [] }]; }
 const famNeed = s => (s.family || []).reduce((a, m) => a + m.need, 0) || NEED_KCAL;
 
-function dateOf(day) { const d = new Date(START + day * DAYMS); return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() }; }
+// Calendrier du jeu : jusqu'au jour D0 il suit le calendrier réel (sauvegardes existantes inchangées) ; ensuite 1 saison = 1 mois réel (une année de jeu = 120 jours réels, 1 mois de jeu = 10 jours).
+const D0 = 36, CAL = 365.25 / 120;
+function dateOf(day) { const d = new Date(day <= D0 ? START + day * DAYMS : START + D0 * DAYMS + (day - D0) * DAYMS * CAL); return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() }; }
+function dayOfVDate(y, m, d) { const ms = Date.UTC(y, m, d), b = START + D0 * DAYMS; return ms <= b ? Math.round((ms - START) / DAYMS) : D0 + Math.round((ms - b) / (DAYMS * CAL)); }
 function dayOfDate(y, m, d) { return Math.round((Date.UTC(y, m, d) - START) / DAYMS); }
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -855,7 +858,7 @@ function make(P) {
 
   // ----- jardin mature (démo) -----
   function demo() {
-    const s = fixSave(blank()); s.demo = true; s.tuto = { done: true }; s.feves = 80; s.day = dayOfDate(2027, 6, 12); s.w = weather(s.day);
+    const s = fixSave(blank()); s.demo = true; s.tuto = { done: true }; s.feves = 80; s.day = dayOfVDate(2027, 6, 12); s.w = weather(s.day);
     const L = [
       [0,0,'Thym'],[1,0,'Cerisier'],[2,0,'Sauge'],[3,0,'Bourrache'],[4,0,'Pommier'],[5,0,'Ciboulette'],[6,0,'Souci'],[7,0,'Prunier'],
       [0,1,'Trèfle blanc'],[1,1,'Groseillier'],[2,1,'Trèfle blanc'],[3,1,'Persil'],[4,1,'Fraisier des bois'],[5,1,'Framboisier'],[6,1,'Trèfle blanc'],[7,1,'Mûrier noir'],

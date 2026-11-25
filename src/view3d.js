@@ -1318,7 +1318,19 @@ function syncCells(S, m, sk) {
 
 /* ---------- marqueurs de choix, sélection, file d'attente, synergies ---------- */
 const plusM = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .8 }), selM = new T.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: .95, side: T.DoubleSide, depthTest: false }), delM = new T.MeshBasicMaterial({ color: 0xe04a3a, transparent: true, opacity: .95, side: T.DoubleSide, depthTest: false }), qM = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .8, side: T.DoubleSide });
+let splKey = '';
+function syncSpadePlus(S) {
+  const c = A.spadeCands ? A.spadeCands() : [], ui = A.ui(), key = c.length ? (ui.spade.t + ui.spade.n + '|' + (S.spots || []).map(o => o.id).join(',') + '|' + c.length + '|' + (S.pq || []).length) : ''; if (key === splKey) return; splKey = key;
+  if (!window.gSpl) { window.gSpl = new T.Group(); scene.add(window.gSpl); } const gS = window.gSpl; while (gS.children.length) gS.remove(gS.children[0]); if (!c.length) return;
+  const wm = new T.MeshBasicMaterial({ color: 0x3f8f3a, depthTest: false, transparent: true }), rm = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .35, side: T.DoubleSide, depthTest: false });
+  const sp = { t: ui.spade.t === 'butte' ? 'hedge' : ui.spade.t, n: ui.spade.n, cells: new Array(ui.spade.t === 'guild' ? 5 : 6).fill(0) }, Rr = Math.min(3.2, A.G.spotRadius(sp));
+  c.forEach(q => { const g = new T.Group(), y = hAt(q[0], q[1]) + .9; g.position.set(q[0], y, q[1]);
+    const ring = new T.Mesh(new T.RingGeometry(Rr - .18, Rr, 40), rm); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 6; g.add(ring);
+    const d = mesh(new T.CylinderGeometry(.95, .95, .08, 24), plusM, 0, 0, 0, false); d.renderOrder = 7; d.material = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .92, depthTest: false }); g.add(d);
+    const b1 = mesh(geo.box(.9, .1, .2), wm, 0, .08, 0, false), b2 = mesh(geo.box(.2, .1, .9), wm, 0, .08, 0, false); b1.renderOrder = b2.renderOrder = 8; g.add(b1); g.add(b2); g.userData.bob = 1; gS.add(g); });
+}
 function syncOver(S) {
+  syncSpadePlus(S);
   while (gOver.children.length) gOver.remove(gOver.children[0]); pulse.length = 0; const svg = A.svg(), blocks = {};
   svg.querySelectorAll('.cell.pick, .cell.sel, .cell.delp').forEach(el => {
     const i = +el.dataset.i, cl = el.classList; if (!A.G.spotOf(S, i)) return; const [x, z] = cellXZ(i);
@@ -1344,7 +1356,7 @@ function syncBadges() {
     const kind = el.dataset.badge, i = el.dataset.i, k = el.dataset.k, id = kind + ':' + (i !== undefined ? i : 'k' + k);
     const slot = i !== undefined ? (per[i] = (per[i] === undefined ? 0 : per[i] + 1)) : 0;
     seen[id] = true; let b = btns[id];
-    if (!b) { b = btns[id] = document.createElement('button'); b.type = 'button'; b.className = 'v3b'; b.setAttribute('aria-label', el.getAttribute('aria-label') || 'Action'); b.innerHTML = '<svg class="badge" viewBox="-21 -21 42 42" width="42" height="42" aria-hidden="true">' + el.innerHTML + '</svg>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); fire(b._el); }); }
+    if (!b) { b = btns[id] = document.createElement('button'); b.type = 'button'; b.className = 'v3b'; b.setAttribute('aria-label', el.getAttribute('aria-label') || 'Action'); b.innerHTML = '<svg class="badge" viewBox="-21 -21 42 42" width="56" height="56" aria-hidden="true">' + el.innerHTML + '</svg>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); fire(b._el); }); }
     b._el = el; b._slot = slot; b._kind = kind; b._i = i; b._k = k;
   });
   for (const id in btns) if (!seen[id]) { btns[id].remove(); delete btns[id]; }
@@ -1358,7 +1370,7 @@ function syncPlus() {
   const S = A.S(), seen = {};
   (S.spots || []).forEach(sp => {
     if (sp.f || !sp.cells.some(i => S.grid[i] && !S.grid[i].treille)) return; seen[sp.id] = 1;
-    if (!wbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3drop'; b.setAttribute('aria-label', 'Arroser'); b.title = 'Arroser'; b.innerHTML = '<i><svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path d="M10 2.5c3 4 5 6.4 5 9a5 5 0 0 1-10 0c0-2.6 2-5 5-9z"/></svg></i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); splash(b); A.waterSpot(b._sp.id); syncPlus(); }); wbtn[sp.id] = b; }
+    if (!wbtn[sp.id]) { const b = document.createElement('button'); b.type = 'button'; b.className = 'v3b v3drop'; b.setAttribute('aria-label', 'Arroser'); b.title = 'Arroser'; b.innerHTML = '<i><svg viewBox="0 0 20 20" width="24" height="24" fill="currentColor"><path d="M10 2.5c3 4 5 6.4 5 9a5 5 0 0 1-10 0c0-2.6 2-5 5-9z"/></svg></i>'; bdiv.appendChild(b); b.addEventListener('click', ev => { ev.stopPropagation(); splash(b); A.waterSpot(b._sp.id); syncPlus(); }); wbtn[sp.id] = b; }
     wbtn[sp.id]._sp = sp; wbtn[sp.id].classList.toggle('hid', !sp.cells.some(i => { const c = S.grid[i]; return c && !c.treille && c.water < 60 && !A.pendI(i); }));
   });
   for (const k in wbtn) if (!seen[k]) { if (wbtn[k]) { wbtn[k].remove(); delete wbtn[k]; } }
@@ -1366,10 +1378,10 @@ function syncPlus() {
 const topH = { 'Arbre': 3.7, 'Grimpante': 2.6, 'Arbuste': 2.2, 'Racine': 1.3, 'Herbacée': 1.6, 'Couvre-sol': .9 };
 const vtmp = new T.Vector3();
 function placeBadges() {
-  const S = A.S(), w = canvas.clientWidth, h = canvas.clientHeight, bs = Math.min(1, Math.max(.52, 30 / cam.dist));
-  for (const k in wbtn) { const b = wbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
-  if (abtn) { const at = V.atelierXZ(); vtmp.set(at[0], hAt(at[0], at[1]) + 3.1, at[1]).project(camera); if (vtmp.z > 1 || vtmp.z < -1) abtn.style.display = 'none'; else { abtn.style.display = ''; abtn.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; } }
-  for (const k in gbtn) { const b = gbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
+  const S = A.S(), w = canvas.clientWidth, h = canvas.clientHeight, bs = Math.min(1, Math.max(.66, 34 / cam.dist));
+  for (const k in wbtn) { const b = wbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 28).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 28).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
+  if (abtn) { const at = V.atelierXZ(); vtmp.set(at[0], hAt(at[0], at[1]) + 3.1, at[1]).project(camera); if (vtmp.z > 1 || vtmp.z < -1) abtn.style.display = 'none'; else { abtn.style.display = ''; abtn.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 28).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 28).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; } }
+  for (const k in gbtn) { const b = gbtn[k], sp = b._sp, R = A.G.spotRadius(sp), hx = sp.t === 'hedge' ? sp.x + Math.cos(sp.a || 0) * (R + .5) : sp.x + R * .72, hz = sp.t === 'hedge' ? sp.z + Math.sin(sp.a || 0) * (R + .5) : sp.z + R * .72; vtmp.set(hx, .6, hz).project(camera); if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; } b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w - 28).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h - 28).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')'; }
   for (const id in btns) {
     const b = btns[id]; let x, y, z, ox = 0, oy = 0;
     if (b._kind === 'lawn') { const q = deco['L' + b._k]; if (!q) { b.style.display = 'none'; continue; } x = q[0]; z = q[1]; y = 1.3; }
@@ -1377,7 +1389,7 @@ function placeBadges() {
     else { const i = +b._i, c = S.grid[i]; if (!c) { b.style.display = 'none'; continue; } [x, z] = cellXZ(i); const pl = A.P[c.pid]; y = c.treille ? 2.3 : (topH[pl.strate] || 1.6) * (.45 + .55 * smooth(0, 1, 0.5 + .5 * 1)); const n = b._slot; ox = n % 2 ? 15 : -15; oy = -Math.floor(n / 2) * 26; if (b._kind === 'honey') { y = 1.9; ox = 0; } }
     vtmp.set(x, y, z).project(camera);
     if (vtmp.z > 1 || vtmp.z < -1) { b.style.display = 'none'; continue; }
-    b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w + ox * bs - 21).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h + oy * bs - 21).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')';
+    b.style.display = ''; b.style.transform = 'translate(' + ((vtmp.x * .5 + .5) * w + ox * bs - 28).toFixed(1) + 'px,' + ((-vtmp.y * .5 + .5) * h + oy * bs - 28).toFixed(1) + 'px) scale(' + bs.toFixed(2) + ')';
   }
 }
 
@@ -1568,7 +1580,7 @@ function setOn(on) {
 V.mount = function (api) {
   A = api;
   try { setup(); applySeason('summer', true); } catch (e) { try { console.warn('Vue 3D indisponible', e); } catch (_) {} document.querySelectorAll('[data-act="view3d"]').forEach(b => b.remove()); if (canvas && canvas.parentNode) canvas.remove(); if (bdiv && bdiv.parentNode) bdiv.remove(); R = null; return false; }
-  V.ok = true; V.dogPos = () => [dogM.position.x, dogM.position.z]; V.famPos = () => [fam.f0.position.x, fam.f0.position.z, fam.f0.visible]; V.gardenerPos = () => [gardener.position.x, gardener.position.z]; V.netInfo = () => net && { n: net.nn.length, nodes: net.nn.map(q => [q.x, q.z]) }; V.sync = sync; V.burst = burst; V.wildInfo = () => wild && { st: wild.st, pos: [wild.g.position.x, wild.g.position.y, wild.g.position.z], vis: wild.g.visible, par: !!wild.g.parent, nch: wild.g.children[0].children.length, k: wild.k }; V.wildGo = () => { if (wild) { const q = wild.tg[0]; wild.g.position.set(q[0], hAt(q[0], q[1]), q[1]); return q; } }; V.fxInfo = () => fx.map(f => [f.m.position.x, f.m.position.y, f.m.position.z, f.life]).slice(0, 5).concat([[fx.length]]); V.setOn = setOn; V.snap = (fx, fy, fw, fh) => { try { placeCamera(); R.render(scene, camera); const r = canvas.getBoundingClientRect(), k = canvas.width / r.width, c2 = document.createElement('canvas'); c2.width = 360; c2.height = Math.round(360 * fh / fw); c2.getContext('2d').drawImage(canvas, (fx - r.left) * k, (fy - r.top) * k, fw * k, fh * k, 0, 0, c2.width, c2.height); return c2.toDataURL('image/jpeg', .7); } catch (e) { return null; } }; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
+  V.dims = () => [HW, HH]; V.ok = true; V.dogPos = () => [dogM.position.x, dogM.position.z]; V.famPos = () => [fam.f0.position.x, fam.f0.position.z, fam.f0.visible]; V.gardenerPos = () => [gardener.position.x, gardener.position.z]; V.netInfo = () => net && { n: net.nn.length, nodes: net.nn.map(q => [q.x, q.z]) }; V.sync = sync; V.burst = burst; V.wildInfo = () => wild && { st: wild.st, pos: [wild.g.position.x, wild.g.position.y, wild.g.position.z], vis: wild.g.visible, par: !!wild.g.parent, nch: wild.g.children[0].children.length, k: wild.k }; V.wildGo = () => { if (wild) { const q = wild.tg[0]; wild.g.position.set(q[0], hAt(q[0], q[1]), q[1]); return q; } }; V.fxInfo = () => fx.map(f => [f.m.position.x, f.m.position.y, f.m.position.z, f.life]).slice(0, 5).concat([[fx.length]]); V.setOn = setOn; V.snap = (fx, fy, fw, fh) => { try { placeCamera(); R.render(scene, camera); const r = canvas.getBoundingClientRect(), k = canvas.width / r.width, c2 = document.createElement('canvas'); c2.width = 360; c2.height = Math.round(360 * fh / fw); c2.getContext('2d').drawImage(canvas, (fx - r.left) * k, (fy - r.top) * k, fw * k, fh * k, 0, 0, c2.width, c2.height); return c2.toDataURL('image/jpeg', .7); } catch (e) { return null; } }; V.screenXZ = (x, z) => { const v = new T.Vector3(x, 0, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; }; V.screenOf = i => { const [x, z] = cellXZ(i), v = new T.Vector3(x, .3, z).project(camera), r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; };
   window.addEventListener('click', e => {
     const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
     if (a === 'view3d') { e.stopPropagation(); e.preventDefault(); setOn(!V.on); A.rerender(); return; }

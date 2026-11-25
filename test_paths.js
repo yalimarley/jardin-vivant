@@ -7,7 +7,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('ECHEC:', m); } else conso
     await p.goto('file://' + process.cwd() + '/jardin-vivant.html'); await p.waitForTimeout(500);
     await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
     await p.evaluate(() => { try { localStorage.setItem('jv_tuto_off', '1'); } catch (e) {} });
-    if (await p.$('[data-act="tuto-skip"]')) await p.click('[data-act="tuto-skip"]');
+    if (await p.$('[data-act="tuto-skip"]')) await p.click('[data-act="tuto-skip"]'); if (await p.$('[data-act="wx-close"]')) await p.click('[data-act="wx-close"]');
     const V = (x, y) => p.evaluate(([x, y]) => window.__jv.trace.vertexClient(x, y), [x, y]);
     const S = () => p.evaluate(() => ({ paths: window.__jv.state().paths.slice(), chemin: window.__jv.state().mats.chemin }));
     await p.evaluate(() => { const s = window.__jv.state(); s.mats.chemin = 12; window.__jv.ui.mode = { type: 'mat', k: 'chemin' }; window.__jv.ui.tool = 'select'; window.__jv.flush(); });

@@ -608,7 +608,7 @@ function rigData(n) {
 }
 const rigMat = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide }); rigMat.skinning = true;
 const _qa = new T.Quaternion(), _qb = new T.Quaternion(), _qc = new T.Quaternion(), _v3 = new T.Vector3(), _ax = new T.Vector3(1, 0, 0);
-function humanR(key) {
+function humanR(key, fb) {
   const g = new T.Group(), variants = {}, mk = (id, dd, vis) => {
     const root = new T.Group(); g.add(root);
     const bones = dd.bones.map(b => { const o = new T.Bone(); o.name = b[0]; o.position.set(b[2], b[3], b[4]); o.quaternion.set(b[5], b[6], b[7], b[8]); o.scale.set(b[9], b[10], b[11]); return o; });
@@ -626,7 +626,7 @@ function humanR(key) {
   const pl = new T.PointLight(0xffe2a0, 1.5, 8, 1.4); pl.position.set(0, .35, 0); torch.add(pl); torch.visible = false;
   g.add(can, bask, torch); Object.assign(u, { can, bask, torch });
   u.setModel = n => {
-    const k = String(n).replace('jard_', ''), dd = rigData(k) || rigData('ete'); if (!dd) return; if (u.model === k) return; u.model = k;
+    const k = String(n).replace('jard_', ''), dd = rigData(k) || (fb ? rigData(fb) : null); if (!dd) return; if (u.model === k) return; u.model = k;
     if (!variants[k]) variants[k] = mk(k, dd, false);
     for (const x in variants) variants[x].root.visible = x === k; u.cur = variants[k]; u.d = dd;
   };
@@ -665,7 +665,7 @@ function dressSync() { if (!gardener) return; gardener.userData.setModel(outfitN
 function portrait(who) {
   if (!R) return '';
   const W = 220, H = 250, sc = new T.Scene(); sc.add(new T.HemisphereLight(0xffffff, 0xb8c4a8, .8)); const dl = new T.DirectionalLight(0xffffff, .6); dl.position.set(1.5, 2.2, 3); sc.add(dl);
-  let m; if (who === 'gardener' && RIGS.ete) { m = humanR(outfitName(A.S().outfit)); rigTick(m, 0, 0, 0); } else if (who === 'gardener') { m = humanG(outfitName(A.S().outfit)); const u = m.userData; u.armL.rotation.z = u.rzL || 0; u.armR.rotation.z = u.rzR || 0; } else m = human(who === 'camille' ? 0 : 1);
+  let m; if (who === 'gardener' && RIGS.ete) { m = humanR(outfitName(A.S().outfit), 'ete'); rigTick(m, 0, 0, 0); } else if (who === 'gardener') { m = humanG(outfitName(A.S().outfit)); const u = m.userData; u.armL.rotation.z = u.rzL || 0; u.armR.rotation.z = u.rzR || 0; } else { m = human(who === 'camille' ? 0 : 1); if (m.userData.rig) rigTick(m, 0, 0, 0); }
   m.rotation.y = .3; sc.add(m); const bx = new T.Box3().setFromObject(m), top = bx.max.y, cam2 = new T.PerspectiveCamera(30, W / H, .1, 20);
   const gz = who === 'gardener' ? [.66, 2.7] : [.52, 2.1]; cam2.position.set(0, top - gz[0], gz[1]); cam2.lookAt(0, top - gz[0] - .02, 0);
   const rt = new T.WebGLRenderTarget(W * 2, H * 2); rt.texture.encoding = R.outputEncoding;
@@ -761,7 +761,8 @@ function humanF(n, la) {
   g.userData = { body, head, legL, legR, armL, armR, can: null, bask: null, torch: null, heading: 0, lx: Math.random() * 6, lz: 0, la: la || 1, rzL: armRz(G[3].g), rzR: armRz(G[4].g) }; return g;
 }
 function human(k, gardener) {
-  if (gardener) return (RIGS.ete && humanR(outfitName(A.S().outfit))) || humanG();
+  if (gardener) return (RIGS.ete && humanR(outfitName(A.S().outfit), 'ete')) || humanG();
+  if (k < 2 && RIGS[k === 0 ? 'camille' : 'lea']) return humanR(k === 0 ? 'camille' : 'lea');
   if (k < 2) { try { return humanF(k === 0 ? 'camille2' : 'lea2', k === 0 ? .35 : 1); } catch (e) { } }
   const g = new T.Group(), body = new T.Group(); g.add(body);
   const sh = gardener ? L(0x4f7a9a) : L(SH[k % 4]), pa = L(gardener ? 0x4a4f5e : PA[k % 4]), sk = L(gardener ? 0xe8b890 : SK[k % 4]), boot = L(0x4a3424), dark = L(0x2a1f18);

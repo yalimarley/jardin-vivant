@@ -1,0 +1,23 @@
+<!doctype html><meta charset=utf-8><title>Ville — prototype fiche 53</title>
+<body style="margin:0;font-family:system-ui,sans-serif;background:#bcd7e6"><canvas id=c style="display:block;width:100vw;height:100vh"></canvas>
+<div id=bar style="position:fixed;left:12px;top:12px;background:#fffdf5;border-radius:10px;padding:10px 14px;box-shadow:0 2px 8px #0003;max-width:340px"></div>
+<div id=dlg style="position:fixed;inset:0;display:none;background:#0006;align-items:center;justify-content:center"><div style="background:#fffdf5;padding:22px;border-radius:14px;width:300px"><b>Crée ton jardinier</b><p style="margin:.6em 0">Il te suivra de parcelle en parcelle.</p><input id=fn placeholder="Prénom" style="width:100%;margin:4px 0;padding:6px"><input id=ln placeholder="Nom" style="width:100%;margin:4px 0;padding:6px"><button id=ok style="margin-top:8px;padding:8px 14px">Commencer</button></div></div>
+<script src="../three.min.js"></script><script src="city3d.js"></script><script src="world.js"></script>
+<script>
+// Prototype autonome : monde fictif, aucune sauvegarde réelle n'est lue ni écrite.
+const T=THREE,cv=document.getElementById('c'),bar=document.getElementById('bar');
+const W={gardener:null,inside:null};
+const sz=[1,2,0,3,4,1,0,2,4,3],ty=['petit','petit','balcon','grand','grand','petit','balcon','petit','grand','grand'];
+const parcels=sz.map((s,i)=>({id:'p'+(i+1),type:ty[i],size:s,state:i?'locked':'open'}));
+const r=new T.WebGLRenderer({canvas:cv,antialias:true});const C=City3D.build(T,parcels);
+const cam=new T.PerspectiveCamera(40,1,1,500);cam.position.set(0,75,95);cam.lookAt(0,0,0);
+function size(){r.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}size();addEventListener('resize',size);
+function ui(m){bar.innerHTML=(W.gardener?'<b>'+W.gardener.first+' '+W.gardener.last+'</b>, jardinier<br>':'')+(m||'')+(W.inside?'<br><button id=out>Quitter la parcelle</button>':'')+'';const o=document.getElementById('out');if(o)o.onclick=leave}
+function leave(){const id=W.inside;W.inside=null;W.walking=true;ui('Tu quittes la parcelle…');C.leave(id,()=>{W.walking=false;ui('Tu es dans la rue. Choisis une parcelle.')})}
+cv.onclick=e=>{ if(!W.gardener||W.walking)return; const id=C.pick(cam,cv,e.clientX,e.clientY); if(!id)return; const p=parcels.find(q=>q.id===id);
+  if(p.state==='locked'){ui('Parcelle verrouillée : plante 80 % de la précédente pour l’ouvrir.');return;}
+  W.walking=true;ui('En route vers la parcelle '+id+'…');C.goTo(id,()=>{W.walking=false;W.inside=id;ui('Tu es dans la parcelle '+id+' ('+p.type+').');window.entered=id;});};
+document.getElementById('ok').onclick=()=>{const f=fn.value.trim(),l=ln.value.trim();if(!f||!l)return;W.gardener={first:f,last:l};dlg.style.display='none';ui('Choisis une parcelle ouverte.');window.created=1};
+dlg.style.display='flex';ui('');
+let t0=performance.now();(function loop(t){C.update(Math.min(.05,(t-t0)/1000));t0=t;r.render(C.scene,cam);requestAnimationFrame(loop)})(t0);
+</script>

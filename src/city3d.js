@@ -43,7 +43,29 @@ function build(T, parcels, opt) {
     if (L.state === 'open') { const s = new T.Mesh(new T.BoxGeometry(.2, 1.6, .2), M(0xb55a3c)); s.position.set(0, .8, 0); g.add(s); }
     scene.add(g); groups[L.id] = g;
   });
-  return { scene, groups, layout: lay };
+  // jardinier unique : silhouette simple, se déplace par la rue jusqu'à la parcelle visée
+  const gard = new T.Group(); { const bd = new T.Mesh(new T.CylinderGeometry(.35, .45, 1.3, 10), M(0x3b6ea5)); bd.position.y = .85; gard.add(bd); const hd = new T.Mesh(new T.SphereGeometry(.34, 10, 8), M(0xf0c9a0)); hd.position.y = 1.75; gard.add(hd); const hat = new T.Mesh(new T.CylinderGeometry(.5, .5, .08, 10), M(0xd8b45a)); hat.position.y = 2; gard.add(hat); }
+  gard.position.set(-52, 0, 0); scene.add(gard);
+  const byId = {}; lay.forEach(L => { byId[L.id] = L; });
+  // trajet : rue (z=0) puis entrée de la parcelle (côté rue)
+  function route(from, id) { const L = byId[id], gate = [L.x, 0, L.z + (L.z < 0 ? 1 : -1) * (L.h / 2 + .8)], inside = [L.x, 0, L.z]; return [[from.x, 0, 0], [L.x, 0, 0], gate, inside]; }
+  let path = null, seg = 0, done = null;
+  function goTo(id, cb) { path = route(gard.position, id); seg = 1; done = cb || null; }
+  function leave(id, cb) { const L = byId[id], g = gard.position; path = [[g.x, 0, g.z], [L.x, 0, L.z + (L.z < 0 ? 1 : -1) * (L.h / 2 + .8)], [L.x, 0, 0]]; seg = 1; done = cb || null; }
+  function update(dt) {
+    if (!path) return; const a = gard.position, b = path[seg], d = Math.hypot(b[0] - a.x, b[2] - a.z), step = 14 * dt;
+    if (d <= step) { gard.position.set(b[0], 0, b[2]); seg++; if (seg >= path.length) { path = null; if (done) { const f = done; done = null; f(); } } }
+    else { gard.position.x += (b[0] - a.x) / d * step; gard.position.z += (b[2] - a.z) / d * step; gard.rotation.y = Math.atan2(b[0] - a.x, b[2] - a.z); }
+  }
+  // clic sur une parcelle : renvoie son id (ou null) à partir d'une position écran
+  const ray = new T.Raycaster(), V = new T.Vector2();
+  function pick(camera, dom, cx, cy) {
+    const r = dom.getBoundingClientRect(); V.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(V, camera);
+    const ground = new T.Plane(new T.Vector3(0, 1, 0), 0), pt = new T.Vector3(); if (!ray.ray.intersectPlane(ground, pt)) return null;
+    for (const L of lay) if (Math.abs(pt.x - L.x) <= L.w / 2 + 2 && Math.abs(pt.z - L.z) <= L.h / 2 + 2) return L.id; return null;
+  }
+  function setState(id, st) { const L = byId[id]; if (L) L.state = st; }
+  return { scene, groups, layout: lay, gardener: gard, goTo, leave, update, pick, setState };
 }
 const api = { layout, build, SIZES };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.City3D = api;

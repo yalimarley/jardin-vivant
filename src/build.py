@@ -14,6 +14,8 @@ pj = json.dumps(plants, ensure_ascii=False, separators=(',', ':'))
 hj = json.dumps(herb, ensure_ascii=False, separators=(',', ':'))
 t = t.replace('/*__PLANTS__*/', pj).replace('/*__HERB__*/', hj).replace('/*__ENGINE__*/', rd(S('engine.js'))).replace('/*__V3D__*/', rd(S('view3d.js'))).replace('/*__UI__*/', rd(S('ui.js')))
 spr = {f[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(S('spr/' + f), 'rb').read()).decode() for f in sorted(os.listdir(S('spr'))) if f.endswith('.webp')}
+rg = {f[:-5]: json.load(open(S('rigs/' + f))) for f in sorted(os.listdir(S('rigs'))) if f.endswith('.json')} if os.path.isdir(S('rigs')) else {}
+t = t.replace('/*__RIGS__*/{}', json.dumps(rg, separators=(',', ':')))
 t = t.replace('/*__SPR__*/{}', json.dumps(spr, separators=(',', ':')))
 t = t.replace('__GUILDEON__', 'data:image/webp;base64,' + base64.b64encode(open(S('guildeon.webp'), 'rb').read()).decode())
 out = os.path.join(R, 'dist', 'jardin-vivant.html')

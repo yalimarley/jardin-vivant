@@ -586,13 +586,86 @@ function humanG(name) {
   };
   g.userData.setModel(name || 'jard_ete'); return g;
 }
+
+/* ---------- jardinier à squelette (Tripo : rigging + animations marche / repos) ---------- */
+const RIGS = /*__RIGS__*/{};
+const rigCache = {};
+function b64ab(s) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u.buffer; }
+function rigData(n) {
+  if (rigCache[n] !== undefined) return rigCache[n];
+  const o = RIGS[n]; if (!o) return (rigCache[n] = null);
+  const ab = b64ab(o.b), nv = o.nv, nf = o.nf; let off = 0;
+  const p16 = new Int16Array(ab, off, nv * 3); off += nv * 6; const c8 = new Uint8Array(ab, off, nv * 3); off += nv * 3 + ((nv * 3) % 2);
+  const ix = new Uint16Array(ab, off, nf * 3); off += nf * 6; const ji = new Uint8Array(ab, off, nv * 4); off += nv * 4; const wi = new Uint8Array(ab, off, nv * 4);
+  const pos = new Float32Array(nv * 3); for (let i = 0; i < nv * 3; i++) pos[i] = p16[i] / 32767 * o.sc;
+  const geom = new T.BufferGeometry(); geom.setAttribute('position', new T.BufferAttribute(pos, 3)); geom.setAttribute('color', new T.BufferAttribute(new Uint8Array(c8), 3, true));
+  geom.setAttribute('skinIndex', new T.BufferAttribute(new Uint16Array(ji), 4)); geom.setAttribute('skinWeight', new T.BufferAttribute(new Float32Array(wi).map(v => v / 255), 4)); geom.setIndex(new T.BufferAttribute(new Uint16Array(ix), 1)); geom.computeVertexNormals();
+  const aab = b64ab(o.a), nb = o.bones.length, clips = {};
+  for (const k in o.anim) { const m = o.anim[k], q = new Int16Array(aab, m.qo, m.n * nb * 4), tb = {}; (m.tb || []).forEach(([bi, bo, bs]) => { tb[bi] = { a: new Int16Array(aab, bo, m.n * 3), s: bs }; }); clips[k] = { n: m.n, dur: m.dur, fps: m.fps, spd: m.spd || 1, q, tb }; }
+  const par = o.bones.map(b => b[1]), order = []; const seen = {}; const add = i => { if (seen[i]) return; if (par[i] >= 0) add(par[i]); seen[i] = 1; order.push(i); }; for (let i = 0; i < nb; i++) add(i);
+  const nm = {}; o.bones.forEach((b, i) => { nm[b[0]] = i; });
+  return (rigCache[n] = { geom, bones: o.bones, clips, nb, par, order, nm });
+}
+const rigMat = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide }); rigMat.skinning = true;
+const _qa = new T.Quaternion(), _qb = new T.Quaternion(), _qc = new T.Quaternion(), _v3 = new T.Vector3(), _ax = new T.Vector3(1, 0, 0);
+function humanR(key) {
+  const g = new T.Group(), variants = {}, mk = (id, dd, vis) => {
+    const root = new T.Group(); g.add(root);
+    const bones = dd.bones.map(b => { const o = new T.Bone(); o.name = b[0]; o.position.set(b[2], b[3], b[4]); o.quaternion.set(b[5], b[6], b[7], b[8]); o.scale.set(b[9], b[10], b[11]); return o; });
+    dd.bones.forEach((b, i) => { if (b[1] >= 0) bones[b[1]].add(bones[i]); else root.add(bones[i]); });
+    root.updateMatrixWorld(true);
+    const skel = new T.Skeleton(bones), mesh = new T.SkinnedMesh(dd.geom, rigMat); mesh.frustumCulled = false; mesh.castShadow = true; root.add(mesh); mesh.bind(skel, new T.Matrix4());
+    root.visible = vis; return { root, bones, dd };
+  };
+  const dummy = () => new T.Group();
+  const u = g.userData = { rig: true, body: dummy(), head: dummy(), legL: dummy(), legR: dummy(), armL: dummy(), armR: dummy(), heading: 0, lx: Math.random() * 6, lz: 0, rzL: 0, rzR: 0, model: '', tw: 0, ti: Math.random() * 5, ov: { aR: 0, aL: 0, bd: 0 }, wq: null };
+  const can = new T.Group(); can.add(mesh0(.11, .12, .2, 0x7aa0b8)); const spt = mesh0(.026, .036, .32, 0x7aa0b8); spt.position.set(0, .03, .24); spt.rotation.x = Math.PI / 2.4; can.add(spt); can.visible = false;
+  const bask = new T.Group(); bask.add(mesh0(.15, .11, .15, 0xb98a4c)); bask.visible = false;
+  const torch = new T.Group(); torch.add(mesh0(.032, .04, .17, 0x3a3f48)); const lens = new T.Mesh(geo.cyl(.045, .035, .03, 8), new T.MeshBasicMaterial({ color: 0xfff1b0 })); lens.position.y = .1; torch.add(lens);
+  const beam = new T.Mesh(new T.ConeGeometry(.9, 2.6, 14, 1, true), new T.MeshBasicMaterial({ color: 0xffeeb0, transparent: true, opacity: .13, depthWrite: false, side: T.DoubleSide, fog: false })); beam.position.set(0, 1.4, 0); torch.add(beam);
+  const pl = new T.PointLight(0xffe2a0, 1.5, 8, 1.4); pl.position.set(0, .35, 0); torch.add(pl); torch.visible = false;
+  g.add(can, bask, torch); Object.assign(u, { can, bask, torch });
+  u.setModel = n => {
+    const k = String(n).replace('jard_', ''), dd = rigData(k) || rigData('ete'); if (!dd) return; if (u.model === k) return; u.model = k;
+    if (!variants[k]) variants[k] = mk(k, dd, false);
+    for (const x in variants) variants[x].root.visible = x === k; u.cur = variants[k]; u.d = dd;
+  };
+  u.setModel(key || 'ete'); return g;
+}
+function mesh0(r1, r2, h, c) { return new T.Mesh(geo.cyl(r1, r2, h, 8), L(c)); }
+function sampleClip(c, t, nb, out) {
+  const f = (t % c.dur) / c.dur * c.n, i0 = Math.floor(f) % c.n, i1 = (i0 + 1) % c.n, k = f - Math.floor(f), q = c.q;
+  for (let b = 0; b < nb; b++) { const o0 = (i0 * nb + b) * 4, o1 = (i1 * nb + b) * 4; _qa.set(q[o0] / 32767, q[o0 + 1] / 32767, q[o0 + 2] / 32767, q[o0 + 3] / 32767); _qb.set(q[o1] / 32767, q[o1 + 1] / 32767, q[o1 + 2] / 32767, q[o1 + 3] / 32767); _qa.slerp(_qb, k); out[b * 4] = _qa.x; out[b * 4 + 1] = _qa.y; out[b * 4 + 2] = _qa.z; out[b * 4 + 3] = _qa.w; }
+}
+const _bw = new Float32Array(41 * 4), _bi = new Float32Array(41 * 4), _wq = [];
+function rigTick(g, dt, sp, ph) {
+  const u = g.userData, cur = u.cur, d = u.d; if (!cur) return; const nb = d.nb, W = d.clips.walk, I = d.clips.idle;
+  u.tw = (u.tw + dt * Math.max(0, sp) / (W.spd || 1.4)) % W.dur; u.ti = (u.ti + dt) % I.dur;
+  const w = Math.min(1, sp / .55); if (_bw.length < nb * 4) { /* tailles fixes : 41 os */ }
+  sampleClip(W, u.tw, nb, _bw); sampleClip(I, u.ti, nb, _bi);
+  const ov = u.ov, tg = { aR: u.armR.rotation.x, aL: u.armL.rotation.x, bd: u.body.rotation.x }, kk = Math.min(1, dt * 10);
+  ov.aR += (tg.aR - ov.aR) * kk; ov.aL += (tg.aL - ov.aL) * kk; ov.bd += (tg.bd - ov.bd) * kk;
+  const nmI = d.nm, over = {}; if (Math.abs(ov.aR) > .02) over[nmI.R_Upperarm] = ov.aR; if (Math.abs(ov.aL) > .02) over[nmI.L_Upperarm] = ov.aL; if (Math.abs(ov.bd) > .02) over[nmI.Spine01] = ov.bd;
+  for (const i of d.order) {
+    const o = i * 4; _qa.set(_bi[o], _bi[o + 1], _bi[o + 2], _bi[o + 3]); _qb.set(_bw[o], _bw[o + 1], _bw[o + 2], _bw[o + 3]); _qa.slerp(_qb, w);
+    const p = d.par[i], pw = p >= 0 ? _wq[p] : null; let wq = _wq[i] || (_wq[i] = new T.Quaternion());
+    if (pw) wq.copy(pw).multiply(_qa); else wq.copy(_qa);
+    if (over[i] !== undefined) { _qc.setFromAxisAngle(_ax, over[i]); wq.premultiply(_qc); if (pw) _qa.copy(pw).invert().multiply(wq); else _qa.copy(wq); }
+    cur.bones[i].quaternion.copy(_qa);
+  }
+  for (const bi in W.tb) { const a = W.tb[bi], b = I.tb[bi], f0 = (u.tw / W.dur * W.n), j0 = Math.floor(f0) % W.n, j1 = (j0 + 1) % W.n, kf = f0 - Math.floor(f0); const f1 = u.ti / I.dur * I.n, m0 = Math.floor(f1) % I.n, m1 = (m0 + 1) % I.n, kg = f1 - Math.floor(f1); const bo = cur.bones[bi];
+    for (let ax = 0; ax < 3; ax++) { const vw = (a.a[j0 * 3 + ax] * (1 - kf) + a.a[j1 * 3 + ax] * kf) * a.s, vi = b ? (b.a[m0 * 3 + ax] * (1 - kg) + b.a[m1 * 3 + ax] * kg) * b.s : vw; bo.position.setComponent(ax, vi + (vw - vi) * w); } }
+  g.updateMatrixWorld(true);
+  const hand = (name, prop, off, quat) => { const bo = cur.bones[d.nm[name]]; bo.getWorldPosition(_v3); g.worldToLocal(_v3); prop.position.copy(_v3).add(off); if (quat) { bo.getWorldQuaternion(_qa); } };
+  hand('R_Hand', u.can, new T.Vector3(0, .02, .12)); hand('L_Hand', u.bask, new T.Vector3(0, .02, .05)); hand('L_Hand', u.torch, new T.Vector3(0, .02, .08)); u.torch.rotation.set(Math.PI / 2 - .12 + Math.max(0, -ov.aL) * 0, 0, 0);
+}
 /* ---------- tenues du jardinier : 4 tenues complètes (modèles Tripo) ---------- */
 function outfitName(o) { const t = (o && o.tenue) || 'auto', k = t === 'auto' ? ({ spring: 'pri', summer: 'ete', autumn: 'aut', winter: 'hiv' })[season] || 'ete' : ({ printemps: 'pri', ete: 'ete', automne: 'aut', hiver: 'hiv' })[t] || 'ete'; return 'jard_' + k; }
 function dressSync() { if (!gardener) return; gardener.userData.setModel(outfitName(A.S().outfit)); }
 function portrait(who) {
   if (!R) return '';
   const W = 220, H = 250, sc = new T.Scene(); sc.add(new T.HemisphereLight(0xffffff, 0xb8c4a8, .8)); const dl = new T.DirectionalLight(0xffffff, .6); dl.position.set(1.5, 2.2, 3); sc.add(dl);
-  let m; if (who === 'gardener') { m = humanG(outfitName(A.S().outfit)); const u = m.userData; u.armL.rotation.z = u.rzL || 0; u.armR.rotation.z = u.rzR || 0; } else m = human(who === 'camille' ? 0 : 1);
+  let m; if (who === 'gardener' && RIGS.ete) { m = humanR(outfitName(A.S().outfit)); rigTick(m, 0, 0, 0); } else if (who === 'gardener') { m = humanG(outfitName(A.S().outfit)); const u = m.userData; u.armL.rotation.z = u.rzL || 0; u.armR.rotation.z = u.rzR || 0; } else m = human(who === 'camille' ? 0 : 1);
   m.rotation.y = .3; sc.add(m); const bx = new T.Box3().setFromObject(m), top = bx.max.y, cam2 = new T.PerspectiveCamera(30, W / H, .1, 20);
   const gz = who === 'gardener' ? [.66, 2.7] : [.52, 2.1]; cam2.position.set(0, top - gz[0], gz[1]); cam2.lookAt(0, top - gz[0] - .02, 0);
   const rt = new T.WebGLRenderTarget(W * 2, H * 2); rt.texture.encoding = R.outputEncoding;
@@ -688,7 +761,7 @@ function humanF(n, la) {
   g.userData = { body, head, legL, legR, armL, armR, can: null, bask: null, torch: null, heading: 0, lx: Math.random() * 6, lz: 0, la: la || 1, rzL: armRz(G[3].g), rzR: armRz(G[4].g) }; return g;
 }
 function human(k, gardener) {
-  if (gardener) return humanG();
+  if (gardener) return (RIGS.ete && humanR(outfitName(A.S().outfit))) || humanG();
   if (k < 2) { try { return humanF(k === 0 ? 'camille2' : 'lea2', k === 0 ? .35 : 1); } catch (e) { } }
   const g = new T.Group(), body = new T.Group(); g.add(body);
   const sh = gardener ? L(0x4f7a9a) : L(SH[k % 4]), pa = L(gardener ? 0x4a4f5e : PA[k % 4]), sk = L(gardener ? 0xe8b890 : SK[k % 4]), boot = L(0x4a3424), dark = L(0x2a1f18);
@@ -1583,7 +1656,7 @@ function moveChar(obj, a, dt, t, kind) {
   } else { u.sp += (0 - u.sp) * Math.min(1, dt * 10); if (tn && dist <= .12) a.arr = a.path[a.path.length - 1]; }
   if (kind === 'g') obj.userData.mv = moving;
   obj.position.set(px, hAt(px, pz) + .06, pz); obj.rotation.y = u.heading;
-  { const sp = u.sp, run = Math.min(1, sp / 2.4), am = Math.min(1, sp / 1.1), run2 = sp > 2.6 ? 1 : 0;
+  if (u.rig) { u.armR.rotation.set(0, 0, 0); u.armL.rotation.set(0, 0, 0); u.body.rotation.set(0, 0, 0); } else { const sp = u.sp, run = Math.min(1, sp / 2.4), am = Math.min(1, sp / 1.1), run2 = sp > 2.6 ? 1 : 0;
     u.ph += sp * dt * (3.5 + run2 * .9); const c = Math.sin(u.ph), c2 = Math.cos(u.ph), br = 1 + Math.sin(t * 1.7 + (u.lx || 0)) * .012;
     const lerpR = (o, k, v) => { o.rotation[k] += (v - o.rotation[k]) * Math.min(1, dt * 16); };
     const la = u.la || 1; lerpR(u.legL, 'x', c * (.55 + run * .35) * am * la); lerpR(u.legR, 'x', -c * (.55 + run * .35) * am * la);
@@ -1599,6 +1672,7 @@ function moveChar(obj, a, dt, t, kind) {
     else if (a.act === 'harvest') { u.bask.visible = true; u.armR.rotation.x = -2.5 + Math.sin(t * 9) * .35; u.armL.rotation.x = -.5; u.body.rotation.x = .25; }
     else { u.body.rotation.x = .55; u.armR.rotation.x = -1.1 + Math.sin(t * 14) * .5; u.armL.rotation.x = -.6; if (Math.random() < dt * 4) { const f = new T.Vector3(Math.sin(u.heading), 0, Math.cos(u.heading)), p = obj.position.clone().addScaledVector(f, .7); p.y += .2; for (let i = 0; i < 3; i++) spawn(dropGeo, mat.soil, p, new T.Vector3((Math.random() - .5) * 1.2, 1.6 + Math.random(), (Math.random() - .5) * 1.2), .5); } }
   }
+  if (u.rig) rigTick(obj, dt, u.sp, 0);
 }
 function duckTick(d, dt, t) {
   const m = d.m; let dx = d.tx - d.x, dz = d.tz - d.z; const dist = Math.hypot(dx, dz);

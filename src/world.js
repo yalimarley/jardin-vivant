@@ -49,6 +49,24 @@ function pct(S) {
   return n / (d[0] * d[1]);
 }
 
+
+// ----- Score d'harmonie (fiche 59/54) : équilibre comestible / mare / guildes / canards / ruche / esthétique -----
+// Objectifs selon la taille de la parcelle (indice 0 = balcon … 4 = grand jardin). À équilibrer à la fiche 57.
+const TARGET = { guildes: [1, 2, 2, 3, 4], mare: [1, 1, 1, 1, 2], canards: [0, 0, 1, 1, 2], ruche: [0, 1, 1, 1, 2] };
+const WEIGHT = { comestible: 30, guildes: 20, mare: 12, ruche: 12, canards: 11, esthetique: 15 };
+function harmony(G, S) {
+  const z = S.size || 0, cells = S.grid.filter(Boolean);
+  const nMare = cells.filter(c => c.furn === 'mare').length, nRuche = cells.filter(c => c.furn === 'ruche').length;
+  const nDuck = cells.filter(c => c.ducks).length, nGuild = (S.spots || []).filter(o => o.t === 'guild' && o.cells.some(j => S.grid[j])).length;
+  const sc = G.scores(S), r = (n, t) => t ? Math.min(1, n / t) : 1;
+  const parts = { comestible: Math.min(1, sc.rec / 100), guildes: r(nGuild, TARGET.guildes[z]), mare: r(nMare, TARGET.mare[z]), ruche: r(nRuche, TARGET.ruche[z]), canards: r(nDuck, TARGET.canards[z]), esthetique: Math.min(1, sc.esth / 100) };
+  let score = 0; Object.keys(WEIGHT).forEach(k => { score += WEIGHT[k] * parts[k]; });
+  const TIP = { comestible: 'Plante davantage de légumes, fruits et plantes à récolter.', guildes: 'Il faudrait plus de guildes (' + nGuild + '/' + TARGET.guildes[z] + ').', mare: 'Il faudrait une mare.', ruche: 'Il faudrait une ruche.', canards: 'Il faudrait des canards.', esthetique: 'Rends la parcelle plus belle : fleurs, mobilier, variété des strates.' };
+  const tips = Object.keys(WEIGHT).filter(k => parts[k] < 1).sort((a, b) => (1 - parts[b]) * WEIGHT[b] - (1 - parts[a]) * WEIGHT[a]).map(k => TIP[k]);
+  const started = pct(S) >= 0.01;                       // le score existe dès 1 % de parcelle plantée
+  return { started, score: started ? Math.round(score) : 0, parts, tips: started ? tips : [], happy: started && Math.round(score) >= 100 };
+}
+
 // Ouvre la parcelle suivante quand une parcelle ouverte atteint 80 %. Renvoie l'id ouvert ou null.
 function updateUnlocks(W) {
   const planted = W.parcels.filter(p => p.state !== 'locked' && pct(p.S) >= UNLOCK_PCT);
@@ -76,6 +94,6 @@ function nextDayAll(W, nextDay) {
   W.parcels.forEach(p => { if (p.state !== 'locked') withParcel(W, p.id, S => { S.day = W.day - 1; nextDay(S); W.day = S.day; }); });
   updateUnlocks(W);
 }
-const api = { WORLD_VERSION, MAX_PARCELS, UNLOCK_PCT, SHARED_OBJ, SHARED_VAL, fromSingle, compose, writeBack, withParcel, toSingle, pct, activeCells, updateUnlocks, addParcel, faunaLevel, nextDayAll, typeOfSize };
+const api = { WORLD_VERSION, MAX_PARCELS, UNLOCK_PCT, SHARED_OBJ, SHARED_VAL, fromSingle, compose, writeBack, withParcel, toSingle, pct, activeCells, updateUnlocks, addParcel, faunaLevel, nextDayAll, harmony, TARGET, WEIGHT, typeOfSize };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.World = api;
 })(typeof window !== 'undefined' ? window : globalThis);

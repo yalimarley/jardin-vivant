@@ -9,7 +9,7 @@ const sortK = o => Array.isArray(o) ? o.map(sortK) : o && typeof o === 'object' 
 const J = o => JSON.stringify(sortK(o));   // égalité profonde, indépendante de l'ordre des clés
 
 // 1. migration v1 -> monde, sans modifier l'original
-const s0 = G.newGame(); G.demo(s0);
+const s0 = G.demo(G.newGame());
 const snap = J(s0);
 const W = W0.fromSingle(s0);
 ok(J(s0) === snap, 'fromSingle ne modifie pas la sauvegarde d’origine');
@@ -57,4 +57,26 @@ ok(seen[0] === G.newGame().mats.paillage + 5 && seen[1] === (G.newGame().xp || 0
 
 // 7. sérialisation
 ok(J(JSON.parse(J(W2))) === J(W2), 'le monde se sérialise sans perte');
+// 8. score d'harmonie
+const H0 = W0.harmony(G, G.newGame());
+ok(!H0.started && H0.score === 0 && H0.tips.length === 0, 'harmonie : pas de score avant 1 % de plantation');
+const sd = G.demo(G.newGame());
+const H1 = W0.harmony(G, sd);
+ok(H1.started && H1.score >= 0 && H1.score <= 100, 'harmonie sur le jardin de démo : ' + H1.score + ' %');
+ok(H1.score < 100 ? H1.tips.length > 0 : H1.happy, 'conseils fournis tant que le score est sous 100 % : ' + (H1.tips[0] || 'aucun'));
+const sp = JSON.parse(J(sd)); sp.size = 4; const idx = []; for (let i = 0; i < sp.grid.length; i++) if (!sp.grid[i] && (i % 16) < 16 && ((i / 16) | 0) < 14) idx.push(i);
+sp.grid[idx[0]] = { treille: true, furn: 'mare' }; sp.grid[idx[1]] = { treille: true, furn: 'mare' };
+const H2 = W0.harmony(G, sp);
+ok(H2.parts.mare === 1, 'mare ajoutée : critère mare satisfait');
+const Hmax = { started: true, parts: { }, }; 
+const fake = W0.harmony({ scores: () => ({ rec: 100, esth: 100 }) }, (() => { const s = JSON.parse(J(sd)); s.size = 4; s.spots = [1, 2, 3, 4].map(n => ({ t: 'guild', cells: [n] })); s.grid[1] = s.grid[2] = s.grid[3] = s.grid[4] = s.grid[1] || { pid: 1 }; s.grid[10] = { furn: 'mare' }; s.grid[11] = { furn: 'mare' }; s.grid[12] = { furn: 'ruche' }; s.grid[13] = { furn: 'ruche' }; s.grid[14] = { ducks: 1 }; s.grid[15] = { ducks: 1 }; return s; })());
+ok(fake.score === 100 && fake.happy && fake.tips.length === 0, 'tout équilibré : 100 % et famille contente');
+
+// 9. parcelle non visitée : continue de pousser (récoltes qui s'accumulent)
+const WS = W0.fromSingle(sd); const before = W0.toSingle(WS, 'p1').grid.filter(c => c && c.ready).length;
+for (let i = 0; i < 60; i++) W0.nextDayAll(WS, G.nextDay);
+const afterS = W0.toSingle(WS, 'p1'), after = afterS.grid.filter(c => c && c.ready).length;
+ok(afterS.day === sd.day + 60, 'parcelle non visitée : 60 jours simulés');
+ok(JSON.stringify(afterS.grid) !== JSON.stringify(sd.grid), 'parcelle non visitée : le jardin a évolué (prêt avant ' + before + ', après ' + after + ')');
+
 console.log(fails ? fails + ' ÉCHEC(S)' : 'TOUS LES TESTS PASSENT'); process.exit(fails ? 1 : 0);

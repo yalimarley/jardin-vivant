@@ -669,7 +669,7 @@ function stepAgent(a, dt) {
   if (a.act && !a.path.length && a.actT > 0) { a.actT -= dt; if (a.actT <= 0) { a.act = null; a.pause = .3; if (a.task) { const t = a.task; a.task = null; try { t.fn(); } catch (e) {} } } return; }
   if (a.who === 'g' && !a.path.length && !a.act && TQ.length && startTask(a)) return;
   if (!a.path.length) { const goal = pickRoam(a); a.path = goal && goal !== a.node ? bfs(a.node, goal) : []; if (!a.path.length) { a.pause = a.who === 'd' ? .4 + Math.random() * 1.2 : a.who === 'f' ? 1.5 + Math.random() * 3.5 : 1 + Math.random() * 2.2; return; } }
-  if (drive) { const last = a.path[a.path.length - 1], tn = walk.N[last]; if (!tn) { a.path = []; return; } if (a.arr === last) { a.arr = null; a.c = tn.c; a.r = tn.r; a.node = last; a.path = []; a.pause = a.act ? 0 : a.who === 'f' ? 1.5 + Math.random() * 3 : 3 + Math.random() * 5; } return; }
+  if (drive) { const last = a.path[a.path.length - 1], tn = walk.N[last]; if (!tn) { a.path = []; return; } if (a.arr === last) { a.arr = null; a.c = tn.c; a.r = tn.r; a.node = last; a.path = []; a.pause = a.act ? 0 : a.who === 'f' ? 3 + Math.random() * 5 : 9 + Math.random() * 14; } return; }
   const t = walk.N[a.path[0]]; if (!t) { a.path = []; return; }
   const dx = t.c - a.c, dy = t.r - a.r, d = Math.hypot(dx, dy), step = a.speed * dt;
   const sdx = dx - dy; if (Math.abs(sdx) > .01) a.face = sdx > 0 ? 1 : -1;
@@ -685,13 +685,13 @@ function tick(ts) {
 function startChars() { if (animOn) return; animOn = true; try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {} charsLive = !window.__JV_INSTANT; requestAnimationFrame(tick); }
 
 const BD = { limaces: ['#7a8a3a', 'snail', 'Soigner : limaces'], fongique: ['#a0527a', 'fungus', 'Soigner : maladie'], honey: ['#e0a21a', 'jar', 'Récolter le miel'], fleurs: ['#d9529e', 'basket', 'Cueillir les fleurs'], compost: ['#6a4e39', 'compost', 'Compost'], lawn: ['#6aa84f', 'mower', 'Tondre'], trogne: ['#8a5a34', 'saw', 'Couper la trogne'], water: ['var(--water)', 'drop', 'Arroser'], harvest: ['var(--sun)', 'basket', 'Récolter'], prune: ['#7a5aa6', 'prune', 'Tailler'], mulch: ['#b08a4a', 'straw', 'Pailler'] };
-const TREES = [[470, 120, .62, 1], [530, 142, .78, 2], [600, 172, .9, 3], [676, 214, 1, 4], [716, 262, .8, 5]];
+const TREES = [[470, 120, .62, 1], [530, 142, .78, 2], [600, 172, .9, 3], [676, 214, 1, 4], [716, 262, .8, 5], [420, 104, .5, 6], [740, 310, .7, 7], [650, 150, .66, 8]];
 const LAWNS = [[80, 384], [152, 428], [232, 466], [326, 492], [524, 500], [612, 472], [690, 432], [728, 398]];
 function lawnClick(k, el) { const pos = el && badgePos(el), ok = G.mowLawn(S, k); if (ok) toast('Herbe tondue : +2 paillage.'); else toast('L’herbe repousse : prête dans ' + Math.max(1, 14 - (S.day - S.lawn[k])) + ' jours.'); render(); if (ok) flyIcon('lawn', pos); }
 function treeClick(k, el) {
   const t = S.trees[k], pos = el && badgePos(el);
   if (ui.mode && ui.mode.k === 'trogne' && !t.formed) { if (G.formTrogne(S, k)) { toast('Trogne formée : +' + (4 + 2 * Math.max(0, G.skillLevel(S, 'trogne') - 1)) + ' paillage, la forêt pousse plus vite.'); if (!(S.mats.trogne > 0)) ui.mode = null; render(); flyIcon('trogne', pos); } return; }
-  if (t.formed) { if (G.cutTrogne(S, k)) { toast('Trogne coupée : +' + (4 + 2 * Math.max(0, G.skillLevel(S, 'trogne') - 1)) + ' paillage, croissance accélérée.'); render(); flyIcon('trogne', pos); } else toast('La trogne repousse : prête dans ' + Math.max(1, 90 - (G.skillLevel(S, 'trogne') >= 3 ? 15 : 0) - (S.day - t.last)) + ' jours.'); return; }
+  if (t.formed) { if (G.cutTrogne(S, k)) { toast('Trogne coupée : +' + (4 + 2 * Math.max(0, G.skillLevel(S, 'trogne') - 1)) + ' paillage et ' + (8 + 3 * Math.max(0, G.skillLevel(S, 'trogne') - 1)) + ' bûches pour la cheminée.'); render(); flyIcon('trogne', pos); } else toast('La trogne repousse : prête dans ' + Math.max(1, G.TREE_DAYS - (G.skillLevel(S, 'trogne') >= 3 ? 6 : 0) - (S.day - t.last)) + ' jours.'); return; }
   toast('Un arbre ordinaire. Ouvre les Compétences et choisis Trognes pour le tailler en têtard.');
 }
 function lawnPatch(k, x, y, ready, gc) {
@@ -1575,6 +1575,29 @@ function openHouse(tab) {
   modal('La maison', h, true);
 }
 function season4() { const m = G.dateOf(S.day).m; return m >= 2 && m <= 4 ? 'spring' : m >= 5 && m <= 7 ? 'summer' : m >= 8 && m <= 10 ? 'autumn' : 'winter'; }
+
+/* ---------- fenêtre du jardinier : missions de saison, sans icônes ---------- */
+const GJ_SEASON = {
+  spring: ['Printemps', 'Les semis et les plantations démarrent : on met en terre, on paille, on surveille l’eau.'],
+  summer: ['Été', 'Arrosages, récoltes et tontes rythment les journées : arrose tôt le matin ou le soir.'],
+  autumn: ['Automne', 'La meilleure saison pour planter les arbres et arbustes : les racines s’installent avant l’hiver. Le bois mort commence à tomber.'],
+  winter: ['Hiver', 'Taille des arbres, coupe des trognes et bois mort : c’est la saison du bois de chauffage pour la cheminée.']
+};
+function openGardener() {
+  const X = G.xpInfo(S), se = season4(), m = G.dateOf(S.day).m, T = G.buildTasks(S).tasks.filter(t => !/^mg-/.test(t.id) && t.id !== 'learn' && t.id !== 'booster');
+  const sow = Object.keys(S.cards).map(Number).filter(pid => P[pid] && G.sowable(P[pid], m) && G.unlocked(S).has(P[pid].strate)).slice(0, 8);
+  const tr = []; for (let k = 0; k < G.TREE_N; k++) if (G.treeReady(S, k)) tr.push(k);
+  const formed = S.trees.filter(t => t.formed).length, wood = S.wood || 0, days = Math.floor(wood / .5);
+  let h = '<div class="gj"><div class="sk-head">' + (portraitImg('gardener', 72) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + GJ_SEASON[se][0] + ' · niveau ' + X.lvl + '</span></div></div>';
+  h += '<p class="note-p">' + GJ_SEASON[se][1] + '</p>';
+  h += '<h3 class="gj-h">À planter</h3>';
+  if (sow.length) h += sow.map(pid => { const ps = planSlots(pid); return '<button type="button" class="gj-row" data-act="gj-plant" data-pid="' + pid + '"><b>Planter : ' + P[pid].name + '</b><span>' + (ps.n ? ps.n + ' emplacement' + (ps.n > 1 ? 's' : '') + ' possible' + (ps.n > 1 ? 's' : '') + ' · ×' + S.cards[pid] : ps.why) + '</span></button>'; }).join('');
+  else h += '<p class="note-p">Rien à mettre en terre ce mois-ci avec les cartes de ta réserve. Ouvre un booster pour trouver des graines et des plants de saison.</p>';
+  h += '<h3 class="gj-h">Missions du moment</h3>';
+  h += T.length ? T.map(t => '<button type="button" class="gj-row" data-act="gj-task" data-id="' + t.id + '"><b>' + t.label + '</b><span>' + t.sub + '</span></button>').join('') : '<p class="note-p">Tout est en ordre : le jardinier se repose.</p>';
+  h += '<h3 class="gj-h">Trognes et cheminée</h3><p class="note-p">' + formed + ' trogne' + (formed > 1 ? 's' : '') + ' formée' + (formed > 1 ? 's' : '') + ' sur ' + G.TREE_N + ' arbres' + (tr.length ? ', dont ' + tr.length + ' prête' + (tr.length > 1 ? 's' : '') + ' à couper' : '') + '. Réserve de bois : ' + String(Math.round(wood * 10) / 10).replace('.', ',') + ' bûches' + (wood >= .5 ? ' (environ ' + days + ' jour' + (days > 1 ? 's' : '') + ' de chauffage)' : '') + '.</p></div>';
+  modal('Ton jardinier', h);
+}
 function openSkills() {
   const L = G.skillList(S), X = G.xpInfo(S), tab = ui.skTab || 'all';
   const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
@@ -2018,6 +2041,8 @@ document.addEventListener('click', e => {
     case 'collect': collectAtelier(); break;
     case 'cellar-use': { const r = G.useCellar(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('La famille se régale (+' + r.v + ' de bonheur).'); save(); render(); openHouse('cellier'); break; }
     case 'house-tab': openHouse(a.dataset.t); break;
+    case 'gj-plant': { closeModal(); const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
+    case 'gj-task': closeModal(); doTask(a.dataset.id); break;
     case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); openHouse('jardinier'); break;
     case 'skills': openSkills(); break;
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
@@ -2095,8 +2120,8 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openAtelier: () => openAtelier(), collect: () => collectAtelier(), spadeCands: () => (ui.tool === 'spade' && ui.spade) ? G.spotCands(S, ui.spade.t, ui.spade.n, V3D.dims()) : [], scare: i => { const w = (S.wilds || [])[i]; if (!w) return; if (w.scared || w.done) { toast('Il est déjà parti.'); return; } if (G.WILD[w.k] && G.WILD[w.k].good) { toast('Ce visiteur est le bienvenu : le hérisson mange les limaces.'); return; } const r = G.scareWild(S, i); if (r.ok) { toast('Tu as fait fuir le ' + G.WILD[r.k].n + '.'); save(); render(); } } });
+window.__jv = { openGardener: () => openGardener(), openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openGardener: () => openGardener(), openGardener: () => openGardener(), openAtelier: () => openAtelier(), collect: () => collectAtelier(), spadeCands: () => (ui.tool === 'spade' && ui.spade) ? G.spotCands(S, ui.spade.t, ui.spade.n, V3D.dims()) : [], scare: i => { const w = (S.wilds || [])[i]; if (!w) return; if (w.scared || w.done) { toast('Il est déjà parti.'); return; } if (G.WILD[w.k] && G.WILD[w.k].good) { toast('Ce visiteur est le bienvenu : le hérisson mange les limaces.'); return; } const r = G.scareWild(S, i); if (r.ok) { toast('Tu as fait fuir le ' + G.WILD[r.k].n + '.'); save(); render(); } } });
 catchUp(); claimDaily(); render(); startChars(); calNote();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 cloudHandleReturn();

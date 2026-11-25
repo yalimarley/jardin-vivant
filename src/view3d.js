@@ -1649,7 +1649,7 @@ function moveChar(obj, a, dt, t, kind) {
   let moving = false, speed = 0; const dist = Math.hypot(tx - px, tz - pz);
   if (u.sp == null) { u.sp = 0; u.ph = Math.random() * 6; }
   if (!(tn && a.pause > 0) && dist > (tn ? .12 : .3)) {
-    const vmax = kind === 'g' ? (dist > 11 ? 2.5 : 1.6) : 1.2, brake = Math.min(1, .3 + dist / 1.4); speed = vmax * brake; u.sp += (speed - u.sp) * Math.min(1, dt * (speed > u.sp ? 5 : 9));
+    const vmax = kind === 'g' ? (dist > 11 ? 1.75 : 1.15) : .95, brake = Math.min(1, .3 + dist / 1.4); speed = vmax * brake; u.sp += (speed - u.sp) * Math.min(1, dt * (speed > u.sp ? 5 : 9));
     const k0 = u.rt ? u.rt.k : 0, rt0 = u.rt, q = stepAlong(u, px, pz, tx, tz, Math.max(.25, u.sp), dt), mvd = Math.hypot(q[0] - px, q[1] - pz);
     if (mvd > 1e-4) { const dir = Math.atan2(q[0] - px, q[1] - pz); let df = Math.atan2(Math.sin(dir - u.heading), Math.cos(dir - u.heading));
       if (Math.abs(df) > .7) { faceTo(u, dir, dt, 14); if (u.rt === rt0 && u.rt) u.rt.k = k0; u.sp *= .5; }  /* se retourne d'abord : jamais de marche de côté ou à reculons */
@@ -1673,8 +1673,47 @@ function moveChar(obj, a, dt, t, kind) {
     else if (a.act === 'harvest') { u.bask.visible = true; u.armR.rotation.x = -2.5 + Math.sin(t * 9) * .35; u.armL.rotation.x = -.5; u.body.rotation.x = .25; }
     else { u.body.rotation.x = .55; u.armR.rotation.x = -1.1 + Math.sin(t * 14) * .5; u.armL.rotation.x = -.6; if (Math.random() < dt * 4) { const f = new T.Vector3(Math.sin(u.heading), 0, Math.cos(u.heading)), p = obj.position.clone().addScaledVector(f, .7); p.y += .2; for (let i = 0; i < 3; i++) spawn(dropGeo, mat.soil, p, new T.Vector3((Math.random() - .5) * 1.2, 1.6 + Math.random(), (Math.random() - .5) * 1.2), .5); } }
   }
+  if (u.rig && kind === 'f' && obj === fam.f1) lilyPlay(obj, a, dt, t, moving, px, pz);
   if (u.rig) rigTick(obj, dt, u.sp, 0);
 }
+/* Léa (enfant) : quand elle s'arrête, elle joue dans le jardin — papillons, fleurs, sauts, rondes */
+const BFCOL = [0xf29a2e, 0xf5d83a, 0x5aa6e8, 0xe86a9a];
+function lilyPlay(obj, a, dt, t, moving, px, pz) {
+  const u = obj.userData, still = !moving && u.sp < .08 && !(a.path && a.path.length) && obj.visible && !(u.torch && u.torch.visible);
+  if (!still) { if (u.play) lilyStop(u); u.idleT = 0; return; }
+  u.idleT = (u.idleT || 0) + dt;
+  if (!u.play) { if (u.idleT < 2.2) return; const modes = ['papillon', 'fleur', 'saut', 'ronde', 'papillon']; if (u.lastMode) modes.splice(modes.indexOf(u.lastMode) >= 0 ? modes.indexOf(u.lastMode) : 0, 1); const m = modes[Math.floor(Math.random() * modes.length)]; u.lastMode = m; u.play = { m, t: 0, d: 6 + Math.random() * 5, ph: Math.random() * 6 }; if (m === 'papillon') lilyButterflies(u); }
+  const P = u.play; P.t += dt;
+  if (P.t > P.d) { lilyStop(u); u.idleT = -1 - Math.random() * 3; return; }
+  const k = Math.min(1, P.t / .5, (P.d - P.t) / .5), sn = Math.sin, y0 = obj.position.y;
+  if (P.m === 'papillon') {
+    const b = u.bf[0]; if (b) { faceTo(u, Math.atan2(b.position.x - px, b.position.z - pz), dt, 4); obj.rotation.y = u.heading; }
+    const hop = Math.max(0, sn(P.t * 5.2 + P.ph)); obj.position.y = y0 + hop * .1 * k;
+    u.armR.rotation.x = -2.5 * k + sn(P.t * 3) * .3 * k; u.armL.rotation.x = -.9 * k; u.body.rotation.x = -.12 * k;
+  } else if (P.m === 'fleur') {
+    u.body.rotation.x = .95 * k; u.armR.rotation.x = (-1.35 + sn(P.t * 2.2) * .18) * k; u.armL.rotation.x = -.5 * k;
+    if (P.t > P.d * .6 && u.armL) u.armL.rotation.x = (-1.1 + sn(P.t * 6) * .12) * k;
+  } else if (P.m === 'saut') {
+    const hop = Math.abs(sn(P.t * 4.2 + P.ph)); obj.position.y = y0 + hop * .22 * k;
+    u.armR.rotation.x = (-2.2 + sn(P.t * 8.4) * .5) * k; u.armL.rotation.x = (-2.2 - sn(P.t * 8.4) * .5) * k;
+  } else if (P.m === 'ronde') {
+    u.heading += dt * 3.2 * k; obj.rotation.y = u.heading; const hop = Math.abs(sn(P.t * 6.4)); obj.position.y = y0 + hop * .06 * k;
+    u.armR.rotation.x = -1.7 * k; u.armL.rotation.x = -1.7 * k; u.body.rotation.x = -.05 * k;
+  }
+  if (u.bf) u.bf.forEach((b, i) => {
+    const w = b.userData, ang = t * w.sp + w.ph, r = w.r + sn(t * .9 + i) * .15;
+    b.position.set(px + Math.cos(ang) * r, obj.position.y + w.h + sn(t * 1.7 + w.ph) * .25, pz + Math.sin(ang * 1.3) * r);
+    b.rotation.y = -ang; const fl = sn(t * 22 + w.ph) * .9; b.children[0].rotation.z = fl; b.children[1].rotation.z = -fl;
+  });
+}
+function lilyButterflies(u) {
+  u.bf = []; for (let i = 0; i < 3; i++) {
+    const g = new T.Group(), c = BFCOL[Math.floor(Math.random() * BFCOL.length)], mt = new T.MeshBasicMaterial({ color: c, side: T.DoubleSide });
+    [-1, 1].forEach(sd => { const pv = new T.Group(), m = new T.Mesh(new T.PlaneGeometry(.1, .08), mt); m.rotation.x = -Math.PI / 2; m.position.x = sd * .05; pv.add(m); g.add(pv); });
+    g.userData = { sp: .8 + Math.random() * .7, ph: Math.random() * 6, r: .5 + Math.random() * .6, h: .9 + Math.random() * .6 }; scene.add(g); u.bf.push(g);
+  }
+}
+function lilyStop(u) { u.play = null; if (u.bf) { u.bf.forEach(b => scene.remove(b)); u.bf = null; } }
 function duckTick(d, dt, t) {
   const m = d.m; let dx = d.tx - d.x, dz = d.tz - d.z; const dist = Math.hypot(dx, dz);
   if (d.wait > 0) { d.wait -= dt; d.sp += (0 - d.sp) * Math.min(1, dt * 8); }
@@ -1696,7 +1735,7 @@ function frame() {
   if (deco.chim) { }
   if (trans) { const k = Math.min(1, (now - trans.t0) / 1.5), e = k * k * (3 - 2 * k); curS = lerpSeason(trans.a, trans.b, e); setColors(curS); paintTerrain(); gradientSky(); if (k >= 1) { curS = trans.b; trans = null; } }
   mists.forEach(m => { m.position.x += dt * m.userData.sp; if (m.position.x > 40) m.position.x = -40; });
-  const ag = A.agents; moveChar(gardener, ag.g, dt, t, 'g'); moveChar(dogM, ag.d, dt, t, 'd'); ['f0', 'f1'].forEach(k => { if (ag[k]) moveChar(fam[k], ag[k], dt, t, 'f'); });
+  const ag = A.agents; moveChar(gardener, ag.g, dt, t, 'g'); moveChar(dogM, ag.d, dt, t, 'd'); [['f0', 'f0'], ['f1', 'f2']].forEach(([k, ak]) => { const q = ag[ak] || ag[k]; if (q) moveChar(fam[k], q, dt, t, 'f'); });
   for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.life -= dt; if (f.life <= 0) { gAmb.remove(f.m); fx.splice(i, 1); continue; } f.v.y -= 9 * (f.g == null ? 1 : f.g) * dt; f.m.position.addScaledVector(f.v, dt); if (f.s) { f.m.rotation.x += f.s * dt; f.m.rotation.z += f.s * .7 * dt; } if (f.life < .25) f.m.scale.multiplyScalar(Math.max(.2, 1 - dt * 5)); }
   fauna(t); critters(t, dt); slugTick(t); wildTick(t, dt); smokeTick(dt);
   pulse.forEach((o, i) => { if (o.userData.bob) { o.position.y = .75 + Math.sin(t * 3 + i) * .1; o.rotation.y = t * 1.2; } else o.scale.setScalar(1 + Math.sin(t * 4) * .06); });

@@ -1414,7 +1414,7 @@ function openAtelier() {
     h += Object.keys(G.TF).map(k => { const t = G.TF[k], L = byK[k] || []; return '<div class="tf-row"><div class="tf-h"><b>' + t.e + ' ' + t.n + '</b> <span class="k">· ' + t.d + ' · ' + fmt(t.kg, 2) + ' kg' + (t.jar ? ' + 1 bocal' : '') + '</span></div>' + (L.length ? '<div class="wd-opts">' + L.map(o => '<button type="button" class="btn sm" data-act="tf-start" data-k="' + k + '" data-pid="' + o.pid + '"' + (o.why ? ' disabled title="' + o.why + '"' : '') + '>' + o.name + (o.why ? ' · ' + o.why : '') + '</button>').join('') + '</div>' : '<span class="k">Rien de frais qui convient pour l’instant.</span>') + '</div>'; }).join(''); }
   h += '<h3 style="margin:10px 0 6px">À transformer</h3>' + (fid.length ? '<div class="kit">' + fid.map(id => '<div class="ing"><span><b>' + P[id].name + '</b> <span class="k">· ' + fmt(fresh[id], 2) + ' kg frais</span></span><span class="acts" style="margin:0;gap:6px"><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="bocal"' + (jars > 0 ? '' : ' disabled') + '>Bocaux</button><button type="button" class="btn sm" data-act="preserve" data-pid="' + id + '" data-kind="sec"' + (S.sechoir && dried < DCAP ? '' : ' disabled') + '>Sécher</button></span></div>').join('') + '</div>' : '<p class="empty-f">Rien de frais pour l’instant. Récolte d’abord.</p>');
   if (kid.length) h += '<h3 style="margin:12px 0 6px">En conserve</h3><p class="note-p">' + kid.map(id => P[id].name + ' ' + fmt(kept[id], 2) + ' kg').join(' · ') + '</p><p class="note-p">La cuisine utilise d’abord le frais, puis la conserve : rien ne se perd pendant l’hiver.</p>';
-  modal('Atelier de transformation', h);
+  modal('Atelier de transformation', roomImg('cellier') + h);
 }
 function decorAtelier(x, y, sech, jars) {
   const a = 26, b = 13, H = 28, L = [x - a, y], R = [x + a, y], B = [x, y + b];
@@ -1509,6 +1509,7 @@ function gardenerPortrait() {
 /* ---------- la maison : profil du jardinier, tenues, famille, cellier ---------- */
 const CELLAR_N = { confiture: 'Confiture', sirop: 'Sirop', pickles: 'Pickles', dessert: 'Dessert', tisane: 'Tisane séchée', conserve: 'Bocal', sec: 'Séché', panier: 'Panier frais' };
 const CELLAR_E = { confiture: '🍓', sirop: '🍯', pickles: '🥒', dessert: '🥧', tisane: '🍵', conserve: '🫙', sec: '🌿', panier: '🧺' };
+function roomImg(k) { let u = ''; try { u = window.V3D && V3D.interior ? V3D.interior(k) : ''; } catch (e) { u = ''; } return u ? '<img class="room" alt="' + (k === 'maison' ? 'L’intérieur de la maison' : 'Le cellier-cuisine') + '" src="' + u + '">' : ''; }
 function portraitImg(who, sz) { let u = ''; try { u = window.V3D && V3D.portrait ? V3D.portrait(who) : ''; } catch (e) { u = ''; } return u ? '<img class="portrait" src="' + u + '" width="' + sz + '" height="' + Math.round(sz * 250 / 220) + '" alt="">' : ''; }
 function cellarItems() {
   const out = [], seen = {};
@@ -1521,6 +1522,7 @@ function openHouse(tab) {
   ui.houseTab = tab || ui.houseTab || 'jardinier'; const t = ui.houseTab, X = G.xpInfo(S);
   const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
   let h = '<div class="sk-tabs" role="tablist">' + [['jardinier', 'Mon jardinier'], ['famille', 'La famille'], ['cellier', 'Le cellier']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="house-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  h += roomImg(t === 'cellier' ? 'cellier' : 'maison');
   if (t === 'jardinier') {
     const o = S.outfit || {};
     h += '<div class="hs-head">' + (portraitImg('gardener', 150) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP</small><div class="acts" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn sm" data-act="skills">Compétences</button></div></div></div>';

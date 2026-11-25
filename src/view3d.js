@@ -538,11 +538,19 @@ function borderTree(t) {
   else { g.add(mesh(geo.cyl(.14, .24, 2.2, 6), mat.trunk, 0, 1.1, 0)); if (season !== 'winter') [[0, 2.9, 0, 1.1], [.7, 2.5, .2, .8], [-.65, 2.5, -.2, .8]].forEach((c, i) => { const m = mesh(blob(c[3], 1), i % 2 ? mat.crownB : mat.crownA, c[0], c[1], c[2]); m.rotation.y = i * 2; g.add(m); }); else [[.5, 1.8], [-.5, 2.3], [.1, 2.7]].forEach(b => { const br = mesh(geo.cyl(.03, .06, 1.2, 4), mat.trunk, b[0] * .6, b[1], 0); br.rotation.z = -b[0]; g.add(br); }); }
   return g;
 }
-function lawnPatch(ready) {
-  const g = new T.Group(), n = ready ? 26 : 10, c = ready ? 0x7fb552 : 0x9bc269;
-  const base = mesh(new T.CylinderGeometry(1.4, 1.5, .06, 9), L(c), 0, .03, 0, false); base.scale.z = .75; g.add(base);
-  const tm = new T.MeshLambertMaterial({ color: ready ? 0x6aa044 : 0x88b85a });
-  for (let i = 0; i < n; i++) { const a = rng() * 6.28, r = Math.sqrt(rng()) * 1.2, h = ready ? .55 + rng() * .35 : .16 + rng() * .1; const b = mesh(geo.cone(.07, h, 3), tm, Math.cos(a) * r, h / 2, Math.sin(a) * r * .72, false); b.rotation.set((rng() - .5) * .4, rng() * 6, (rng() - .5) * .4); g.add(b); }
+function lawnPatch(ready, k, bw, bd) {
+  /* un morceau du grand pré : herbe haute / foin si prête à tondre, ras sinon */
+  const g = new T.Group(), r = rngMaker(k * 131 + 17), n = ready ? 900 : 520, pos = [], col = [], cc = new T.Color();
+  const lo = ready ? [0x5f9a3a, 0x6fae44, 0x7bb54a] : [0x78b04a, 0x86bc55, 0x91c45e], hi = ready ? [0xc9c36a, 0xb7c35a, 0x9cc65a, 0xd9cf7a] : [0x8fc65a, 0x9ccf65, 0xa6d46c];
+  for (let i = 0; i < n; i++) {
+    const x = (r() - .5) * bw, z = (r() - .5) * bd, h = ready ? .55 + r() * .55 : .12 + r() * .1, w = ready ? .1 : .07, a = r() * 6.28, lx = (r() - .5) * (ready ? .5 : .12), lz = (r() - .5) * (ready ? .5 : .12), c0 = new T.Color(lo[i % 3]), c1 = new T.Color(hi[i % hi.length]);
+    const dx = Math.cos(a) * w, dz = Math.sin(a) * w, y0 = hAt(g.position.x + x, g.position.z + z) - hAt(g.position.x, g.position.z);
+    pos.push(x - dx, 0, z - dz, x + dx, 0, z + dz, x + lx, h, z + lz); col.push(c0.r, c0.g, c0.b, c0.r, c0.g, c0.b, c1.r, c1.g, c1.b);
+    if (ready && i % 9 === 0) { /* fleurs des prés */ const fc = new T.Color([0xf5f0e6, 0xe9b949, 0xd9658a, 0x8b7bd1][i % 4]); pos.push(x - .05, h, z, x + .05, h, z, x + lx, h + .12, z + lz); col.push(fc.r, fc.g, fc.b, fc.r, fc.g, fc.b, fc.r, fc.g, fc.b); }
+  }
+  const bg = new T.BufferGeometry(); bg.setAttribute('position', new T.BufferAttribute(new Float32Array(pos), 3)); bg.setAttribute('color', new T.BufferAttribute(new Float32Array(col), 3)); bg.computeVertexNormals();
+  const bl = new T.Mesh(bg, new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide })); bl.position.y = .04; g.add(bl);
+  const base = new T.Mesh(new T.PlaneGeometry(bw, bd), new T.MeshLambertMaterial({ color: ready ? 0x7aa646 : 0x8cc055 })); base.rotation.x = -Math.PI / 2; base.position.y = .03; g.add(base);
   return g;
 }
 
@@ -578,7 +586,7 @@ function humanG() {
   g.userData = { body, head, legL, legR, armL, armR, can, bask, torch, heading: 0, lx: 0, lz: 0, rzL: armRz(G[3]), rzR: armRz(G[4]) }; return g;
 }
 /* ---------- tenues du jardinier : recoloration des sommets + accessoires ---------- */
-const OUT_COL = { coat: { vert: null, marine: [.17, .25, .45], jaune: [.93, .74, .13], rouge: [.72, .2, .17], gris: [.42, .44, .48] }, boots: { marron: null, vert: [.2, .42, .24], jaune: [.9, .72, .12], noir: [.1, .1, .12] }, hat: { bonnet: 0xb5503c, casquette: 0x4f6f45, nu: 0x4a3626 }, neck: { rouge: 0xc43a2e, gris: 0x8d949c, bleu: 0x3f6fb0 } };
+const OUT_COL = { top: { blanc: [.95, .94, .9], bleu: [.25, .45, .75], rouge: [.8, .22, .2], jaune: [.95, .78, .2], vert: [.35, .62, .35] }, coat: { aucun: 'top', vert: null, marine: [.17, .25, .45], jaune: [.93, .74, .13], rouge: [.72, .2, .17], gris: [.42, .44, .48] }, boots: { claquettes: 'skin', marron: null, vert: [.2, .42, .24], jaune: [.9, .72, .12], noir: [.1, .1, .12] }, hat: { bonnet: 0xb5503c, casquette: 0x4f6f45, nu: 0x4a3626 }, neck: { rouge: 0xc43a2e, gris: 0x8d949c, bleu: 0x3f6fb0 } };
 function dressGeo(m, G, i, fn, hide) {
   if (!m.userData.orig) { m.geometry = G[i].clone(); m.userData.orig = new Uint8Array(G[i].attributes.color.array); m.userData.idx = new Uint16Array(G[i].index.array); }
   const g = m.geometry, c = g.attributes.color, p = g.attributes.position, o = m.userData.orig;
@@ -590,15 +598,16 @@ function dressGeo(m, G, i, fn, hide) {
 const HAT_HIDE = (x, y, z) => y > 1.12 && (Math.hypot(x, z) > .19 || y > 1.25);
 function tintOf(col, r, g, b, ref) { const l = (.3 * r + .59 * g + .11 * b) / ref; return [Math.min(1, col[0] * l), Math.min(1, col[1] * l), Math.min(1, col[2] * l)]; }
 function dressG(g, o) {
-  const u = g.userData, G = gjGeos(); o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, o || {});
-  const parts = [u.body.children[0], u.legL.children[0], u.legR.children[0], u.armL.children[0], u.armR.children[0]], cc = OUT_COL.coat[o.coat], bc = OUT_COL.boots[o.boots];
-  dressGeo(parts[0], G, 0, (x, y, z, r, gg, b) => (cc && y < .99) ? tintOf(cc, r, gg, b, .4) : null, o.hat === 'paille' ? null : HAT_HIDE);
-  [1, 2].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => (bc && y < -.36) ? tintOf(bc, r, gg, b, .2) : null));
-  [3, 4].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => (cc && y > -.2) ? tintOf(cc, r, gg, b, .4) : null));
+  const u = g.userData, G = gjGeos(); o = Object.assign({ hat: 'paille', top: 'blanc', coat: 'vert', boots: 'marron', neck: 'aucun' }, o || {});
+  const parts = [u.body.children[0], u.legL.children[0], u.legR.children[0], u.armL.children[0], u.armR.children[0]], tc = OUT_COL.top[o.top] || OUT_COL.top.blanc, cc = OUT_COL.coat[o.coat] === 'top' ? tc : OUT_COL.coat[o.coat], bc = OUT_COL.boots[o.boots], SK = [.93, .74, .58], noCoat = o.coat === 'aucun';
+  dressGeo(parts[0], G, 0, (x, y, z, r, gg, b) => (y < .99) ? (cc ? tintOf(cc, r, gg, b, .4) : null) : null, HAT_HIDE);
+  [1, 2].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => { if (bc === 'skin') { if (y < -.5) return [.2, .45, .75]; if (y < -.36) return SK; return null; } return (bc && y < -.36) ? tintOf(bc, r, gg, b, .2) : null; }));
+  [3, 4].forEach(i => dressGeo(parts[i], G, i, (x, y, z, r, gg, b) => { if (noCoat) return y > -.02 ? tintOf(tc, r, gg, b, .4) : (y > -.2 ? SK : null); return (cc && y > -.2) ? tintOf(cc, r, gg, b, .4) : null; }));
   if (u.dre) { u.body.remove(u.dre); } const d = u.dre = new T.Group(); u.body.add(d);
   const lm = c => new T.MeshLambertMaterial({ color: c, side: T.DoubleSide });
   const dome = (r, col, y, sy) => { const m = new T.Mesh(new T.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), lm(col)); m.position.set(0, y, 0); m.scale.y = sy || 1; m.castShadow = true; d.add(m); return m; };
-  if (o.hat === 'bonnet') { dome(.225, OUT_COL.hat.bonnet, 1.2, 1); const band = new T.Mesh(new T.TorusGeometry(.222, .035, 6, 16), lm(0x8a3a2c)); band.rotation.x = Math.PI / 2; band.position.y = 1.21; d.add(band); const pom = new T.Mesh(new T.IcosahedronGeometry(.055, 1), lm(0xf0e6d0)); pom.position.y = 1.43; d.add(pom); }
+  if (o.hat === 'paille') { dome(.23, 0xe9c864, 1.2, .95); const brim = new T.Mesh(new T.CylinderGeometry(.46, .46, .02, 28), lm(0xe2bd57)); brim.position.set(0, 1.205, 0); brim.rotation.x = .04; brim.castShadow = true; d.add(brim); const bd = new T.Mesh(new T.CylinderGeometry(.235, .235, .07, 20, 1, true), lm(0xc0392b)); bd.position.set(0, 1.25, 0); d.add(bd); const rim = new T.Mesh(new T.TorusGeometry(.458, .012, 5, 28), lm(0xc9a443)); rim.rotation.x = Math.PI / 2; rim.position.y = 1.205; d.add(rim); }
+  else if (o.hat === 'bonnet') { dome(.225, OUT_COL.hat.bonnet, 1.2, 1); const band = new T.Mesh(new T.TorusGeometry(.222, .035, 6, 16), lm(0x8a3a2c)); band.rotation.x = Math.PI / 2; band.position.y = 1.21; d.add(band); const pom = new T.Mesh(new T.IcosahedronGeometry(.055, 1), lm(0xf0e6d0)); pom.position.y = 1.43; d.add(pom); }
   else if (o.hat === 'casquette') { dome(.222, OUT_COL.hat.casquette, 1.2, .85); const v = new T.Mesh(new T.BoxGeometry(.24, .018, .17), lm(0x3a5434)); v.position.set(0, 1.21, .24); v.rotation.x = .12; d.add(v); }
   else if (o.hat === 'nu') { dome(.215, OUT_COL.hat.nu, 1.2, .95); }
   if (o.neck !== 'aucun') { const col = OUT_COL.neck[o.neck]; const t = new T.Mesh(new T.TorusGeometry(.14, .05, 8, 16), lm(col)); t.rotation.x = Math.PI / 2; t.position.set(0, .99, .01); t.scale.set(1, 1, .85); d.add(t); const tail = new T.Mesh(new T.BoxGeometry(.075, .26, .03), lm(col)); tail.position.set(.07, .86, .17); tail.rotation.z = .08; d.add(tail); }
@@ -621,6 +630,60 @@ function portrait(who) {
   cx.putImageData(id, 0, 0); return cv.toDataURL('image/png');
 }
 V.portrait = portrait;
+
+/* ---------- intérieurs : maison et cellier-cuisine (scènes rendues en image) ---------- */
+function snap(sc, cam2, W, H, bg) {
+  const rt = new T.WebGLRenderTarget(W, H); rt.texture.encoding = R.outputEncoding;
+  const pr = R.getRenderTarget(), pc = R.getClearColor(new T.Color()), pa = R.getClearAlpha(), ps = R.shadowMap.enabled;
+  R.shadowMap.enabled = false; R.setRenderTarget(rt); R.setClearColor(bg, 1); R.clear(); R.render(sc, cam2);
+  const buf = new Uint8Array(W * H * 4); R.readRenderTargetPixels(rt, 0, 0, W, H, buf);
+  R.setRenderTarget(pr); R.setClearColor(pc, pa); R.shadowMap.enabled = ps; rt.dispose();
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'), id = cx.createImageData(W, H);
+  for (let y = 0; y < H; y++) id.data.set(buf.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);
+  cx.putImageData(id, 0, 0); return cv.toDataURL('image/jpeg', .88);
+}
+function interior(kind) {
+  if (!R) return ''; const S = A.S(), sc = new T.Scene(), M = (c, e) => new T.MeshLambertMaterial({ color: c, emissive: e || 0x000000 }), r = rngMaker(kind === 'maison' ? 5 : 9);
+  const bx = (w, h, d, c, x, y, z, e) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), M(c, e)); m.position.set(x, y, z); sc.add(m); return m; };
+  const cy = (rt, rb, h, c, x, y, z, e, sg) => { const m = new T.Mesh(new T.CylinderGeometry(rt, rb, h, sg || 14), M(c, e)); m.position.set(x, y, z); sc.add(m); return m; };
+  const sp = (rd, c, x, y, z, sy, e) => { const m = new T.Mesh(new T.SphereGeometry(rd, 12, 9), M(c, e)); m.position.set(x, y, z); if (sy) m.scale.y = sy; sc.add(m); return m; };
+  sc.add(new T.HemisphereLight(0xfff1d6, 0x8a6a4a, .85)); const dl = new T.DirectionalLight(0xfff0d0, .55); dl.position.set(3, 5, 4); sc.add(dl);
+  const stone = kind !== 'maison', wallC = stone ? 0x9a968c : 0xe9dcc0, floorC = stone ? 0x7c776d : 0xa6713f;
+  bx(9, .12, 6, floorC, 0, -.06, 0); for (let i = 0; i < 12; i++) bx(.03, .005, 6, stone ? 0x6d695f : 0x8a5a30, -4 + i * .75, .004, 0);
+  bx(9, 3.4, .2, wallC, 0, 1.7, -2.9); bx(.2, 3.4, 6, wallC, -4.4, 1.7, 0); bx(9, .6, .22, stone ? 0x7a766c : 0x8b5a2b, 0, .3, -2.9); bx(.22, .6, 6, stone ? 0x7a766c : 0x8b5a2b, -4.4, .3, 0);
+  [-3, 0, 3].forEach(x => bx(.28, .28, 6, 0x5a3a20, x, 3.25, 0)); bx(9, .28, .28, 0x5a3a20, 0, 3.2, -2.75);
+  if (stone) for (let i = 0; i < 40; i++) bx(.5 + r() * .5, .22, .04, 0x8b877d, -4 + r() * 8, .9 + r() * 2, -2.78, 0);
+  /* fenêtre */ bx(.06, 1.3, 1.1, 0xcfe6ff, -4.27, 1.9, .2, 0x9ecbff); [[-.6, 0], [.6, 0]].forEach(() => 0); bx(.1, 1.4, .08, 0x5a3a20, -4.25, 1.9, -.38); bx(.1, 1.4, .08, 0x5a3a20, -4.25, 1.9, .78); bx(.1, .08, 1.2, 0x5a3a20, -4.25, 1.9, .2); bx(.1, .08, 1.2, 0x5a3a20, -4.25, 2.6, .2); bx(.1, .08, 1.2, 0x5a3a20, -4.25, 1.2, .2);
+  const jar = (x, y, z, c) => { cy(.09, .09, .2, c, x, y, z, 0, 10); cy(.095, .095, .04, 0xd9c9a0, x, y + .12, z, 0, 10); };
+  if (kind === 'maison') {
+    /* cheminée */ const fx = -1.8; bx(.55, 2.3, .8, 0x8e8a82, fx - 1.0, 1.15, -2.5); bx(.55, 2.3, .8, 0x8e8a82, fx + 1.0, 1.15, -2.5); bx(2.9, .3, 1, 0x6b4a2b, fx, 2.35, -2.45); bx(2.0, 1.1, .7, 0x8e8a82, fx, 3.0, -2.55); bx(1.6, 1.9, .3, 0x2a2420, fx, .95, -2.7); bx(2.0, .12, .9, 0x6f6b64, fx, .06, -2.4);
+    const on = !!S.fire; for (let i = 0; i < 3; i++) { const lg = cy(.1, .1, 1.3, 0x4a2f1a, fx + (i - 1) * .1, .2 + (i % 2) * .15, -2.35 + (i - 1) * .12, 0, 8); lg.rotation.z = 1.57; lg.rotation.y = (i - 1) * .4; }
+    if (on) { [[0, .5, .45, 0xff7a1a], [-.3, .38, .3, 0xff9b2a], [.3, .34, .28, 0xffb83a]].forEach(([dx, h, w, c]) => { const f = new T.Mesh(new T.ConeGeometry(w, h * 1.6, 8), M(c, c)); f.position.set(fx + dx, .55 + h * .6, -2.4); sc.add(f); }); const pl = new T.PointLight(0xff8a30, 1.1, 8); pl.position.set(fx, 1, -1.9); sc.add(pl); }
+    for (let i = 0; i < Math.min(9, Math.ceil((S.wood || 0) / 2)); i++) { const lg = cy(.1, .1, .6, 0x5a3a20, fx + 1.6, .12 + Math.floor(i / 3) * .2, -2.0 + (i % 3) * .22, 0, 8); lg.rotation.x = 1.57; }
+    /* table et chaises */ const tx = 1.3, tz = .4; bx(2.4, .1, 1.2, 0xb98351, tx, .85, tz); [[-1, -.5], [1, -.5], [-1, .5], [1, .5]].forEach(([a, b]) => bx(.1, .85, .1, 0x7a5230, tx + a * 1.05, .42, tz + b * .5)); bx(2.8, .03, 1.9, 0xa3392b, tx, .02, tz);
+    [[-.6, 1], [.6, 1], [-.6, -1], [.6, -1]].forEach(([a, b]) => { bx(.5, .06, .5, 0x8a5a30, tx + a, .5, tz + b * .85); bx(.5, .6, .06, 0x8a5a30, tx + a, .8, tz + b * 1.1 + (b > 0 ? .0 : 0)); [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]].forEach(([p, q]) => bx(.05, .5, .05, 0x6a4524, tx + a + p, .25, tz + b * .85 + q)); });
+    sp(.26, 0xd9a05b, tx - .5, .95, tz, .55); cy(.17, .12, .1, 0xf3ece0, tx + .4, .93, tz - .3); cy(.17, .12, .1, 0xf3ece0, tx + .4, .93, tz + .3); sp(.08, 0xd9442b, tx + .4, .99, tz - .3); sp(.08, 0x8bb04a, tx + .4, .99, tz + .3); cy(.1, .12, .3, 0xb86b3a, tx - .1, 1.05, tz + .15); cy(.03, .03, .22, 0xf7efd8, tx + .9, 1.0, tz, 0xffd27a);
+    /* étagère + bocaux, herbes suspendues */ bx(1.8, .06, .3, 0x7a5230, 2.8, 1.5, -2.65); bx(1.8, .06, .3, 0x7a5230, 2.8, 2.1, -2.65); for (let i = 0; i < 6; i++) { jar(2.1 + i * .3, 1.63, -2.65, [0xc0392b, 0xe8a21a, 0x8bc34a, 0x9a5a8a, 0xc0392b, 0xe8a21a][i]); jar(2.1 + i * .3, 2.23, -2.65, [0x8bc34a, 0xe8a21a, 0xc0392b, 0x8bc34a, 0x9a5a8a, 0xe8a21a][i]); }
+    for (let i = 0; i < 6; i++) { cy(.015, .015, .5, 0x5a3a20, -.4 + i * .5, 2.95, -2.2, 0, 4); const b = new T.Mesh(new T.ConeGeometry(.12, .45, 6), M([0x6fae4a, 0x8ba35a, 0xb07fb0][i % 3])); b.rotation.x = Math.PI; b.position.set(-.4 + i * .5, 2.55, -2.2); sc.add(b); }
+    const fam = [[0, 2.9, -.1, 1.3], [1, 3.4, .5, .95]]; fam.forEach(([k, x, z, s]) => { try { const m = human(k); m.scale.setScalar(.95); m.position.set(-.8 + k * .9, 0, -1.5); m.rotation.y = .25 - k * .4; sc.add(m); } catch (e) {} });
+  } else {
+    /* cellier-cuisine : plan de travail, casseroles, étagères à bocaux, séchoir, fourneau */
+    bx(3.2, .12, 1.4, 0xc99a63, 0, .95, .2); [[-1.45, -.6], [1.45, -.6], [-1.45, .6], [1.45, .6]].forEach(([a, b]) => bx(.12, .95, .12, 0x7a5230, a, .47, .2 + b)); bx(3.0, .06, 1.2, 0x9b6c3a, 0, .3, .2);
+    [[-1.1, .3, 0xb87333], [-.35, .1, 0xb87333]].forEach(([x, z, c]) => { cy(.38, .3, .25, c, x, 1.12, z + .2, 0, 20); cy(.34, .34, .02, 0xb71c2b, x, 1.25, z + .2, 0xa01020, 20); }); cy(.3, .26, .3, 0x9aa0a6, .55, 1.15, .1, 0, 16); cy(.26, .26, .02, 0xe8a21a, .55, 1.3, .1, 0xc88000, 16);
+    for (let i = 0; i < 8; i++) jar(.9 + (i % 4) * .22, 1.1, .5 + Math.floor(i / 4) * .25, [0xc0392b, 0xe8a21a, 0x8bc34a, 0xc0392b][i % 4]); bx(.7, .04, .45, 0xe8d3a0, 1.2, 1.03, -.2); [[0xd9442b, 0], [0xe89a3a, .12], [0x7a3a8a, .24]].forEach(([c, d]) => sp(.08, c, 1.05 + d, 1.1, -.2));
+    for (let i = 0; i < 3; i++) { const s = cy(.015, .015, .5, 0x5a3a20, -1.2 + i * .5, 1.2, .0, 0, 4); s.rotation.z = .5; }
+    /* étagères */ const cel = S.cellar || [], cols = { confiture: 0xc0392b, sirop: 0xe8a21a, pickles: 0x8bc34a, dessert: 0xf3d9a0, tisane: 0x7fae6a, conserve: 0xb85a2a }, want = []; cel.forEach(x => { for (let i = 0; i < Math.min(5, x.n); i++) want.push(cols[x.k] || 0xc0392b); });
+    [1.1, 1.7, 2.3].forEach((y, lv) => { bx(3.4, .06, .38, 0x7a5230, 2.2, y, -2.65); for (let i = 0; i < 11; i++) { const c = want[lv * 11 + i] != null ? want[lv * 11 + i] : [0x6b4a2b, 0x7a5a3a, 0x5a3a20][(i + lv) % 3]; if (want[lv * 11 + i] != null) jar(.7 + i * .3, y + .13, -2.65, c); else if (i % 3 === 0) bx(.2, .2, .2, 0x8a6a3a, .7 + i * .3, y + .13, -2.65); } });
+    /* séchoir à herbes */ bx(.08, 2.3, .08, 0x6a4524, -3.6, 1.15, -1.6); bx(.08, 2.3, .08, 0x6a4524, -3.6, 1.15, -2.7); bx(.08, .08, 1.2, 0x6a4524, -3.6, 2.3, -2.15); bx(.08, .08, 1.2, 0x6a4524, -3.6, 1.6, -2.15); for (let i = 0; i < 6; i++) { const b = new T.Mesh(new T.ConeGeometry(.12, .5, 6), M([0x6fae4a, 0xb07fb0, 0xcdbf6a][i % 3])); b.rotation.x = Math.PI; b.position.set(-3.6, S.sechoir ? 2.0 : 2.0, -2.6 + i * .2); sc.add(b); if (i % 2) { const c = b.clone(); c.position.y = 1.3; sc.add(c); } }
+    /* poêle, batterie de cuisine */ bx(.9, 1.0, .8, 0x2a2a2e, -2.3, .5, -2.3); bx(.9, .06, .8, 0x4a4a50, -2.3, 1.02, -2.3); cy(.28, .24, .24, 0x9aa0a6, -2.45, 1.16, -2.3, 0, 16); cy(.22, .22, .02, 0xb71c2b, -2.45, 1.28, -2.3, 0x8a0a1a, 16);
+    for (let i = 0; i < 5; i++) { const p = cy(.2 - (i % 2) * .04, .2 - (i % 2) * .04, .1, 0xb87333, -3.5 + i * .5, 2.5, -2.76, 0, 18); p.rotation.x = 1.57; bx(.04, .4, .04, 0x5a3a20, -3.5 + i * .5, 2.2, -2.76); }
+    cy(.4, .36, .8, 0x8b5a2b, 3.5, .4, -1.4); cy(.42, .42, .05, 0x5a3a20, 3.5, .82, -1.4); for (let i = 0; i < 5; i++) sp(.12, [0xd9442b, 0xe89a3a, 0x8bc34a][i % 3], 3.1 + (i % 3) * .24, .12, .6 + Math.floor(i / 3) * .3); bx(.9, .22, .6, 0x8a5a30, 3.2, .11, .8);
+    const lam = cy(.14, .1, .26, 0xffe6a0, 0, 2.7, .2, 0xffd27a, 8); cy(.01, .01, .5, 0x333333, 0, 3.0, .2, 0, 4);
+  }
+  const cam2 = new T.PerspectiveCamera(42, 640 / 300, .1, 40); cam2.position.set(4.6, 3.1, 6.6); cam2.lookAt(0, 1.2, -.4);
+  return snap(sc, cam2, 1280, 600, kind === 'maison' ? 0x3a2a1c : 0x2f2b27);
+}
+V.interior = interior;
 let abtn = null;
 function syncWork() {
   const S = A.S(), jb = S.jobs || []; if (!S.atelier || !jb.length) { if (abtn) { abtn.remove(); abtn = null; } return; }
@@ -637,7 +700,7 @@ function smokeTick(dt) {
 const SMK = [0.5, -0.2, 4.4];
 V.fx = kind => burst(kind, V.atelierXZ());
 V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
-function dressSync() { if (!gardener) return; const o = Object.assign({ hat: 'paille', coat: 'vert', boots: 'marron', neck: 'aucun' }, A.S().outfit || {}); if (gardener.userData.osig !== JSON.stringify(o)) dressG(gardener, o); }
+function dressSync() { if (!gardener) return; const o = Object.assign({ hat: 'paille', top: 'blanc', coat: 'vert', boots: 'marron', neck: 'aucun' }, A.S().outfit || {}); if (gardener.userData.osig !== JSON.stringify(o)) dressG(gardener, o); }
 const fmCache = {};
 function fmGeos(n) {
   if (fmCache[n]) return fmCache[n];
@@ -1294,8 +1357,8 @@ function syncDecor(S, sk) {
   const cp = ypos(3, -1.6, -1.6) || [-HW - 5, -HH + 5]; add(composter(Math.min(1, (S.waste || 0) / 6)), cp[0], cp[1], .5, { t: 'deco', k: 'compost' });
   if (S.poulailler) add(poulailler(), HW + 3.4, -HH * .2, -Math.PI / 2 + .2, { t: 'deco', k: 'poulailler' });
   if (S.atelier) add(atelier(), -HW - 4, HH * .5, .6, { t: 'deco', k: 'atelier' });
-  S.trees.forEach((t, k) => { const x = -HW + 2 + (HW * 2 + 8) * (k / 4), z = -HH - 4 - (k % 2) * 1.5; add(borderTree(t), x, z, k * 1.7, { t: 'tree', k }); });
-  for (let k = 0; k < 8; k++) { const ready = A.G.lawnReady(S, k); let x, z; if (k < 4) { x = -HW + 2 + (2 * HW - 4) * (k / 3); z = HH + 3.2 + (k % 2) * .8; } else { x = HW + 3.6 + (k % 2) * .8; z = -HH + 3 + (2 * HH - 6) * ((k - 4) / 3); } add(lawnPatch(ready), x, z, k * .8, { t: 'lawn', k }); deco['L' + k] = [x, z]; deco['T' + k] = [-HW + 2 + (HW * 2 + 8) * (k / 4), -HH - 4 - (k % 2) * 1.5]; }
+  S.trees.forEach((t, k) => { const x = -HW + 2 + (HW * 2 + 8) * (k / 4), z = -HH - 3.4 - (k % 2) * 3.2; add(borderTree(t), x, z, k * 1.7, { t: 'tree', k }); });
+  for (let k = 0; k < 8; k++) { const ready = A.G.lawnReady(S, k), bw = (2 * HW + 6) / 4, bd = 3.6, x = -HW - 3 + bw * (k % 4 + .5), z = -HH - 1.6 - bd * (Math.floor(k / 4) + .5); const lp = lawnPatch(ready, k, bw + .05, bd + .05); add(lp, x, z, 0, { t: 'lawn', k }); deco['L' + k] = [x, z]; deco['T' + k] = [-HW + 2 + (HW * 2 + 8) * (k / 4), -HH - 4 - (k % 2) * 1.5]; }
   for (let i = 0; i < 12; i++) { const a = rng() * 6.28, rr = Math.max(HW, HH) + 12 + rng() * 16, x = Math.cos(a) * rr * 1.2, z = Math.sin(a) * rr; const g = new T.Group(); const pine = rng() > .55, s = .9 + rng() * .9; g.add(mesh(geo.cyl(.1, .16, 1.2, 5), mat.trunk, 0, .6, 0)); if (pine) [0, .6, 1.15, 1.65].forEach((y, j) => { const c = mesh(geo.cone(1 - j * .2, 1.15, 7), mat.pine, 0, 1.4 + y, 0); c.rotation.y = j * .6; g.add(c); }); else { [[0, 1.9, 0, .9], [.5, 1.65, .15, .62], [-.45, 1.7, -.2, .6]].forEach(c => { const m = mesh(blob(c[3], 1), rng() > .5 ? mat.crownA : mat.crownB, c[0], c[1], c[2]); m.rotation.y = rng() * 3; g.add(m); }); } g.scale.setScalar(s); add(g, x, z, 0); }
   for (let i = 0; i < 10; i++) { const a = rng() * 6.28, rr = Math.max(HW, HH) + 6 + rng() * 22, x = Math.cos(a) * rr * 1.2, z = Math.sin(a) * rr, rk = mesh(rockGeo(.4 + rng() * .7), mat.rock, 0, .2, 0); rk.scale.y = .7; add(rk, x, z, 0); }
 }

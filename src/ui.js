@@ -297,6 +297,16 @@ function familyHtml() {
 }
 function openFamily() { modal('La famille', harmonyHtml() + familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
 function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('prairie') + mat('hotel') + mat('banc') + mat('mangeoire') + mat('boismort') + mat('pierres') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
+
+/* ---------- découverte progressive (nouvelles parties seulement) : les boutons apparaissent au fil de la progression ---------- */
+const PROG_LABEL = { kitchen: 'le garde-manger', shop: 'la boutique', skills: 'les compétences', amenager: 'l’aménagement du jardin' };
+function progReveal(k) {
+  if (!S.prog || !PROG_LABEL[k]) return true;
+  const st = S.tuto && !S.tuto.done && S.tuto.step != null ? S.tuto.step : 99, lvl = G.xpInfo(S).lvl;
+  const ok = k === 'kitchen' ? ((S.meals || 0) > 0 || (S.stock || []).length > 0 || S.maxPlantings >= 3) : k === 'shop' ? (st >= 8 || S.maxPlantings >= 3 || lvl >= 2) : k === 'skills' ? (st >= 7 || lvl >= 2) : (S.maxPlantings >= 3 || st >= 99);
+  if (ok && !S.prog.seen[k]) { S.prog.seen[k] = 1; if (st >= 99) setTimeout(() => toast('Nouveau : ' + PROG_LABEL[k] + ' est maintenant disponible.'), 600); }
+  return ok;
+}
 function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
   const mat = k => (m[k] > 0 || ['paillage', 'compost', 'chemin'].includes(k)) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '"' + (m[k] > 0 ? '' : ' disabled') + '>' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : '';
@@ -304,7 +314,8 @@ function renderRes() {
   $('res').innerHTML = '<div class="items"><button type="button" class="pill lvl" data-act="skills" title="Niveau du jardinier : ouvre les compétences">Niv. ' + X.lvl + '<span class="mini"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></span></button><span class="pill" title="Eau de pluie récupérée. Elle se remplit quand il pleut.">' + ico('drop') + Math.round(S.tank) + ' / ' + S.tankMax + ' L</span><button type="button" class="pill" data-act="shop" title="Tes ginkgos : ouvre la boutique">' + GK(16) + (S.feves || 0) + '<span class="lb"> ginkgos</span></button><button type="button" class="pill' + (S.pts > 0 ? ' on' : '') + '" data-act="skills" title="Points de compétence à dépenser : ouvre les compétences">' + ico('leaf') + (S.pts || 0) + '<span class="lb"> point' + ((S.pts || 0) > 1 ? 's' : '') + ' de compétence</span><span class="sh"> pt</span></button>' + ((S.streak || 0) >= 2 && (S.lastActive || 0) >= S.day - 1 ? '<span class="pill" title="Jours de suite au jardin : 3 ginkgos tous les 7 jours.">Série ' + S.streak + ' j</span>' : '') + mat('paillage') + mat('compost') + (EXTRA().n ? '<button type="button" class="pill" data-act="stock">Matériel · ' + EXTRA().n + '</button>' : '') + '</div>';
   const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
-  $('rail').innerHTML = rb('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + rb('shop', GK(24), 'Boutique', S.feves || 0) + rb('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
+  const rv = progReveal, RB = (k, ...a) => rv(k) ? rb(k, ...a) : '';
+  $('rail').innerHTML = RB('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + RB('shop', GK(24), 'Boutique', S.feves || 0) + RB('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + RB('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -1569,7 +1580,7 @@ function gForm(first) {
     '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="g-save">' + (first ? 'Commencer' : 'Enregistrer') + '</button></div></div>';
 }
 function gardenerCreate() { modal('Crée ton jardinier', '<p class="note-p">Qui va cultiver la forêt comestible ? Donne-lui un prénom et un nom. Tu pourras les changer plus tard dans la maison, onglet « Mon jardinier ».</p>' + gForm(true)); }
-function gardenerMaybeCreate() { if (!S.gardener && !S.demo && !(S.maxPlantings > 0) && S.tuto && !S.tuto.done) gardenerCreate(); }
+function gardenerMaybeCreate() { if (!S.gardener && !S.demo && !(S.maxPlantings > 0) && S.tuto && !S.tuto.done) { if (!S.prog) S.prog = { seen: {} }; render(); gardenerCreate(); } }
 
 function harmonyHtml() {
   const H = G.harmony(S), nm = (S.family || []).map(m => m.n).join(' et ') || 'La famille';
@@ -2073,10 +2084,10 @@ document.addEventListener('click', e => {
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
     case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
-    case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
+    case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); render(); break;
     case 'g-gender': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({}, S.gardener, { g: a.dataset.g, first: f ? f.value.trim() : (S.gardener || {}).first, last: l ? l.value.trim() : (S.gardener || {}).last }); save(); if (a.dataset.ctx === 'c') gardenerCreate(); else openHouse('jardinier'); break; }
     case 'g-save': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({ g: 'm' }, S.gardener, { first: f ? f.value.trim() : '', last: l ? l.value.trim() : '' }); save(); closeModal(); toast(gName() + ' est prêt' + (gF() ? 'e' : '') + ' à planter.'); break; }
-    case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
+    case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); render(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
     case 'newgame': S = G.newGame(); catchUp(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); gardenerMaybeCreate(); break;
   }

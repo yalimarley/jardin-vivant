@@ -911,53 +911,78 @@ function ridgeColors(hor, S, e) {
     c.needsUpdate = true;
   });
 }
-/* arbres lointains (forêts sur les pentes) */
-const TREEDUM = new T.Object3D(), cTc = new T.Color(), cFor = new T.Color();
+/* arbres lointains : forêt tout autour du jardin, modèles Tripo (chêne, bouleau, sapin, cyprès) */
+const TRI = /*__TREES__*/{};
+const TRIG = {};
+function triGeo(sp, lod) {
+  const key = sp + lod; if (TRIG[key]) return TRIG[key];
+  const m = TRI[sp][lod], p = m.p, c = m.c, f = m.f;
+  const lf = i => { const r = c[i * 3], g = c[i * 3 + 1], b = c[i * 3 + 2]; return g > r * 1.06 && g > b * 1.12 ? 1 : 0; };
+  const L = [], K = [];
+  for (let i = 0; i < f.length; i += 3) (lf(f[i]) + lf(f[i + 1]) + lf(f[i + 2]) >= 2 ? L : K).push(f[i], f[i + 1], f[i + 2]);
+  const sub = (idx, grey) => {
+    if (!idx.length) return null;
+    const map = new Map(), P = [], C = [], F = [];
+    for (const v of idx) { let k = map.get(v); if (k == null) { k = P.length / 3; map.set(v, k); P.push(p[v * 3], p[v * 3 + 1], p[v * 3 + 2]); if (grey) { const l = (c[v * 3] * .3 + c[v * 3 + 1] * .59 + c[v * 3 + 2] * .11) / 255; C.push(l, l, l); } else C.push(c[v * 3] / 255, c[v * 3 + 1] / 255, c[v * 3 + 2] / 255); } F.push(k); }
+    if (grey) { let s = 0; for (let i = 0; i < C.length; i += 3) s += C[i]; const k = .95 / Math.max(.05, s / (C.length / 3)); for (let i = 0; i < C.length; i++) C[i] = Math.min(1.5, C[i] * k); }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('color', new T.Float32BufferAttribute(C, 3)); g.setIndex(F); g.computeVertexNormals(); return g;
+  };
+  return (TRIG[key] = { leaf: sub(L, true), trunk: sub(K, false) });
+}
+const TREEDUM = new T.Object3D(), cTc = new T.Color(), cFor = new T.Color(), cBare = new T.Color(0x7d6b5c);
+const TRH = { chene: [4.2, 1.8], bouleau: [4.8, 2], sapin: [4.5, 2.5], cypres: [5.5, 3] };
 function buildFarTrees() {
-  /* v153 : forêt tout autour de la parcelle (réactivée, plus proche et plus dense, à la demande de Yali) */
-  ['bro', 'con', 'trk'].forEach(k => { if (SC[k]) { gTerr.remove(SC[k]); SC[k].geometry.dispose(); SC[k] = null; } });
+  /* forêt tout autour de la parcelle : modèles Tripo en instances, feuillage teinté selon la saison */
+  (SC.grp || []).forEach(g => { gTerr.remove(g.leaf); if (g.trunk) gTerr.remove(g.trunk); g.leaf.dispose(); if (g.trunk) g.trunk.dispose(); }); SC.grp = [];
   SC.hero.forEach(h => gTerr.remove(h.g)); SC.hero = [];
-  const rnd = srand(9137), phone = innerWidth <= 560, NT = phone ? 900 : 1900, x0 = HW + 15, z0 = HH + 15, P = [];
+  const rnd = srand(9137), phone = innerWidth <= 560, NT = phone ? 800 : 1700, x0 = HW + 15, z0 = HH + 15, P = [];
   for (let tries = 0; P.length < NT && tries < NT * 14; tries++) {
     const a = rnd() * 6.283, r = 10 + Math.pow(rnd(), 1.15) * 96, x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 1.1;
     if ((Math.abs(x) < x0 && Math.abs(z) < z0) || Math.abs(x) > 106 || Math.abs(z) > 106) continue; if (z > 0 && Math.hypot(x, z) < 40) continue; /* pas de grands arbres entre la caméra et le jardin */
     const f = gnoise(x * .7 + 11, z * .7 - 5) + gnoise(x * 1.9, z * 1.9) * .5; if (f < -.2 && rnd() < .9) continue;
-    const y = hAt(x, z), con = rnd() < (y > 7 ? .75 : .22); P.push({ x, y, z, con, s: (.4 + Math.hypot(x, z) / 120) * (.8 + rnd() * .45), r1: rnd(), r2: rnd(), r3: rnd(), ry: rnd() * 6.28 });
+    const y = hAt(x, z), con = rnd() < (y > 7 ? .75 : .22), q = rnd(), sp = con ? (q < .55 ? 'sapin' : 'cypres') : (q < (phone ? .8 : .65) ? 'bouleau' : 'chene'), hh = TRH[sp];
+    P.push({ x, y, z, con, sp, H: (hh[0] + rnd() * hh[1]) * (.4 + Math.hypot(x, z) / 120) * (.85 + rnd() * .35), r1: rnd(), r2: rnd(), r3: rnd(), ry: rnd() * 6.28 });
   }
-  const B = P.filter(p => !p.con), C = P.filter(p => p.con);
   const mkI = (geo_, mat_, n) => { const m = new T.InstancedMesh(geo_, mat_, Math.max(1, n)); m.frustumCulled = false; m.count = n; gTerr.add(m); return m; };
-  const crown = new T.IcosahedronGeometry(1, 1); { const p = crown.attributes.position, r = srand(5); for (let i = 0; i < p.count; i++) { const k = .86 + r() * .28; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * .9, p.getZ(i) * k); } crown.computeVertexNormals(); }
-  const cone = new T.ConeGeometry(1, 2.6, 6); cone.translate(0, 1.3, 0); const trunk = new T.CylinderGeometry(.16, .24, 1, 5); trunk.translate(0, .5, 0);
-  SC.bro = mkI(crown, new T.MeshLambertMaterial({ flatShading: true }), B.length); SC.con = mkI(cone, new T.MeshLambertMaterial({ flatShading: true }), C.length); SC.trk = mkI(trunk, new T.MeshLambertMaterial({ color: 0x5b4532 }), P.length);
-  SC.B = B; SC.C = C; SC.P = P; SC.bro.instanceColor = new T.InstancedBufferAttribute(new Float32Array(B.length * 3), 3); SC.con.instanceColor = new T.InstancedBufferAttribute(new Float32Array(C.length * 3), 3);
+  Object.keys(TRI).forEach(sp => {
+    const items = P.filter(q => q.sp === sp); if (!items.length) return;
+    const G2 = triGeo(sp, sp === 'chene' ? 'hi' : 'lo'), leaf = mkI(G2.leaf, new T.MeshLambertMaterial({ vertexColors: true }), items.length), trunk = G2.trunk ? mkI(G2.trunk, new T.MeshLambertMaterial({ vertexColors: true }), items.length) : null;
+    leaf.instanceColor = new T.InstancedBufferAttribute(new Float32Array(items.length * 3), 3);
+    SC.grp.push({ sp, items, leaf, trunk, con: sp === 'sapin' || sp === 'cypres' });
+  });
   treesPlace(); treesColor(curS);
-  // grands arbres de la vallée (vrais modèles)
-  const hr = srand(321), names = ['chene', 'noyer', 'pin', 'chene', 'cerisier', 'pin', 'pommier', 'chene'];
+  // grands arbres de la vallée (modèles Tripo détaillés)
+  const hr = srand(321), names = ['chene', 'bouleau', 'sapin', 'chene', 'cypres', 'sapin', 'chene', 'bouleau'];
   for (let i = 0; i < 16; i++) {
     const nm = names[i % names.length], a = hr() * 6.283, r = 52 + hr() * 30; let x = Math.cos(a) * r * 1.2, z = Math.sin(a) * r;
     if (Math.abs(x) < x0 && Math.abs(z) < z0) { x *= 1.8; z *= 1.5; }
-    const A2 = plGeo(nm), g = new T.Group(), sz = 1.8 + hr() * 1.0; g.position.set(x, hAt(x, z) - .05, z); g.rotation.y = hr() * 6.28; g.scale.setScalar(sz);
-    if (A2.trunk) g.add(mesh(A2.trunk, plTrunkMat, 0, 0, 0, false)); if (A2.br) g.add(mesh(A2.br, plTrunkMat, 0, 0, 0, false));
-    const lf = mesh(A2.leaf, leafMat('#4c963f'), 0, 0, 0, false); g.add(lf); gTerr.add(g); SC.hero.push({ g, lf, con: nm === 'pin', v: Math.floor(hr() * 4) });
+    const A2 = triGeo(nm, 'hi'), g = new T.Group(), sz = 6.5 + hr() * 3.5, con = nm === 'sapin' || nm === 'cypres'; g.position.set(x, hAt(x, z) - .05, z); g.rotation.y = hr() * 6.28; g.scale.setScalar(sz);
+    if (A2.trunk) g.add(new T.Mesh(A2.trunk, new T.MeshLambertMaterial({ vertexColors: true })));
+    const lf = new T.Mesh(A2.leaf, new T.MeshLambertMaterial({ vertexColors: true })); g.add(lf); gTerr.add(g); SC.hero.push({ g, lf, con, v: Math.floor(hr() * 4) });
   }
   heroSeason();
 }
 function treesPlace() {
-  const w = season === 'winter';
-  SC.B.forEach((p, i) => { const R = (1.3 + p.r1 * 1.0) * p.s, th = (.9 + p.r2 * .9) * p.s; TREEDUM.position.set(p.x, p.y + th + R * .55, p.z); TREEDUM.rotation.set(0, p.ry, 0); TREEDUM.scale.set(w ? R * .55 : R, w ? R * .6 : R * .95, w ? R * .55 : R); TREEDUM.updateMatrix(); SC.bro.setMatrixAt(i, TREEDUM.matrix); });
-  SC.C.forEach((p, i) => { const R = (1.5 + p.r1 * .9) * p.s, H = (1.8 + p.r2 * 1.2) * p.s; TREEDUM.position.set(p.x, p.y + .7 * p.s, p.z); TREEDUM.rotation.set(0, p.ry, 0); TREEDUM.scale.set(R, H * 1.05, R); TREEDUM.updateMatrix(); SC.con.setMatrixAt(i, TREEDUM.matrix); });
-  SC.P.forEach((p, i) => { const th = p.con ? .9 * p.s : (.9 + p.r2 * .9) * p.s; TREEDUM.position.set(p.x, p.y - .1, p.z); TREEDUM.rotation.set(0, 0, 0); TREEDUM.scale.set(p.s * 1.4, th + .3, p.s * 1.4); TREEDUM.updateMatrix(); SC.trk.setMatrixAt(i, TREEDUM.matrix); });
-  SC.bro.instanceMatrix.needsUpdate = SC.con.instanceMatrix.needsUpdate = SC.trk.instanceMatrix.needsUpdate = true;
+  if (!SC.grp) return;
+  SC.grp.forEach(G2 => {
+    G2.items.forEach((p, i) => { TREEDUM.position.set(p.x, p.y - .05, p.z); TREEDUM.rotation.set(0, p.ry, 0); TREEDUM.scale.setScalar(p.H); TREEDUM.updateMatrix(); G2.leaf.setMatrixAt(i, TREEDUM.matrix); if (G2.trunk) G2.trunk.setMatrixAt(i, TREEDUM.matrix); });
+    G2.leaf.instanceMatrix.needsUpdate = true; if (G2.trunk) G2.trunk.instanceMatrix.needsUpdate = true;
+  });
 }
 const cSnowG = new T.Color(0x7f9a8a);
 function treesColor(S) {
-  if (!SC.bro) return; const cA2 = new T.Color(S.leafA), cB2 = new T.Color(S.leafB), cBl = new T.Color(S.blossom), k = season === 'autumn' ? .85 : season === 'spring' ? .35 : 0;
-  SC.B.forEach((p, i) => { cTc.copy(cA2).lerp(cB2, p.r3); if (p.r1 > .72) cTc.lerp(cBl, k); cTc.multiplyScalar(.9 + p.r2 * .3); SC.bro.setColorAt(i, cTc); });
-  SC.C.forEach((p, i) => { cTc.setHex(0x2d5a38).multiplyScalar(.75 + p.r2 * .4); if (season === 'winter') cTc.lerp(cSnowG, .45); SC.con.setColorAt(i, cTc); });
-  SC.bro.instanceColor.needsUpdate = SC.con.instanceColor.needsUpdate = true;
+  if (!SC.grp) return; const cA2 = new T.Color(S.leafA), cB2 = new T.Color(S.leafB), cBl = new T.Color(S.blossom), k = season === 'autumn' ? .85 : season === 'spring' ? .35 : 0;
+  SC.grp.forEach(G2 => {
+    G2.items.forEach((p, i) => {
+      if (G2.con) { cTc.setHex(G2.sp === 'cypres' ? 0x2a5430 : 0x2d5a38).multiplyScalar(.8 + p.r2 * .4); if (season === 'winter') cTc.lerp(cSnowG, .4); }
+      else { cTc.copy(cA2).lerp(cB2, p.r3); if (p.r1 > .72) cTc.lerp(cBl, k); cTc.multiplyScalar(.9 + p.r2 * .25); if (season === 'winter') cTc.lerp(cBare, .85); }
+      G2.leaf.setColorAt(i, cTc);
+    });
+    G2.leaf.instanceColor.needsUpdate = true;
+  });
 }
 const HEROPAL = { spring: ['#7cbc5a', '#93cc68', '#b7d27a', '#f2b6c6'], summer: ['#3f8a38', '#4c963f', '#5aa043', '#46903c'], autumn: ['#d9822b', '#c2562b', '#e0a04a', '#a8a238'], winter: ['#8a7a6a', '#8a7a6a', '#8a7a6a', '#8a7a6a'] };
-function heroSeason() { SC.hero.forEach(h => { h.lf.material = leafMat(h.con ? '#2f6a3c' : HEROPAL[season][h.v]); h.lf.visible = h.con || season !== 'winter'; }); }
+function heroSeason() { SC.hero.forEach(h => { h.lf.material.color.set(h.con ? '#2f6a3c' : HEROPAL[season][h.v]); h.lf.visible = true; }); }
 /* ciel : soleil, lune, étoiles, nuages doux */
 function glowTex(stops) { return gradTex(128, 128, (x, w, h) => { const g = x.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0, 0, w, h); }); }
 function cloudTex(seed) { const r = srand(seed); return gradTex(256, 128, (x, w, h) => { for (let i = 0; i < 26; i++) { const cx = 40 + r() * (w - 80), cy = h * .62 - Math.sin(cx / w * Math.PI) * 14 + (r() - .5) * 16, rd = 18 + r() * 26, g = x.createRadialGradient(cx, cy, 0, cx, cy, rd); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.6, 'rgba(255,255,255,.22)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); } const gg = x.createLinearGradient(0, h * .45, 0, h); gg.addColorStop(0, 'rgba(120,135,160,0)'); gg.addColorStop(1, 'rgba(120,135,160,.35)'); x.globalCompositeOperation = 'source-atop'; x.fillStyle = gg; x.fillRect(0, 0, w, h); }); }
@@ -1050,7 +1075,7 @@ function lerpSeason(a, b, k) { const o = Object.assign({}, b); ['zen', 'tuft', '
 let rainOn = false;
 function applySeason(name, instant) {
   const S = SEASONS[name], prev = curS; season = name;
-  leavesStyle(name); if (SC.bro) treesPlace(); heroSeason();
+  leavesStyle(name); if (SC.grp) treesPlace(); heroSeason();
   if (meadow) meadow.visible = S.flow;
   if (instant) { curS = S; trans = null; setColors(S); paintTerrain(); gradientSky(); } else trans = { a: prev, b: S, t0: performance.now() / 1000 };
 }

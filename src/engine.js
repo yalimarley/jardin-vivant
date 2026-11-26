@@ -62,6 +62,7 @@ function dateOf(day) { const d = new Date(day <= D0 ? START + day * DAYMS : STAR
 function dayOfVDate(y, m, d) { const ms = Date.UTC(y, m, d), b = START + D0 * DAYMS; return ms <= b ? Math.round((ms - START) / DAYMS) : D0 + Math.round((ms - b) / (DAYMS * CAL)); }
 function dayOfDate(y, m, d) { return Math.round((Date.UTC(y, m, d) - START) / DAYMS); }
 function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const WOODY_S = ['Arbre', 'Arbuste', 'Grimpante'];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
 const xr = (day, salt) => mulberry(day * 104729 + salt * 7717 + 13)();
@@ -77,6 +78,9 @@ function extremeOf(day, m, tmin, tmax, rain) {
       else if ((m === 11 || m === 0 || m === 1) && xr(day, 5) < .03) { ev = 'gel'; tmin = r1(Math.min(tmin, -7 - xr(day, 6) * 5)); }
     }
     if (!ev && (m >= 9 || m <= 2) && xr(day, 7) < .02) { ev = 'tempete'; rain = r1(rain + 6 + xr(day, 8) * 10); }
+    if (!ev) { let cold = false; for (let k = 0; k < 5; k++) { const d0 = day - k, m0 = dateOf(d0).m; if (d0 >= 14 && (m0 === 11 || m0 === 0 || m0 === 1) && xr(d0, 15) < .03 && k < 3 + Math.floor(xr(d0, 16) * 3)) { cold = true; break; } } if (cold) { ev = 'froid'; tmin = r1(Math.min(tmin, -8 - xr(day, 17) * 5)); tmax = r1(Math.min(tmax, 1 + xr(day, 18) * 2)); } }
+    if (!ev && (m === 10 || m === 11 || m === 0 || m === 1 || m === 2) && tmin <= 1 && xr(day, 12) < .05) { ev = 'neige'; tmin = r1(Math.min(tmin, -2 - xr(day, 13) * 3)); tmax = r1(Math.min(tmax, 1.5)); rain = 0; }
+    if (!ev && m >= 3 && m <= 9 && xr(day, 14) < .025) { ev = 'vent'; }
     if (!ev && m >= 5 && m <= 8 && xr(day, 9) < .035) { ev = 'orage'; rain = r1(rain + 10 + xr(day, 10) * 14); hail = xr(day, 11) < .4; }
   }
   return { tmin, tmax, rain, ev, hail };
@@ -386,7 +390,7 @@ function make(P) {
   function resistance(s, i) { const sy = synergy(s, i), links = new Set(sy.notes.filter(n => n.t === 'good').flatMap(n => n.froms).filter(j => j >= 0)).size; return { links, pct: Math.round(Math.min(.85, links * .1 + (hasAdv(s, 'resilient') ? .1 : 0)) * 100) }; }
   function heal(s, i) { const c = s.grid[i]; if (!c || c.treille || !c.sick) return false; c.sick = null; c.health = Math.min(100, c.health + 4); bump(s); return true; }
   // effets de la faune : fraction d'attaques évitées / bonus de récolte
-  const FSHIELD = { limaces: { herisson: .25, carabe: .2, grenouille: .15, crapaud: .15, orvet: .1, salamandre: .1 }, fongique: { coccinelle: .15, syrphe: .1, mesange: .15 } };
+  const FSHIELD = { limaces: { herisson: .25, carabe: .2, grenouille: .15, crapaud: .15, orvet: .1, salamandre: .1 }, fongique: { coccinelle: .15, syrphe: .1, mesange: .15 }, campagnols: { chouette: .3, belette: .25, renard: .1 } };
   function faunaShield(s, k) { let v = 0; for (const id in (FSHIELD[k] || {})) if (s.fauna && s.fauna[id]) v += FSHIELD[k][id]; return Math.min(.7, v); }
   const POLL = ['abeille', 'bourdon', 'solitaire', 'papillon'];
   function faunaYield(s) { return 1 + .03 * POLL.filter(id => s.fauna && s.fauna[id]).length; }
@@ -486,6 +490,21 @@ function make(P) {
     s.pestDay = s.pestDay || {};
     if (rn() < pS && w.tmin > 2 && s.day - (s.pestDay.limaces == null ? -99 : s.pestDay.limaces) >= 7) kinds.push('limaces'); if (rn() < pF && s.day - (s.pestDay.fongique == null ? -99 : s.pestDay.fongique) >= 21) kinds.push('fongique');
     kinds.forEach(k => { s.pestDay[k] = s.day; });
+    // Lapins (printemps-été) : grignotent les jeunes plantes basses. Parade : une haie ou une serre à côté, ou une guilde installée.
+    // Campagnols (hiver) : rongent les racines des jeunes arbres et arbustes. Parade : attirer chouette, belette ou renard.
+    { const hedgeNear = i => neigh(i, s).concat([i]).some(j => { const sp = spotOf(s, j); return sp && sp.t === 'hedge'; }), serreNear = i => neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre'), young = c => ['graine', 'pousse'].includes(phase(c).stage);
+      s.pestDay.lapins = s.pestDay.lapins == null ? -99 : s.pestDay.lapins; s.pestDay.campagnols = s.pestDay.campagnols == null ? -99 : s.pestDay.campagnols;
+      if (s.day >= 14 && m >= 3 && m <= 8 && rn() < .07 && s.day - s.pestDay.lapins >= 10) {
+        s.pestDay.lapins = s.day; let n = 0;
+        for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (!c || c.treille || !P[c.pid] || !['Herbacée', 'Racine', 'Couvre-sol'].includes(P[c.pid].strate) || !young(c) || hedgeNear(i) || serreNear(i)) continue; if (rn() < .55 * (1 - resistance(s, i).pct / 200)) { c.health = Math.max(5, c.health - 40); n++; } }
+        if (n) ev.push({ t: 'warn', text: 'Des lapins ont grignoté ' + n + ' jeune' + (n > 1 ? 's' : '') + ' plante' + (n > 1 ? 's' : '') + ' cette nuit. Une haie ou une serre à côté les protège.' });
+      }
+      if (s.day >= 14 && (m >= 10 || m <= 1) && rn() < .05 && s.day - s.pestDay.campagnols >= 14) {
+        s.pestDay.campagnols = s.day; let n = 0; const sh = faunaShield(s, 'campagnols');
+        for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (!c || c.treille || !P[c.pid] || !['Arbre', 'Arbuste'].includes(P[c.pid].strate) || !['pousse', 'jeune'].includes(phase(c).stage)) continue; if (rn() < .4 * (1 - sh)) { c.health = Math.max(5, c.health - 30); n++; } }
+        if (n) ev.push({ t: 'warn', text: 'Des campagnols ont rongé les racines de ' + n + ' jeune' + (n > 1 ? 's' : '') + ' arbre' + (n > 1 ? 's' : '') + '. La chouette, la belette et le renard les chassent : aménage-leur des abris.' });
+      }
+    }
     const BS = { Herbacée: .5, Racine: .5, 'Couvre-sol': .4, Grimpante: .25, Arbuste: .1, Arbre: .03 }, BF = { Herbacée: .3, Racine: .2, 'Couvre-sol': .08, Grimpante: .4, Arbuste: .2, Arbre: .15 };
     for (const k of kinds) {
       let n = 0;
@@ -759,7 +778,7 @@ function make(P) {
     s.tank = Math.min(s.tankMax, s.tank + w.rain * 10 * (1 + .3 * (s.cuves || 0)));
     { const rg = (m >= 2 && m <= 7 ? .016 : m >= 8 && m <= 10 ? .006 : .002) * (skillLevel(s, 'herboristerie') >= 2 ? 1.5 : 1); s.grid.forEach(c => { if (c && c.furn === 'prairie' && c.fl != null && c.fl < 1) c.fl = r2(Math.min(1, c.fl + rg)); }); }
     if (w.tmin < 0) ev.push({ t: 'warn', text: 'Gelée cette nuit (' + String(w.tmin).replace('.', ',') + ' °C).' });
-    if (w.ev) { s.wxCount = s.wxCount || {}; s.wxCount[w.ev] = (s.wxCount[w.ev] || 0) + 1; const WT = { canicule: 'Canicule : ' + String(w.tmax).replace('.', ',') + ' °C, le sol sèche vite.', secheresse: 'Période sèche : pas de pluie, pense à arroser et à pailler.', tempete: 'Tempête de vent cette nuit.', orage: w.hail ? 'Orage de grêle !' : 'Orage : la cuve se remplit.' }; if (WT[w.ev]) ev.push({ t: 'warn', text: WT[w.ev] }); }
+    if (w.ev) { s.wxCount = s.wxCount || {}; s.wxCount[w.ev] = (s.wxCount[w.ev] || 0) + 1; const WT = { canicule: 'Canicule : ' + String(w.tmax).replace('.', ',') + ' °C, le sol sèche vite.', secheresse: 'Période sèche : pas de pluie, pense à arroser et à pailler.', tempete: 'Tempête de vent cette nuit.', orage: w.hail ? 'Orage de grêle !' : 'Orage : la cuve se remplit.', neige: 'Il a neigé cette nuit (' + String(w.tmin).replace('.', ',') + ' °C) : la neige protège le sol du gel mais alourdit les branches des arbustes et des arbres.', vent: 'Gros coup de vent : le mobilier léger et les plantes hautes sont exposés.', froid: 'Vague de froid : ' + String(w.tmin).replace('.', ',') + ' °C la nuit. Paille tes plantes fragiles.' }; if (WT[w.ev]) ev.push({ t: 'warn', text: WT[w.ev] }); }
     let wxHit = 0;
     for (let i = 0; i < NCELL; i++) {
       const c = s.grid[i]; if (!c || c.treille) continue;
@@ -784,12 +803,14 @@ function make(P) {
         if (w.ev === 'canicule' && c.water < 10) dmg = (p.strate === 'Arbre' ? 1.5 : 7) * (1 - rs) * (shadeOf(s, i, p) ? .6 : 1);
         else if (w.ev === 'secheresse' && c.water < 5) dmg = (p.strate === 'Arbre' ? .8 : 3) * (1 - rs);
         else if (w.ev === 'tempete' && (p.strate === 'Arbre' || p.strate === 'Arbuste' || p.strate === 'Grimpante')) { dmg = (p.strate === 'Arbre' ? 10 : p.strate === 'Grimpante' ? 22 : 12) * (1 - rs) * (tallN >= 2 ? .4 : tallN === 1 ? .7 : 1); if (c.supp) dmg *= .6; }
+        else if (w.ev === 'neige' && WOODY_S.includes(p.strate)) { dmg = (p.strate === 'Arbre' ? 5 : p.strate === 'Grimpante' ? 14 : 9) * (1 - rs) * (tallN >= 2 ? .5 : tallN === 1 ? .8 : 1) * (c.supp ? .6 : 1) * (neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre') ? .3 : 1); }
+        else if (w.ev === 'vent' && WOODY_S.includes(p.strate)) { dmg = (p.strate === 'Arbre' ? 4 : p.strate === 'Grimpante' ? 12 : 6) * (1 - rs) * (tallN >= 2 ? .4 : tallN === 1 ? .7 : 1) * (c.supp ? .6 : 1); }
         else if (w.ev === 'orage' && w.hail && !neigh(i, s).some(j => s.grid[j] && s.grid[j].furn === 'serre')) { if (p.strate === 'Herbacée' || p.strate === 'Racine' || p.strate === 'Couvre-sol') dmg = 30 * (1 - rs) * (tallN ? .7 : 1); else if (p.strate === 'Arbuste') dmg = 8 * (1 - rs); }
         if (dmg > 0.5) { c.health = Math.max(0, c.health - dmg); wxHit++; }
       }
       if (c.sick) { c.health = Math.max(1, c.health - (c.sick.k === 'limaces' ? 2.2 : 1.6)); if (s.day - c.sick.day >= 8) { c.health = Math.max(1, c.health - 12); c.sick = null; ev.push({ t: 'warn', text: p.name + ' a beaucoup souffert faute de soin.' }); } }
       if (s.grace && c.health < h0) c.health = h0;
-      if (c.health <= 0) { ev.push({ t: 'bad', text: p.name + (w.tmin < gelEff ? ' n’a pas résisté au gel.' : w.ev === 'tempete' ? ' a été brisé par la tempête.' : w.ev === 'orage' ? ' a été haché par la grêle.' : w.ev === 'canicule' ? ' n’a pas supporté la canicule.' : ' est mort de soif.') }); s.grid[i] = c.supp ? { treille: true, furn: c.supp } : null; continue; }
+      if (c.health <= 0) { ev.push({ t: 'bad', text: p.name + (w.tmin < gelEff ? ' n’a pas résisté au gel.' : w.ev === 'tempete' ? ' a été brisé par la tempête.' : w.ev === 'neige' ? ' a cassé sous le poids de la neige.' : w.ev === 'vent' ? ' a été arraché par le vent.' : w.ev === 'orage' ? ' a été haché par la grêle.' : w.ev === 'canicule' ? ' n’a pas supporté la canicule.' : ' est mort de soif.') }); s.grid[i] = c.supp ? { treille: true, furn: c.supp } : null; continue; }
       let f = 1;
       if (c.g < p.germ) f = (tm < 5 && p.gel >= -5) ? .3 : 1;
       else if (c.g < maturity(p)) { f = SEASONF[m]; f = f + (1 - f) * (1 - Math.min(1, p.croiss / 120)); if (p.gel <= -8 && p.croiss <= 130 && ['Herbacée', 'Racine'].includes(p.strate)) f = Math.max(f, .6); if (tm < 8 && p.gel >= 0 && !gsNear(s, i)) f *= .3; }
@@ -800,7 +821,12 @@ function make(P) {
       if (st === 'mature' && wasStage !== 'mature' && wasStage !== undefined) ev.push({ t: 'good', text: p.name + ' est arrivé à maturité.' });
       if (c.ready && !wasReady) { c.readyDay = s.day; ev.push({ t: 'good', text: p.name + ' est prêt à récolter.' }); }
     }
-    if (wxHit && w.ev !== 'canicule' && w.ev !== 'secheresse') ev.push({ t: 'bad', text: (w.ev === 'tempete' ? 'Tempête' : 'Grêle') + ' : ' + wxHit + ' plante' + (wxHit > 1 ? 's' : '') + ' abîmée' + (wxHit > 1 ? 's' : '') + '. Les guildes et les grands arbres protègent mieux.' });
+    if (w.ev === 'vent' || w.ev === 'tempete') {   // le vent emporte le mobilier léger qui n'est pas abrité par un arbre voisin ; il retourne dans le stock
+      const LIGHT = { hamac: 'le hamac', mangeoire: 'la mangeoire', banc: 'le banc' }, lost = [];
+      for (let i = 0; i < NCELL; i++) { const c = s.grid[i]; if (!c || !c.treille || !LIGHT[c.furn]) continue; if (neigh(i, s).some(j => { const q = s.grid[j]; return q && !q.treille && P[q.pid] && P[q.pid].strate === 'Arbre' && phase(q).stage !== 'graine' && phase(q).stage !== 'pousse'; })) continue; if (xr(s.day, 30 + i) < (w.ev === 'tempete' ? .6 : .35)) { s.mats[c.furn] = (s.mats[c.furn] || 0) + 1; lost.push(LIGHT[c.furn]); s.grid[i] = null; } }
+      if (lost.length) ev.push({ t: 'bad', text: 'Le vent a emporté ' + lost.join(', ') + ' : retrouvé' + (lost.length > 1 ? 's' : '') + ' dans ton stock, à reposer. Un grand arbre à côté les met à l’abri.' });
+    }
+    if (wxHit && w.ev !== 'canicule' && w.ev !== 'secheresse' && w.ev !== 'froid') ev.push({ t: 'bad', text: (w.ev === 'tempete' ? 'Tempête' : w.ev === 'neige' ? 'Neige' : w.ev === 'vent' ? 'Vent' : 'Grêle') + ' : ' + wxHit + ' plante' + (wxHit > 1 ? 's' : '') + ' abîmée' + (wxHit > 1 ? 's' : '') + '. Les guildes et les grands arbres protègent mieux.' });
     if (s.cellar && !s.grace) s.cellar = s.cellar.filter(x => !(x.k === 'dessert' && s.day - x.day > 5));
     s.stock = s.stock.filter(it => { const p = P[it.pid]; if (!s.grace && s.day - it.day > (it.keep ? (it.keep === 'sec' ? 400 : 300) : Math.max(1, p.cons * (hasAdv(s, 'autonome') ? 1.5 : 1)))) { ev.push({ t: 'warn', text: it.kg.toFixed(2).replace('.', ',') + ' kg de ' + p.name.toLowerCase() + ' perdus (trop vieux).' }); return false; } return true; });
     { const sea = Math.floor((m % 12) / 3); if (s.lastSea == null) s.lastSea = sea; else if (s.lastSea !== sea) { s.lastSea = sea; gainXp(s, 350); ev.push({ t: 'good', text: 'Une nouvelle saison s’installe : ton jardin a bien vécu, de l’expérience en plus.' }); } }

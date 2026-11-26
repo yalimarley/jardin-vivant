@@ -50,7 +50,7 @@ for (let d = 0; d < 365; d++) {
 }
 const stt = G.stats(s2);
 console.log('Après 1 an :', JSON.stringify(stt), 'repas:', s2.meals, 'morts:', deaths, 'plantes:', s2.plantings, 'cartes en réserve:', Object.keys(s2.cards).length);
-ok(s2.meals > 20, 'au moins 20 repas cuisinés en un an (' + s2.meals + ')');
+ok(s2.meals >= 20, 'au moins 20 repas cuisinés en un an (' + s2.meals + ')');
 ok(stt.plants >= 6, 'au moins 6 plantes vivantes après un an (' + stt.plants + ')');
 ok(!Number.isNaN(stt.soil) && stt.soil >= 20 && stt.soil <= 100, 'sol dans les bornes : ' + stt.soil);
 

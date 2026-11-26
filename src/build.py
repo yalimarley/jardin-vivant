@@ -16,6 +16,15 @@ t = t.replace('/*__PLANTS__*/', pj).replace('/*__HERB__*/', hj).replace('/*__ENG
 spr = {f[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(S('spr/' + f), 'rb').read()).decode() for f in sorted(os.listdir(S('spr'))) if f.endswith('.webp')}
 rg = {f[:-5]: json.load(open(S('rigs/' + f))) for f in sorted(os.listdir(S('rigs'))) if f.endswith('.json')} if os.path.isdir(S('rigs')) else {}
 t = t.replace('/*__RIGS__*/{}', json.dumps(rg, separators=(',', ':')))
+
+# Contrôle des images : tout animal du jeu doit avoir une illustration (les plantes sont dessinées automatiquement).
+import re
+_eng = rd(S('engine.js')); _ui = rd(S('ui.js'))
+_m = re.search(r"const FAUNA = \[(.*?)\n  \];", _eng, re.S) or re.search(r"const FAUNA = \[(.*?)\];", _eng, re.S)
+_ids = re.findall(r"id:\s*'([a-z_]+)'", _m.group(1)) if _m else []
+_ans = dict(re.findall(r"(\w+): '(\w+)'", re.search(r"const ANS = \{(.*?)\};", _ui, re.S).group(1)))
+_miss = [i for i in _ids if (_ans.get(i, i)) not in spr and i not in spr]
+print('Images animaux :', len(_ids) - len(_miss), '/', len(_ids), ('— MANQUANTES : ' + ', '.join(_miss)) if _miss else '— toutes présentes')
 t = t.replace('/*__SPR__*/{}', json.dumps(spr, separators=(',', ':')))
 t = t.replace('__GUILDEON__', 'data:image/webp;base64,' + base64.b64encode(open(S('guildeon.webp'), 'rb').read()).decode())
 out = os.path.join(R, 'dist', 'jardin-vivant.html')

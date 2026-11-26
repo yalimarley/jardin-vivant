@@ -243,6 +243,8 @@ const MATS = {
   mare: { n: 'Mare', d: 'Biodiversité et humidité.', svg: '<ellipse cx="40" cy="56" rx="32" ry="14" fill="#8f8b7d"/><ellipse cx="40" cy="55" rx="27" ry="11" fill="#4f9bd0"/><ellipse cx="36" cy="54" rx="9" ry="3" fill="none" stroke="#d8f0fb" stroke-width="1.4" opacity=".7"/><ellipse cx="50" cy="52" rx="6" ry="2.4" fill="#4d9a4c"/><path d="M16 56c-1-12 2-18 4-24M22 58c0-10 4-16 6-20M62 56c1-12-2-18-4-24" stroke="#4f7d3a" stroke-width="2.4" fill="none" stroke-linecap="round"/>' },
   atelier: { n: 'Atelier', d: 'Près de la maison : conserve et sèche la récolte.', svg: '<ellipse cx="40" cy="70" rx="30" ry="6" fill="#000" opacity=".15"/><path d="M14 68V38l26-12 26 12v30z" fill="#c9a574"/><path d="M40 26l26 12v30H40z" fill="#a8825a"/><path d="M8 40L40 20l32 20" stroke="#a3402c" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="22" y="48" width="12" height="20" fill="#6b4a2e"/><rect x="46" y="44" width="14" height="12" fill="#8fc1d6" stroke="#6b4a2e" stroke-width="2"/>' },
   bocaux: { n: 'Bocaux', d: 'Six bocaux : la récolte se garde plus d’un an.', svg: '<g stroke="#8aa67a" stroke-width="1.6"><rect x="10" y="38" width="20" height="28" rx="4" fill="#f2f6e6"/><rect x="30" y="30" width="20" height="36" rx="4" fill="#f2f6e6"/><rect x="50" y="40" width="20" height="26" rx="4" fill="#f2f6e6"/></g><g fill="#a3402c"><rect x="12" y="33" width="16" height="6" rx="2"/><rect x="32" y="25" width="16" height="6" rx="2"/><rect x="52" y="35" width="16" height="6" rx="2"/></g><rect x="13" y="48" width="14" height="14" rx="3" fill="#e0603a"/><rect x="33" y="42" width="14" height="20" rx="3" fill="#f0b23a"/><rect x="53" y="50" width="14" height="12" rx="3" fill="#7dbb5c"/>' },
+  oies: { n: 'Oies', d: 'Elles broutent la pelouse à ta place : chaque zone prête donne 1 paillage.', svg: '<ellipse cx="40" cy="70" rx="28" ry="6" fill="#000" opacity=".15"/><g><path d="M26 68c-6-16 0-30 10-34 4-2 6-6 5-10 0-5 6-7 9-3 3 4 1 9-2 11-2 2-2 5 2 8 8 6 8 20 0 28z" fill="#f7f3ea" stroke="#b9ae92" stroke-width="1.6"/><path d="M50 22l10 2-9 4z" fill="#e8892b"/><circle cx="47" cy="21" r="1.5" fill="#222"/></g><path d="M34 70v6M44 70v6" stroke="#e8892b" stroke-width="3" stroke-linecap="round"/>' },
+  moutons: { n: 'Moutons', d: 'Un petit troupeau qui broute la pelouse : chaque zone prête donne 2 paillage.', svg: '<ellipse cx="40" cy="70" rx="28" ry="6" fill="#000" opacity=".15"/><g fill="#f5f1e8" stroke="#bdb39a" stroke-width="1.6"><circle cx="30" cy="48" r="11"/><circle cx="42" cy="44" r="12"/><circle cx="52" cy="50" r="10"/><circle cx="38" cy="54" r="10"/></g><ellipse cx="60" cy="48" rx="7" ry="8" fill="#4a3f38"/><circle cx="62" cy="46" r="1.4" fill="#fff"/><path d="M28 62v10M40 64v8M52 62v10" stroke="#4a3f38" stroke-width="3.5" stroke-linecap="round"/>' },
   sechoir: { n: 'Séchoir', d: 'Sèche herbes et fruits : se garde très longtemps.', svg: '<path d="M12 70V22M68 70V22" stroke="#8a6240" stroke-width="5" stroke-linecap="round"/><path d="M8 24h64" stroke="#7a5636" stroke-width="5" stroke-linecap="round"/><g stroke-linecap="round"><path d="M24 26v18M40 26v24M56 26v16" stroke="#6b4a2e" stroke-width="2"/></g><path d="M18 44c4-4 10-4 12 0l-6 10z" fill="#7dbb5c"/><path d="M34 50c4-4 10-4 12 0l-6 12z" fill="#b9a24a"/><path d="M50 42c4-4 10-4 12 0l-6 10z" fill="#cc7a2b"/>' },
   grandeserre: { n: 'Grande serre', d: 'Cultive les plantes exotiques fragiles au froid.', svg: '<path d="M8 68V34l32-18 32 18v34z" fill="#dff0f6" opacity=".8" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M8 34h64M40 16v52M24 26v42M56 26v42" stroke="#fff" stroke-width="2.2"/><path d="M8 68h64" stroke="#6a4e39" stroke-width="5"/><path d="M40 66q2-14 0-26" stroke="#7a5636" stroke-width="3.5" fill="none" stroke-linecap="round"/><g stroke="#4f9a4a" stroke-width="3.5" fill="none" stroke-linecap="round"><path d="M40 40q-10-2-14 8M40 40q10-2 14 8M40 40q-6-10-14-8M40 40q6-10 14-8"/></g><circle cx="52" cy="60" r="3" fill="#f0b23a"/><circle cx="28" cy="62" r="3" fill="#e0603a"/>' },
   ortie: { n: 'Purin d’ortie', d: 'Stimule la croissance, éloigne les limaces.', svg: '<ellipse cx="40" cy="70" rx="24" ry="5" fill="#000" opacity=".15"/><path d="M24 36h32l-3 32H27z" fill="#5f8a3a"/><path d="M22 36h36" stroke="#3f6a28" stroke-width="5" stroke-linecap="round"/><g fill="#4f9a4a" stroke="#2f6a2c" stroke-width="1.2"><path d="M40 34c-4-10-12-14-18-12 2 8 8 14 18 12z"/><path d="M40 34c4-12 12-16 18-14-2 8-8 16-18 14z"/><path d="M40 34c-1-8 1-14 0-20 4 6 4 14 0 20z"/></g><path d="M30 52q10 5 20 0" stroke="#cfe8a0" stroke-width="2.5" fill="none" stroke-linecap="round"/>' },
@@ -406,7 +408,7 @@ const FURN_INFO = {
 };
 const FURNK = ['treille', 'pergola', 'serre', 'grandeserre', 'mare', 'ruche', 'hamac', 'boismort', 'pierres', 'prairie', 'hotel', 'banc', 'mangeoire'];
 const TARGET = { chemin: '<b>Sentier :</b> glisse depuis le bord du jardin (ou depuis un sentier) pour le tracer. Touche un tronçon pour le retirer. Les cercles orange marquent les plantes encore sans sentier.', ortie: 'Touche une plante : le purin agit sur elle et ses voisines.', prele: 'Touche une plante : la décoction protège elle et ses voisines.', oya: 'Touche la plante à arroser en continu.', mycor: 'Touche un arbre ou un arbuste.', nichoir: 'Touche un arbre pour y fixer le nichoir.' };
-const INSTANT = ['atelier', 'poulailler', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
+const INSTANT = ['atelier', 'poulailler', 'oies', 'moutons', 'sechoir', 'cuve', 'savoir', 'plan', 'bocaux'];
 const dia = (cx, cy, k) => [(cx).toFixed(1) + ',' + (cy - TH * k).toFixed(1), (cx + TW * k).toFixed(1) + ',' + cy.toFixed(1), (cx).toFixed(1) + ',' + (cy + TH * k).toFixed(1), (cx - TW * k).toFixed(1) + ',' + cy.toFixed(1)];
 function furnTile(k, cx, cy, m, seed, cell) {
   const R = rnd(seed * 11 + 3); let s = '';
@@ -1416,6 +1418,7 @@ function useInstant(k) {
   let r;
   if (k === 'atelier') { r = G.buildAtelier(S); if (!r.ok) { toast(r.msg); return; } toast('Atelier construit à côté de la maison. Touche-le pour transformer ta récolte.'); }
   else if (k === 'poulailler') { r = G.buildPoulailler(S); if (!r.ok) { toast(r.msg); return; } toast('Poulailler construit : trois poules, des œufs au garde-manger.'); }
+  else if (k === 'oies' || k === 'moutons') { r = G.buildGrazer(S, k); if (!r.ok) { toast(r.msg); return; } toast(k === 'oies' ? 'Oies installées : elles broutent la pelouse.' : 'Moutons installés : ils broutent la pelouse.'); }
   else if (k === 'sechoir') { r = G.installSechoir(S); if (!r.ok) { toast(r.msg); return; } toast('Séchoir installé à l’atelier : 3 kg par jour.'); }
   else if (k === 'cuve') { r = G.useCuve(S); if (!r.ok) { toast(r.msg); return; } toast('Cuve installée : réserve d’eau +150 L.'); }
   else if (k === 'bocaux') { if (!S.atelier) { toast('Construis d’abord l’atelier : les bocaux se remplissent là-bas.'); return; } save(); render(); openAtelier(); return; }
@@ -1474,7 +1477,7 @@ function shopCard(k) {
 const SHOPCAT = [
   { id: 'base', n: 'Matériaux', d: 'Paillage et compost : la base d’un sol vivant. Tu en gagnes aussi en tondant, en taillant des trognes et avec ton composteur.', ks: ['paillage', 'compost'] },
   { id: 'soin', n: 'Soins, eau et savoir', d: 'Purin, prêle, eau et connaissances. Purin, prêle, nichoir, oya et cuve se fabriquent aussi avec la compétence Fabrication.', ks: ['ortie', 'prele', 'mycor', 'oya', 'cuve', 'plan', 'savoir'] },
-  { id: 'faune', n: 'Faune et observation', d: 'Attire les animaux, puis observe-les : piège photo, mangeoire, abris et animaux de la ferme.', ks: ['piege', 'mangeoire', 'nichoir', 'hotel', 'boismort', 'pierres', 'mare', 'ruche', 'canard', 'poulailler'] },
+  { id: 'faune', n: 'Faune et observation', d: 'Attire les animaux, puis observe-les : piège photo, mangeoire, abris et animaux de la ferme.', ks: ['piege', 'mangeoire', 'nichoir', 'hotel', 'boismort', 'pierres', 'mare', 'ruche', 'canard', 'poulailler', 'oies', 'moutons'] },
   { id: 'detente', n: 'Détente et décor', d: 'Aménage des coins agréables : on s’y repose, la famille est plus heureuse et le jardin plus beau.', ks: ['prairie', 'banc', 'treille', 'hamac', 'pergola'] },
   { id: 'atelier', n: 'Atelier et serres', d: 'Transformer et conserver la récolte, cultiver à l’abri.', ks: ['atelier', 'bocaux', 'sechoir', 'serre', 'grandeserre'] },
   { id: 'cartes', n: 'Cartes', d: 'Pochette découverte et recyclage des doubles.', ks: [] }
@@ -1553,14 +1556,28 @@ function cellarItems() {
   (S.cellar || []).forEach((x, i) => out.push({ t: x.k, name: x.name, n: x.n, i }));
   return out;
 }
+
+/* ---------- identité du jardinier (prénom, nom, jardinier / jardinière) ---------- */
+const gF = () => !!(S.gardener && S.gardener.g === 'f');
+function gTitle(l) { const f = gF(); return l < 2 ? (f ? 'Apprentie jardinière-forêt' : 'Apprenti jardinier-forêt') : l < 5 ? (f ? 'Jardinière-forêt' : 'Jardinier-forêt') : l < 9 ? (f ? 'Jardinière-forêt confirmée' : 'Jardinier-forêt confirmé') : (f ? 'Maîtresse jardinière-forêt' : 'Maître jardinier-forêt'); }
+function gName() { const g = S.gardener; return g && g.first ? (g.first + (g.last ? ' ' + g.last : '')) : (gF() ? 'Ta jardinière' : 'Ton jardinier'); }
+function gForm(first) {
+  const g = S.gardener || {};
+  return '<div class="gform"><label>Prénom<input id="g-first" type="text" maxlength="20" value="' + esc(g.first || '') + '" placeholder="Prénom"></label><label>Nom<input id="g-last" type="text" maxlength="24" value="' + esc(g.last || '') + '" placeholder="Nom"></label>' +
+    '<div class="wd-opts" style="margin:8px 0"><button type="button" class="btn sm' + (g.g !== 'f' ? ' primary' : '') + '" data-act="g-gender" data-g="m" data-ctx="' + (first ? 'c' : 'h') + '">Un jardinier</button><button type="button" class="btn sm' + (g.g === 'f' ? ' primary' : '') + '" data-act="g-gender" data-g="f" data-ctx="' + (first ? 'c' : 'h') + '">Une jardinière</button></div>' +
+    '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="g-save">' + (first ? 'Commencer' : 'Enregistrer') + '</button></div></div>';
+}
+function gardenerCreate() { modal('Crée ton jardinier', '<p class="note-p">Qui va cultiver la forêt comestible ? Donne-lui un prénom et un nom. Tu pourras les changer plus tard dans la maison, onglet « Mon jardinier ».</p>' + gForm(true)); }
+function gardenerMaybeCreate() { if (!S.gardener && !S.demo && !(S.maxPlantings > 0) && S.tuto && !S.tuto.done) gardenerCreate(); }
 function openHouse(tab) {
   ui.houseTab = tab || ui.houseTab || 'jardinier'; const t = ui.houseTab, X = G.xpInfo(S);
-  const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  const title = gTitle(X.lvl);
   let h = '<div class="sk-tabs" role="tablist">' + [['jardinier', 'Mon jardinier'], ['famille', 'La famille'], ['cellier', 'Le cellier']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="house-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
   h += roomImg(t === 'cellier' ? 'cellier' : 'maison');
   if (t === 'jardinier') {
     const o = S.outfit || {};
-    h += '<div class="hs-head">' + (portraitImg('gardener', 150) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP</small><div class="acts" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn sm" data-act="skills">Compétences</button></div></div></div>';
+    h += '<div class="hs-head">' + (portraitImg('gardener', 150) || gardenerPortrait()) + '<div class="sk-id"><b>' + esc(gName()) + '</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP</small><div class="acts" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn sm" data-act="skills">Compétences</button></div></div></div>';
+    h += '<h3 style="margin:12px 0 6px">Identité</h3>' + gForm(false);
     h += '<h3 style="margin:12px 0 6px">Garde-robe</h3><p class="note-p">' + (season4() === 'winter' ? 'Il fait froid : le bonnet et le manteau tiennent chaud.' : season4() === 'summer' ? 'Plein soleil : le chapeau de paille protège.' : 'Habille ton jardinier comme tu veux.') + '</p>';
     Object.keys(G.OUTFIT).forEach(sl => { const d = G.OUTFIT[sl]; h += '<div class="wd-row"><span class="wd-n">' + d.n + '</span><span class="wd-opts">' + d.o.map(([id, nm]) => '<button type="button" class="btn sm' + ((o[sl] || d.o[0][0]) === id ? ' primary' : '') + '" data-act="outfit" data-slot="' + sl + '" data-id="' + id + '">' + nm + '</button>').join('') + '</span></div>'; });
   } else if (t === 'famille') {
@@ -1600,7 +1617,7 @@ function openGardener() {
 }
 function openSkills() {
   const L = G.skillList(S), X = G.xpInfo(S), tab = ui.skTab || 'all';
-  const title = X.lvl < 2 ? 'Apprenti jardinier-forêt' : X.lvl < 5 ? 'Jardinier-forêt' : X.lvl < 9 ? 'Jardinier-forêt confirmé' : 'Maître jardinier-forêt';
+  const title = gTitle(X.lvl);
   let h = '<div class="sk-head">' + (portraitImg('gardener', 72) || gardenerPortrait()) + '<div class="sk-id"><b>Ton jardinier</b><span>' + title + '</span><strong>Niveau ' + X.lvl + '</strong><div class="bar"><i style="width:' + Math.round(X.into / X.need * 100) + '%"></i></div><small class="sk-xp">' + X.into + ' / ' + X.need + ' XP · encore ' + (X.need - X.into) + ' pour le niveau ' + (X.lvl + 1) + '</small></div></div>';
   h += '<div class="sk-stats"><div><b>' + X.pts + '</b><span>Points libres</span></div><div><b>' + X.spent + '</b><span>Points investis</span></div><div><b>' + X.acq + '/' + X.total + '</b><span>Skills acquis</span></div></div>';
   h += '<div class="sk-title"><h3>Arbre de compétences</h3><span class="sk-chip">' + X.pts + ' point' + (X.pts > 1 ? 's' : '') + ' libre' + (X.pts > 1 ? 's' : '') + '</span></div><p class="note-p">Chaque geste rapporte de l’XP. À chaque niveau, tu gagnes 1 point à dépenser ici. Monter une compétence demande 1 point et assez de pratique.</p>';
@@ -2049,9 +2066,11 @@ document.addEventListener('click', e => {
     case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); break;
+    case 'g-gender': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({}, S.gardener, { g: a.dataset.g, first: f ? f.value.trim() : (S.gardener || {}).first, last: l ? l.value.trim() : (S.gardener || {}).last }); save(); if (a.dataset.ctx === 'c') gardenerCreate(); else openHouse('jardinier'); break; }
+    case 'g-save': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({ g: 'm' }, S.gardener, { first: f ? f.value.trim() : '', last: l ? l.value.trim() : '' }); save(); closeModal(); toast(gName() + ' est prêt' + (gF() ? 'e' : '') + ' à planter.'); break; }
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
-    case 'newgame': S = G.newGame(); catchUp(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); break;
+    case 'newgame': S = G.newGame(); catchUp(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); gardenerMaybeCreate(); break;
   }
 });
 document.addEventListener('keydown', e => {
@@ -2122,7 +2141,7 @@ const trace = (function initTrace() {
 })();
 window.__jv = { openGardener: () => openGardener(), openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
 if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openGardener: () => openGardener(), openGardener: () => openGardener(), openAtelier: () => openAtelier(), collect: () => collectAtelier(), spadeCands: () => (ui.tool === 'spade' && ui.spade) ? G.spotCands(S, ui.spade.t, ui.spade.n, V3D.dims()) : [], scare: i => { const w = (S.wilds || [])[i]; if (!w) return; if (w.scared || w.done) { toast('Il est déjà parti.'); return; } if (G.WILD[w.k] && G.WILD[w.k].good) { toast('Ce visiteur est le bienvenu : le hérisson mange les limaces.'); return; } const r = G.scareWild(S, i); if (r.ok) { toast('Tu as fait fuir le ' + G.WILD[r.k].n + '.'); save(); render(); } } });
-catchUp(); claimDaily(); render(); startChars(); calNote();
+catchUp(); claimDaily(); render(); startChars(); calNote(); gardenerMaybeCreate();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 cloudHandleReturn();
 })();

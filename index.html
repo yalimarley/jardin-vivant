@@ -1548,7 +1548,7 @@ function buildFarTrees() {
   const rnd = srand(9137), phone = innerWidth <= 560, NT = phone ? 800 : 1700, x0 = HW + 15, z0 = HH + 15, P = [];
   for (let tries = 0; P.length < NT && tries < NT * 14; tries++) {
     const a = rnd() * 6.283, r = 10 + Math.pow(rnd(), 1.15) * 96, x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 1.1;
-    if ((Math.abs(x) < x0 && Math.abs(z) < z0) || Math.abs(x) > 106 || Math.abs(z) > 106) continue; if (z > 0 && Math.hypot(x, z) < 40) continue; /* pas de grands arbres entre la caméra et le jardin */
+    if ((Math.abs(x) < x0 && Math.abs(z) < z0) || Math.abs(x) > 106 || Math.abs(z) > 106) continue; if ((z > 0 && Math.hypot(x, z) < 40) || z > 28) continue; /* pas de grands arbres entre la caméra et le jardin, ni autour de la caméra (z ≈ 50) */
     const f = gnoise(x * .7 + 11, z * .7 - 5) + gnoise(x * 1.9, z * 1.9) * .5; if (f < -.2 && rnd() < .9) continue;
     const y = hAt(x, z), con = rnd() < (y > 7 ? .75 : .22), q = rnd(), sp = con ? (q < .55 ? 'sapin' : 'cypres') : (q < (phone ? .8 : .65) ? 'bouleau' : 'chene'), hh = TRH[sp];
     P.push({ x, y, z, con, sp, H: (hh[0] + rnd() * hh[1]) * (.4 + Math.hypot(x, z) / 120) * (.85 + rnd() * .35), r1: rnd(), r2: rnd(), r3: rnd(), ry: rnd() * 6.28 });
@@ -1566,6 +1566,7 @@ function buildFarTrees() {
   for (let i = 0; i < 16; i++) {
     const nm = names[i % names.length], a = hr() * 6.283, r = 52 + hr() * 30; let x = Math.cos(a) * r * 1.2, z = Math.sin(a) * r;
     if (Math.abs(x) < x0 && Math.abs(z) < z0) { x *= 1.8; z *= 1.5; }
+    if (z > 28) z = -z; /* la caméra est côté z > 0 : un grand arbre à côté d'elle masquerait l'écran */
     const A2 = triGeo(nm, 'hi'), g = new T.Group(), sz = 6.5 + hr() * 3.5, con = nm === 'sapin' || nm === 'cypres'; g.position.set(x, hAt(x, z) - .05, z); g.rotation.y = hr() * 6.28; g.scale.setScalar(sz);
     if (A2.trunk) g.add(new T.Mesh(A2.trunk, new T.MeshLambertMaterial({ vertexColors: true })));
     const lf = new T.Mesh(A2.leaf, new T.MeshLambertMaterial({ vertexColors: true })); g.add(lf); gTerr.add(g); SC.hero.push({ g, lf, con, v: Math.floor(hr() * 4) });

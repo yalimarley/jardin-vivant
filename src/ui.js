@@ -295,7 +295,7 @@ function familyHtml() {
     const t = m.hist.filter(x => S.day - x.day < 1).reduce((a, b) => a + b.kcal, 0);
     return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + face(k, m.joy, 46) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + t + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
 }
-function openFamily() { modal('La famille', familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
+function openFamily() { modal('La famille', harmonyHtml() + familyHtml() + '<p class="note-p" style="margin-top:10px">Camille et Léa vivent dans la maison. Ils sortent dans la cour de 10 h à 11 h et de 16 h à 17 h (heure de ton appareil), soit 2 h par jour.</p>'); }
 function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('prairie') + mat('hotel') + mat('banc') + mat('mangeoire') + mat('boismort') + mat('pierres') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
 function renderRes() {
   const st = G.stats(S), m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null;
@@ -1118,6 +1118,7 @@ function openAct(id) {
   if (id === 'tisane') return actTisane();
   if (id === 'detente') return actDetente();
   if (id === 'bois') { const r = actDone('bois', { q: 1 }, 'Un bon tas de bois mort : +3 paillage.'); try { V3D.fx && V3D.fx('mulch'); } catch (e) {} return r; }
+  if (id === 'champignons') { const r = actDone('champignons', { q: .3 + Math.random() * .7 }, 'Tu reviens de la forêt avec un panier de champignons.'); if (r && r.name) toast('Cueillette : ' + r.n + ' poignée' + (r.n > 1 ? 's' : '') + ' de ' + r.name + '.' + (r.g ? ' +' + r.g + ' ginkgo.' : '')); return r; }
   if (id === 'glanage') { const r = actDone('glanage', { q: .5 + Math.random() * .5 }, 'Tu glanes quelques fruits d’hiver.'); return r; }
 }
 function polaroid(id, q, rare, label, night) { return '<div class="pol' + (night ? ' pol-n' : '') + '"><div class="pol-img">' + anArt(id) + (rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + FNAME(id) + '</b><span>' + stars(q) + (label ? ' · ' + label : '') + '</span></div>'; }
@@ -1569,6 +1570,12 @@ function gForm(first) {
 }
 function gardenerCreate() { modal('Crée ton jardinier', '<p class="note-p">Qui va cultiver la forêt comestible ? Donne-lui un prénom et un nom. Tu pourras les changer plus tard dans la maison, onglet « Mon jardinier ».</p>' + gForm(true)); }
 function gardenerMaybeCreate() { if (!S.gardener && !S.demo && !(S.maxPlantings > 0) && S.tuto && !S.tuto.done) gardenerCreate(); }
+
+function harmonyHtml() {
+  const H = G.harmony(S), nm = (S.family || []).map(m => m.n).join(' et ') || 'La famille';
+  if (!H.started) return '<div class="harm"><b>Harmonie du jardin</b><p class="note-p">Dès que ton jardin commence à être planté, ' + esc(nm) + ' dira ce qu’il manque pour être pleinement content.</p></div>';
+  return '<div class="harm"><b>Harmonie du jardin : ' + H.score + ' %</b><div class="bar"><i style="width:' + H.score + '%"></i></div><p class="note-p">' + (H.happy ? esc(nm) + ' sont pleinement contents : le jardin est équilibré et joli.' : esc(nm) + ' aimeraient encore :') + '</p>' + (H.tips.length ? '<ul class="harm-l">' + H.tips.slice(0, 4).map(t => '<li>' + t.text + ' <span class="k">+' + t.gain + ' points</span></li>').join('') + '</ul>' : '') + '</div>';
+}
 function openHouse(tab) {
   ui.houseTab = tab || ui.houseTab || 'jardinier'; const t = ui.houseTab, X = G.xpInfo(S);
   const title = gTitle(X.lvl);
@@ -1581,6 +1588,7 @@ function openHouse(tab) {
     h += '<h3 style="margin:12px 0 6px">Garde-robe</h3><p class="note-p">' + (season4() === 'winter' ? 'Il fait froid : le bonnet et le manteau tiennent chaud.' : season4() === 'summer' ? 'Plein soleil : le chapeau de paille protège.' : 'Habille ton jardinier comme tu veux.') + '</p>';
     Object.keys(G.OUTFIT).forEach(sl => { const d = G.OUTFIT[sl]; h += '<div class="wd-row"><span class="wd-n">' + d.n + '</span><span class="wd-opts">' + d.o.map(([id, nm]) => '<button type="button" class="btn sm' + ((o[sl] || d.o[0][0]) === id ? ' primary' : '') + '" data-act="outfit" data-slot="' + sl + '" data-id="' + id + '">' + nm + '</button>').join('') + '</span></div>'; });
   } else if (t === 'famille') {
+    h += harmonyHtml();
     h += '<p class="note-p">Plus ils mangent de ton jardin, des repas variés, plus ils sont heureux.</p><div class="fam">' + S.family.map((m, k) => { const img = k === 0 ? portraitImg('camille', 64) : k === 1 ? portraitImg('lea', 64) : ''; const tk = m.hist.filter(x => S.day - x.day < 1).reduce((a, b) => a + b.kcal, 0); return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + (img || face(k, m.joy, 56)) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + tk + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
   } else {
     const it = cellarItems(), groups = {}; it.forEach(x => (groups[x.t] = groups[x.t] || []).push(x));

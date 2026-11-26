@@ -914,15 +914,15 @@ function ridgeColors(hor, S, e) {
 /* arbres lointains (forêts sur les pentes) */
 const TREEDUM = new T.Object3D(), cTc = new T.Color(), cFor = new T.Color();
 function buildFarTrees() {
-  return; /* v133 : plus de forêts lointaines (retour au décor d'avant) */
+  /* v153 : forêt tout autour de la parcelle (réactivée, plus proche et plus dense, à la demande de Yali) */
   ['bro', 'con', 'trk'].forEach(k => { if (SC[k]) { gTerr.remove(SC[k]); SC[k].geometry.dispose(); SC[k] = null; } });
   SC.hero.forEach(h => gTerr.remove(h.g)); SC.hero = [];
-  const rnd = srand(9137), phone = innerWidth <= 560, NT = phone ? 650 : 1500, x0 = HW + 26, z0 = HH + 26, P = [];
+  const rnd = srand(9137), phone = innerWidth <= 560, NT = phone ? 900 : 1900, x0 = HW + 15, z0 = HH + 15, P = [];
   for (let tries = 0; P.length < NT && tries < NT * 14; tries++) {
-    const a = rnd() * 6.283, r = 18 + Math.pow(rnd(), .85) * 94, x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 1.1;
-    if ((Math.abs(x) < x0 && Math.abs(z) < z0) || Math.abs(x) > 106 || Math.abs(z) > 106) continue;
+    const a = rnd() * 6.283, r = 10 + Math.pow(rnd(), 1.15) * 96, x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 1.1;
+    if ((Math.abs(x) < x0 && Math.abs(z) < z0) || Math.abs(x) > 106 || Math.abs(z) > 106) continue; if (z > 0 && Math.hypot(x, z) < 40) continue; /* pas de grands arbres entre la caméra et le jardin */
     const f = gnoise(x * .7 + 11, z * .7 - 5) + gnoise(x * 1.9, z * 1.9) * .5; if (f < -.2 && rnd() < .9) continue;
-    const y = hAt(x, z), con = rnd() < (y > 7 ? .75 : .22); P.push({ x, y, z, con, s: (.55 + Math.hypot(x, z) / 90) * (.8 + rnd() * .5), r1: rnd(), r2: rnd(), r3: rnd(), ry: rnd() * 6.28 });
+    const y = hAt(x, z), con = rnd() < (y > 7 ? .75 : .22); P.push({ x, y, z, con, s: (.4 + Math.hypot(x, z) / 120) * (.8 + rnd() * .45), r1: rnd(), r2: rnd(), r3: rnd(), ry: rnd() * 6.28 });
   }
   const B = P.filter(p => !p.con), C = P.filter(p => p.con);
   const mkI = (geo_, mat_, n) => { const m = new T.InstancedMesh(geo_, mat_, Math.max(1, n)); m.frustumCulled = false; m.count = n; gTerr.add(m); return m; };

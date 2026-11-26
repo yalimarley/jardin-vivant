@@ -6,6 +6,13 @@ const HRET = new Set(); HERB.forEach((h, k) => { if (h.p != null && P[h.p] && P[
 let COLS = 8, ROWS = 6;
 function syncDims() { const d = G.dims(S); COLS = d[0]; ROWS = d[1]; }
 const KEY = 'jardin-vivant-proto-v2';
+// Jusqu'à 3 jardins par compte. Emplacement 0 = clé historique (aucune perte), 1 et 2 = clés suffixées.
+const MAXG = 3, MKEY = KEY + '-meta';
+function slotKey(i) { return i ? KEY + '-g' + i : KEY; }
+function gMeta() { try { const m = JSON.parse(localStorage.getItem(MKEY) || 'null'); if (m && typeof m.active === 'number') return m; } catch (e) {} return { active: 0 }; }
+function gActive() { const a = gMeta().active; return a >= 0 && a < MAXG ? a : 0; }
+function gSetActive(i) { try { localStorage.setItem(MKEY, JSON.stringify({ active: i })); } catch (e) {} }
+function gRaw(i) { try { const t = localStorage.getItem(slotKey(i)); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
 let VIS = null;
 let S = load() || G.newGame(), ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 };
 S.w = G.weather(S.day); syncDims();
@@ -45,8 +52,8 @@ function catchUp() {
 }
 function calNote() { if (!LIVE || VIS || S.demo || S.calV2 || !S.grid.some(c => c)) { if (S && !S.demo && !VIS) S.calV2 = 1; return; } S.calV2 = 1; save(); setTimeout(() => { try { if (!$('layer').innerHTML) modal('Les saisons passent plus vite', '<p class="note-p">Désormais, <b>une saison dure un mois</b> : le printemps, l’été, l’automne et l’hiver se succèdent en quatre mois. Tes plantes fleurissent, fructifient, perdent leurs feuilles (sauf les persistantes) et repartent au fil des saisons.</p><p class="note-p">Rien n’est perdu : ton jardin, tes cartes et ta progression sont conservés. Le rythme de pousse, lui, ne change pas : engrais, compost et mycorhizes accélèrent toujours certaines plantes.</p>'); } catch (e) {} }, 1500); }
 function load() { try { const r = load0(); return r ? withFamily(r) : r; } catch (e) { return null; } }
-function load0() { try { const t = localStorage.getItem(KEY); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && (o.grid.length === G.NCELL || o.grid.length === 120)) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
-function save() { if (VIS) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} cloudDirty(); }
+function load0() { try { const t = localStorage.getItem(slotKey(gActive())); if (!t) return null; const o = JSON.parse(t); if (o && o.v === 1 && o.grid && (o.grid.length === G.NCELL || o.grid.length === 120)) { o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = o.size || 0; o.rewarded = o.rewarded || {}; return o; } if (o && o.v === 1 && o.grid && o.grid.length === 48) { const g = Array(G.NCELL).fill(null); o.grid.forEach((c, i) => { g[((i / 8) | 0) * STR + (i % 8)] = c; }); o.grid = g; o.mats = Object.assign({ paillage: 0, compost: 0, treille: 0, chemin: 0, pergola: 0, serre: 0, mare: 0, ruche: 0 }, o.mats); o.size = 0; o.rewarded = {}; return o; } } catch (e) {} return null; }
+function save() { if (VIS) return; try { localStorage.setItem(slotKey(gActive()), JSON.stringify(S)); } catch (e) {} cloudDirty(); }
 // ----- compte en ligne (projet Supabase de JF Lab, tables jv_*) -----
 const CLOUD = { url: 'https://itqvpmdxmzxubhmtezub.supabase.co', key: 'sb_publishable_aUvfqIfrNpQNkDtRIrn5Mg_k6rQDaFM', AK: 'jardin-vivant-auth-carnet', sess: null, timer: null, status: '', last: 0 };
 try { CLOUD.sess = JSON.parse(localStorage.getItem(CLOUD.AK) || 'null'); } catch (e) {}
@@ -82,10 +89,26 @@ async function cloudHandleReturn() {
   return true;
 }
 async function cloudSignOut() { try { if (CLOUD.sess) await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) {} cloudStore(null); clearTimeout(CLOUD.timer); CLOUD.status = ''; }
+// Le jardin actif reste à la racine de `data` (compatible avec l'ancienne version) ; les autres jardins sont rangés dans `_jv`.
+function cloudPayload() {
+  const act = gActive(), others = {};
+  for (let i = 0; i < MAXG; i++) if (i !== act) { const g = gRaw(i); if (g) others[i] = g; }
+  return Object.assign({}, S, { _jv: { active: act, gardens: others } });
+}
+// Remet à l'identique les jardins reçus du compte (le jardin racine va dans l'emplacement actif du compte).
+function cloudApply(d) {
+  const jv = d && d._jv, act = jv && typeof jv.active === 'number' && jv.active < MAXG ? jv.active : 0;
+  const root = Object.assign({}, d); delete root._jv;
+  try {
+    for (let i = 0; i < MAXG; i++) { const k = slotKey(i); if (i === act) localStorage.setItem(k, JSON.stringify(root)); else if (jv && jv.gardens && jv.gardens[i]) localStorage.setItem(k, JSON.stringify(jv.gardens[i])); else if (jv) localStorage.removeItem(k); }
+    gSetActive(act);
+  } catch (e) {}
+  return root;
+}
 async function cloudPush() {
   if (VIS) return false;
   if (!CLOUD.sess || !(await cloudRefresh()) || !CLOUD.sess) return false;
-  try { await cloudFetch('/rest/v1/jv_saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: S, day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; if (S.pub && S.pub.on && (!S.pub.last || Date.now() - S.pub.last > 300000)) gardenPush(); return true; }
+  try { await cloudFetch('/rest/v1/jv_saves?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: { user_id: CLOUD.sess.uid, data: cloudPayload(), day: S.day || 0, level: 1, version: 1, updated_at: new Date().toISOString() } }); CLOUD.last = Date.now(); CLOUD.status = 'ok'; if (S.pub && S.pub.on && (!S.pub.last || Date.now() - S.pub.last > 300000)) gardenPush(); return true; }
   catch (e) { CLOUD.status = 'err'; return false; }
 }
 async function cloudPull() {
@@ -935,7 +958,7 @@ function renderFiche0() {
 }
 function renderFoot() {
   const n = P.filter(p => p.id < 22).length, c = P.filter(p => p.id >= 51).length;
-  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + (HERB.length - HRET.size) + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="tuto-restart">Revoir le tutoriel</button> <button type="button" class="btn sm" data-act="newgame">Nouvelle partie</button>';
+  $('foot').innerHTML = '<span>' + P.length + ' plantes jouables : ' + n + ' calibrées dans ton jeu, ' + (P.length - n) + ' aux valeurs estimées (dont ' + c + ' tirées du catalogue JF Lab). ' + (HERB.length - HRET.size) + ' fiches dans l’herbier. Partie sauvegardée sur cet appareil.</span><button type="button" class="btn sm" data-act="tuto-restart">Revoir le tutoriel</button> <button type="button" class="btn sm" data-act="gardens">Mes jardins</button>';
 }
 
 /* ---------- fenêtres ---------- */
@@ -1674,6 +1697,23 @@ function openSkills() {
 }
 
 function openStock() { const e = EXTRA(); modal('Matériel', '<p class="note-p">Touche un objet pour le poser dans le jardin.</p><div class="items" style="display:flex;flex-wrap:wrap;gap:8px">' + e.h + '</div>'); }
+function openGardens(msg) {
+  const act = gActive(); let rows = '', n = 0;
+  for (let i = 0; i < MAXG; i++) {
+    const g = i === act ? S : gRaw(i); if (g) n++;
+    const nm = g ? ((g.gardener && g.gardener.first ? g.gardener.first + ' · ' : '') + 'jour ' + (g.day || 0) + ' · ' + ((g.grid || []).filter(c => c && !c.treille).length) + ' plantes') : 'Emplacement libre';
+    let b;
+    if (!g) b = '<button type="button" class="btn primary" data-act="g-new" data-i="' + i + '">Créer un nouveau jardin</button>';
+    else if (i === act) b = '<span class="note-p" style="margin:0"><b>En cours</b></span> <button type="button" class="btn sm" data-act="g-reset">Recommencer</button>';
+    else b = '<button type="button" class="btn primary" data-act="g-open" data-i="' + i + '">Ouvrir</button> <button type="button" class="btn sm" data-act="g-del" data-i="' + i + '">Supprimer</button>';
+    rows += '<div class="menu" style="gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px"><div><b>Jardin ' + (i + 1) + '</b><br><span class="note-p" style="margin:0">' + esc(nm) + '</span></div><div>' + b + '</div></div>';
+  }
+  modal('Mes jardins', '<p class="note-p">Tu peux avoir jusqu’à <b>' + MAXG + ' jardins</b> dans ton compte. Chacun garde sa progression, sa météo et ses plantes. Ton jardin actuel est sauvegardé avant de changer.</p>' + (msg ? '<p class="note-p" role="status">' + msg + '</p>' : '') + rows);
+}
+function gardenEnter(ns, i, fresh) {
+  save(); gSetActive(i); S = ns; if (!fresh) S = withFamily(S); S.w = G.weather(S.day); syncDims(); catchUp();
+  ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; save(); $('layer').innerHTML = ''; render();
+}
 function openAccount(msg) {
   const m = msg ? '<p class="note-p" id="acc-msg" role="status">' + msg + '</p>' : '<p class="note-p" id="acc-msg" role="status"></p>';
   if (CLOUD.sess) {
@@ -1691,7 +1731,7 @@ async function accountAfterLogin() {
 }
 function openMenu() {
   const b = (act, icn, l) => '<button type="button" class="btn" data-act="' + act + '">' + (icn ? ico(icn) : '') + l + '</button>';
-  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('album', 'leaf', 'Album de la faune') + b('mglist', 'leaf', 'Mini-jeux') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('newgame', '', 'Nouvelle partie') + '</div>');
+  modal('Menu', '<div class="menu" style="gap:10px">' + b('herbier', 'leaf', 'Herbier') + b('journal', 'book', 'Carnet') + b('album', 'leaf', 'Album de la faune') + b('mglist', 'leaf', 'Mini-jeux') + (LIVE ? '' : b('time', 'clock', 'Temps')) + b('famille', 'leaf', 'Famille') + b('compte', 'leaf', CLOUD.sess ? 'Mon compte' : 'Compte en ligne') + '</div><h3 style="margin:16px 0 6px">État du jardin</h3><div class="gauges" style="flex-wrap:wrap">' + $('gauges').innerHTML + '</div><div class="sep" style="height:1px;background:var(--line);margin:16px 0"></div><div class="menu" style="gap:10px">' + b('tuto-restart', '', 'Revoir le tutoriel') + b('gardens', '', 'Mes jardins') + '</div>');
 }
 function applyHud() {
   const tl = document.querySelector('.tools'); if (tl) { tl.classList.toggle('shut', !ui.toolsOpen); tl.classList.toggle('act', !!ui.tool && ui.tool !== 'select'); }
@@ -1703,7 +1743,7 @@ function openJournal() {
   modal('Carnet du jardinier', (S.knowledge.length ? '<p class="note-p">Plantes apprises : ' + S.knowledge.map(id => P[id].name).join(', ') + '.</p>' : '') + '<ul class="log">' + (S.log.length ? S.log.map(l => '<li><span class="d">' + dateStr(l.day, true) + '</span><span class="' + (l.type === 'warn' ? 'warn' : l.type === 'bad' ? 'bad' : '') + '">' + l.text + '</span></li>').join('') : '<li>Rien pour l’instant.</li>') + '</ul>');
 }
 function openTime() {
-  modal('Temps', '<p class="note-p">En vrai, tu joues un jour à la fois. Ces raccourcis servent à voir pousser les plantes : pendant le saut, le jardinier arrose avec ta réserve d’eau.</p><div class="time"><div class="row"><button type="button" class="btn primary" data-act="skip" data-n="1">Demain</button><button type="button" class="btn" data-act="skip" data-n="7">+7 jours</button><button type="button" class="btn" data-act="skip" data-n="30">+30 jours</button><button type="button" class="btn" data-act="skip" data-n="90">+90 jours</button></div><div class="sep"></div><button type="button" class="btn" data-act="demo">Voir un jardin mature (démo, juillet 2027)</button><button type="button" class="btn warn" data-act="newgame">Nouvelle partie</button></div>');
+  modal('Temps', '<p class="note-p">En vrai, tu joues un jour à la fois. Ces raccourcis servent à voir pousser les plantes : pendant le saut, le jardinier arrose avec ta réserve d’eau.</p><div class="time"><div class="row"><button type="button" class="btn primary" data-act="skip" data-n="1">Demain</button><button type="button" class="btn" data-act="skip" data-n="7">+7 jours</button><button type="button" class="btn" data-act="skip" data-n="30">+30 jours</button><button type="button" class="btn" data-act="skip" data-n="90">+90 jours</button></div><div class="sep"></div><button type="button" class="btn" data-act="demo">Voir un jardin mature (démo, juillet 2027)</button><button type="button" class="btn" data-act="gardens">Mes jardins</button></div>');
 }
 
 
@@ -2052,7 +2092,7 @@ document.addEventListener('click', e => {
       } catch (e) { const t = /Invalid login/i.test(e.message) ? 'E-mail ou mot de passe incorrect (ou e-mail pas encore confirmé).' : /already registered/i.test(e.message) ? 'Cette adresse a déjà un compte : choisis « Se connecter ».' : /fetch|network|Failed/i.test(e.message) ? 'Connexion impossible pour le moment. Ta partie reste sauvegardée sur cet appareil.' : e.message; const m2 = $('acc-msg'); if (m2) m2.textContent = t; } })();
       break; }
     case 'cloud-push': (async () => { const ok = await cloudPush(); openAccount(ok ? 'Partie sauvegardée en ligne (jour ' + (S.day || 0) + ').' : 'Sauvegarde en ligne impossible pour le moment. Ta partie reste sur cet appareil.'); })(); break;
-    case 'cloud-pull': (async () => { try { const r = await cloudPull(); if (!r) { openAccount('Aucune partie en ligne pour l’instant.'); return; } S = withFamily(r.data); S.w = G.weather(S.day); syncDims(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; save(); closeModal(); toast('Partie en ligne reprise (jour ' + (S.day || 0) + ').'); } catch (e) { openAccount('Impossible de reprendre la partie : ' + esc(e.message)); } })(); break;
+    case 'cloud-pull': (async () => { try { const r = await cloudPull(); if (!r) { openAccount('Aucune partie en ligne pour l’instant.'); return; } S = withFamily(cloudApply(r.data)); S.w = G.weather(S.day); syncDims(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; save(); closeModal(); toast('Partie en ligne reprise (jour ' + (S.day || 0) + ').'); } catch (e) { openAccount('Impossible de reprendre la partie : ' + esc(e.message)); } })(); break;
     case 'cloud-out': cloudSignOut().then(() => openAccount('Tu es déconnecté. Ta partie reste sur cet appareil.')); break;
     case 'amenager': openAmenager(); break;
     case 'expand': if (G.expand(S)) { save(); toast('Terrain agrandi : ' + COLS + ' × ' + ROWS + ' parcelles.'); render(); openAmenager(); } break;
@@ -2089,6 +2129,12 @@ document.addEventListener('click', e => {
     case 'g-save': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({ g: 'm' }, S.gardener, { first: f ? f.value.trim() : '', last: l ? l.value.trim() : '' }); save(); closeModal(); toast(gName() + ' est prêt' + (gF() ? 'e' : '') + ' à planter.'); break; }
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); render(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
+    case 'gardens': openGardens(); break;
+    case 'g-open': { const i = +a.dataset.i, g = gRaw(i); if (!g) { openGardens('Ce jardin est introuvable.'); break; } gardenEnter(g, i, false); toast('Jardin ' + (i + 1) + ' ouvert.'); break; }
+    case 'g-new': { const i = +a.dataset.i; if (gRaw(i) || i === gActive()) { openGardens('Cet emplacement est déjà utilisé.'); break; } gardenEnter(G.newGame(), i, true); toast('Nouveau jardin ' + (i + 1) + '.'); gardenerMaybeCreate(); break; }
+    case 'g-del': { const i = +a.dataset.i; modal('Supprimer le jardin ' + (i + 1) + ' ?', '<p class="note-p">Ce jardin sera effacé de cet appareil et de ton compte à la prochaine sauvegarde. <b>C’est définitif.</b></p><div class="menu" style="gap:10px"><button type="button" class="btn warn" data-act="g-del-ok" data-i="' + i + '">Oui, supprimer</button><button type="button" class="btn primary" data-act="gardens">Non, garder</button></div>'); break; }
+    case 'g-del-ok': { const i = +a.dataset.i; if (i !== gActive()) { try { localStorage.removeItem(slotKey(i)); } catch (e) {} cloudDirty(); } openGardens('Jardin ' + (i + 1) + ' supprimé.'); break; }
+    case 'g-reset': modal('Recommencer ce jardin ?', '<p class="note-p">Le jardin en cours sera remplacé par un jardin vide. <b>C’est définitif.</b></p><div class="menu" style="gap:10px"><button type="button" class="btn warn" data-act="newgame">Oui, recommencer</button><button type="button" class="btn primary" data-act="gardens">Non, annuler</button></div>'); break;
     case 'newgame': S = G.newGame(); catchUp(); ui = { sel: -1, mode: null, confirmDel: false, tool: 'select', delPending: -1 }; $('layer').innerHTML = ''; render(); toast('Nouvelle partie.'); gardenerMaybeCreate(); break;
   }
 });

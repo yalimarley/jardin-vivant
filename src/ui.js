@@ -1153,6 +1153,7 @@ function openAct(id) {
   if (id === 'detente') return actDetente();
   if (id === 'bois') { const r = actDone('bois', { q: 1 }, 'Un bon tas de bois mort : +3 paillage.'); try { V3D.fx && V3D.fx('mulch'); } catch (e) {} return r; }
   if (id === 'champignons') { const r = actDone('champignons', { q: .3 + Math.random() * .7 }, 'Tu reviens de la forêt avec un panier de champignons.'); if (r && r.name) toast('Cueillette : ' + r.n + ' poignée' + (r.n > 1 ? 's' : '') + ' de ' + r.name + '.' + (r.g ? ' +' + r.g + ' ginkgo.' : '')); return r; }
+  if (id === 'sauvages') { const r = actDone('sauvages', { q: .3 + Math.random() * .7 }, 'Tu reviens de la forêt avec un panier de plantes sauvages.'); if (r && r.names) toast('Cueillette : ' + r.names.join(', ') + '.' + (r.g ? ' +' + r.g + ' ginkgo' + (r.g > 1 ? 's' : '') + '.' : '')); return r; }
   if (id === 'glanage') { const r = actDone('glanage', { q: .5 + Math.random() * .5 }, 'Tu glanes quelques fruits d’hiver.'); return r; }
 }
 function polaroid(id, q, rare, label, night) { return '<div class="pol' + (night ? ' pol-n' : '') + '"><div class="pol-img">' + anArt(id) + (rare ? '<i class="pol-rare">Rare</i>' : '') + '</div><b>' + FNAME(id) + '</b><span>' + stars(q) + (label ? ' · ' + label : '') + '</span></div>'; }
@@ -1643,7 +1644,7 @@ const GJ_SEASON = {
   winter: ['Hiver', 'Taille des arbres, coupe des trognes et bois mort : c’est la saison du bois de chauffage pour la cheminée.']
 };
 function openGardener() {
-  const X = G.xpInfo(S), se = season4(), m = G.dateOf(S.day).m, T = G.buildTasks(S).tasks.filter(t => !/^mg-/.test(t.id) && t.id !== 'learn' && t.id !== 'booster');
+  const X = G.xpInfo(S), se = season4(), m = G.dateOf(S.day).m, T = [];
   const sow = Object.keys(S.cards).map(Number).filter(pid => P[pid] && G.sowable(P[pid], m) && G.unlocked(S).has(P[pid].strate)).slice(0, 8);
   const tr = []; for (let k = 0; k < G.TREE_N; k++) if (G.treeReady(S, k)) tr.push(k);
   const formed = S.trees.filter(t => t.formed).length, wood = S.wood || 0, days = Math.floor(wood / .5);
@@ -1652,8 +1653,12 @@ function openGardener() {
   h += '<h3 class="gj-h">À planter</h3>';
   if (sow.length) h += sow.map(pid => { const ps = planSlots(pid); return '<button type="button" class="gj-row" data-act="gj-plant" data-pid="' + pid + '"><b>Planter : ' + P[pid].name + '</b><span>' + (ps.n ? ps.n + ' emplacement' + (ps.n > 1 ? 's' : '') + ' possible' + (ps.n > 1 ? 's' : '') + ' · ×' + S.cards[pid] : ps.why) + '</span></button>'; }).join('');
   else h += '<p class="note-p">Rien à mettre en terre ce mois-ci avec les cartes de ta réserve. Ouvre un booster pour trouver des graines et des plants de saison.</p>';
-  h += '<h3 class="gj-h">Missions du moment</h3>';
-  h += T.length ? T.map(t => '<button type="button" class="gj-row" data-act="gj-task" data-id="' + t.id + '"><b>' + t.label + '</b><span>' + t.sub + '</span></button>').join('') : '<p class="note-p">Tout est en ordre : le jardinier se repose.</p>';
+  { const MC = G.missionCatalog(S), jr = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][new Date().getDay()], allT = G.buildTasks(S).all;
+    h += '<h3 class="gj-h">Missions du ' + jr + ' : ' + MC.n + ' possible' + (MC.n > 1 ? 's' : '') + ' sur ' + MC.total + '</h3><p class="note-p">Touche une mission pour la confier au jardinier.</p>';
+    const okL = MC.list.filter(x => x.ok);
+    h += okL.length ? okL.map(x => allT.filter(t => x.ids.includes(t.id)).map(t => '<button type="button" class="gj-row" data-act="gj-task" data-id="' + t.id + '"><i class="gj-cat">' + x.cat + '</i><b>' + t.label + '</b><span>' + t.sub + '</span></button>').join('')).join('') : '<p class="note-p">Tout est en ordre : le jardinier se repose.</p>';
+    const koL = MC.list.filter(x => !x.ok);
+    if (koL.length) h += '<h3 class="gj-h">Pas aujourd’hui</h3>' + koL.map(x => '<div class="gj-row gj-off"><i class="gj-cat">' + x.cat + '</i><b>' + x.label + (x.done ? ' · fait aujourd’hui' : '') + '</b><span>' + x.cond + '</span></div>').join(''); }
   h += '<h3 class="gj-h">Trognes et cheminée</h3><p class="note-p">' + formed + ' trogne' + (formed > 1 ? 's' : '') + ' formée' + (formed > 1 ? 's' : '') + ' sur ' + G.TREE_N + ' arbres' + (tr.length ? ', dont ' + tr.length + ' prête' + (tr.length > 1 ? 's' : '') + ' à couper' : '') + '. Réserve de bois : ' + String(Math.round(wood * 10) / 10).replace('.', ',') + ' bûches' + (wood >= .5 ? ' (environ ' + days + ' jour' + (days > 1 ? 's' : '') + ' de chauffage)' : '') + '.</p></div>';
   modal('Ton jardinier', h);
 }
@@ -1909,7 +1914,7 @@ function advance(n) {
   toast(n === 1 ? (S.w.rain >= 1 ? 'Nouveau jour : pluie ' + fmt(S.w.rain, 0) + ' mm.' : 'Nouveau jour.') + (bad.length ? ' ' + bad[0].text : '') + (rd ? ' ' + rd + ' culture' + (rd > 1 ? 's' : '') + ' à récolter.' : '') : (S.day - before) + ' jours passés. ' + (bad.length ? bad.length + ' alerte' + (bad.length > 1 ? 's' : '') + ' dans le carnet.' : 'Le jardin se porte bien.') + (rd ? ' ' + rd + ' à récolter.' : ''));
 }
 function doTask(id) {
-  const t = G.buildTasks(S).tasks.find(x => x.id === id); if (!t) { render(); return; }
+  const t = G.buildTasks(S).all.find(x => x.id === id); if (!t) { render(); return; }
   const a = t.act;
   if (a.type === 'booster') return openBooster();
   if (a.type === 'act') return openAct(a.id);

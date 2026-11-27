@@ -424,7 +424,14 @@ function make(P) {
   }
   function scareWild(s, idx) { const L = s.wilds || (s.wild ? [s.wild] : []); const v = idx != null ? L[idx] : L.find(x => !x.scared && !x.done && WILD[x.k] && !WILD[x.k].good); if (!v || v.scared || v.done) return { ok: false }; v.scared = true; gainXp(s, 6); log(s, 'good', 'Tu as effarouché le ' + (WILD[v.k] || {}).n + '.'); bump(s, 'scare'); return { ok: true, k: v.k }; }
   /* ---------- activités quotidiennes : observation, détente, esthétique ---------- */
-  const ACT_XP = { photo: 10, affut: 14, trap: 10, trapset: 3, feeder: 6, ronde: 14, bouquet: 8, tisane: 8, detente: 6, bois: 8, glanage: 10, champignons: 12 };
+  const WILDF = [
+    { pid: 278, n: 'ail des ours', m: [3, 4, 5], kg: .15 }, { pid: 441, n: 'alliaire', m: [3, 4, 5, 6], kg: .1 }, { pid: 103, n: 'pissenlit', m: [3, 4, 5, 9, 10, 11], kg: .15 },
+    { pid: 254, n: 'lierre terrestre', m: [4, 5], kg: .08 }, { pid: 321, n: 'ortie', m: [3, 4, 5, 6, 7, 8, 9, 10], kg: .2 }, { pid: 122, n: 'oseille sauvage', m: [4, 5, 6, 7, 8, 9, 10], kg: .12 },
+    { pid: 246, n: 'plantain', m: [5, 6, 7, 8, 9], kg: .1 }, { pid: 250, n: 'chénopode bon-Henri', m: [6, 7, 8, 9, 10], kg: .15 }, { pid: 5, n: 'fraises des bois', m: [5, 6, 7, 8, 9], kg: .1 },
+    { pid: 67, n: 'cresson de source', m: [7, 8, 9], kg: .12 }, { pid: 49, n: 'fleurs et baies de sureau', m: [8, 9], kg: .25 }, { pid: 364, n: 'baies d’aubépine', m: [9, 10], kg: .2 },
+    { pid: 14, n: 'noisettes', m: [9, 10], kg: .3 }, { pid: 312, n: 'noix', m: [9, 10], kg: .4 }, { pid: 516, n: 'châtaignes', m: [10, 11], kg: .5 }, { pid: 239, n: 'prunelles', m: [11, 12], kg: .3 }
+  ];
+  const ACT_XP = { photo: 10, affut: 14, trap: 10, trapset: 3, feeder: 6, ronde: 14, bouquet: 8, tisane: 8, detente: 6, bois: 8, glanage: 10, champignons: 12, sauvages: 10 };
   function actState(s) { if (!s.act || s.act.day !== s.day) s.act = { day: s.day, done: {} }; return s.act; }
   function calmBonus(s) { return s.calm && s.day - s.calm.day < 3 ? Math.min(10, s.calm.v) : 0; }
   function addCalm(s, v) { const c = calmBonus(s); s.calm = { day: s.day, v: Math.min(10, c + v) }; }
@@ -450,6 +457,7 @@ function make(P) {
     else if (id === 'detente') { addCalm(s, 6 + (hasFurn(s, 'banc') || hamacOk(s) ? 3 : 0)); g = 1; }
     else if (id === 'bois') { s.mats.paillage = (s.mats.paillage || 0) + 2; s.wood = r2((s.wood || 0) + 3); out.paillage = 2; out.wood = 3; g = 1; addCalm(s, 2); }
     else if (id === 'glanage') { const pool = s.grid.filter(c => c && !c.treille && P[c.pid] && P[c.pid].kg > 0 && ['Arbre', 'Arbuste'].includes(P[c.pid].strate) && phase(c).stage !== 'graine' && phase(c).stage !== 'pousse'); const c = pool.length ? pool[Math.floor(mulberry(s.day * 37 + 11)() * pool.length)] : null; if (c) { const kg = r2(.2 + .25 * q); s.stock.push({ pid: c.pid, kg, day: s.day }); out.pid = c.pid; out.kg = kg; } else { s.fleurs = r2((s.fleurs || 0) + .05); } g = 1; }
+    else if (id === 'sauvages') { const mm = dateOf(s.day).m, pool = WILDF.filter(w => w.m.includes(mm)); const rr = mulberry(s.day * 61 + 9), n = Math.min(pool.length, Math.max(2, Math.round(2 + q * 2))), got = []; const bag = pool.slice(); while (got.length < n && bag.length) got.push(bag.splice(Math.floor(rr() * bag.length), 1)[0]); got.forEach(w => { if (P[w.pid]) s.stock.push({ pid: w.pid, kg: r2(w.kg * (.7 + .6 * q)), day: s.day }); }); out.names = got.map(w => w.n); out.n = got.length; (s.family || []).forEach(f => { f.joy = Math.min(100, f.joy + 3); }); g = got.length >= 3 ? 2 : 1; addCalm(s, 3); }
     else if (id === 'champignons') { const SP = ['cèpes', 'girolles', 'pieds-de-mouton', 'trompettes-de-la-mort', 'coulemelles', 'hygrophores']; const rr = mulberry(s.day * 53 + 7), nm = SP[Math.floor(rr() * SP.length)]; const k = Math.max(1, Math.round(1 + q * 2)); s.champi = (s.champi || 0) + k; out.name = nm; out.n = k; (s.family || []).forEach(f => { f.joy = Math.min(100, f.joy + 5); }); g = k >= 3 ? 2 : 1; addCalm(s, 3); }
     if (['photo', 'affut', 'trap'].includes(id)) gainSkill(s, 'observation', 1);
     if (g && hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
@@ -698,6 +706,25 @@ function make(P) {
 
   // ----- tâches du jour -----
   function listCells(s, f) { const o = []; s.grid.forEach((c, i) => { if (c && !c.treille && f(c, i)) o.push(i); }); return o; }
+  const MISSIONS = [
+    ['Jardin', 'water', 'Arroser les plantes', 'Dès que le sol sèche', /^water/], ['Jardin', 'harv', 'Récolter les cultures mûres', 'Quand une plante est prête', /^harv/], ['Jardin', 'sow', 'Semer une carte de saison', 'Il faut une carte de saison et une parcelle libre', /^sow$/],
+    ['Jardin', 'mulch', 'Pailler les plantes', 'Il faut du paillage en réserve', /^mulch$/], ['Jardin', 'heal', 'Soigner les plantes attaquées', 'Quand limaces ou maladie apparaissent', /^heal$/], ['Jardin', 'prune', 'Tailler arbres et arbustes', 'En hiver, sur arbres et arbustes adultes', /^prune$/],
+    ['Jardin', 'trogne', 'Couper les trognes', 'Quand une trogne est formée et repoussée', /^trogne$/], ['Jardin', 'mow', 'Faucher la consoude', 'Quand la consoude est haute', /^mow$/], ['Jardin', 'lawn', 'Tondre les zones d’herbe', 'Quand l’herbe a repoussé', /^lawn$/],
+    ['Jardin', 'fleurs', 'Cueillir les fleurs de la prairie', 'Quand la prairie fleurit', /^fleurs$/], ['Jardin', 'honey', 'Récolter le miel', 'Il faut une ruche prête', /^honey$/], ['Jardin', 'scare', 'Effaroucher un animal', 'Quand un animal vient abîmer le jardin', /^scare-/],
+    ['Cuisine', 'cook', 'Cuisiner un repas du jardin', 'Il faut des récoltes au garde-manger, un repas par jour', /^cook$/], ['Cuisine', 'act-tisane', 'Préparer une tisane', 'Il faut des fleurs ou des herbes en réserve', /^act-tisane$/],
+    ['Forêt', 'act-sauvages', 'Cueillir des plantes sauvages comestibles', 'Selon la saison (ail des ours au printemps, baies et noisettes à l’automne…)', /^act-sauvages$/], ['Forêt', 'act-champignons', 'Cueillir des champignons', 'Automne humide : de août à octobre, après plusieurs jours de pluie', /^act-champignons$/],
+    ['Forêt', 'act-bois', 'Ramasser le bois mort', 'De septembre à mars, avec des ligneux plantés', /^act-bois$/], ['Forêt', 'act-glanage', 'Glaner dans le verger', 'De septembre à mars, avec des fruitiers plantés', /^act-glanage$/],
+    ['Nature', 'act-photo', 'Photographier l’animal du jour', 'Quand un animal passe dans le jardin', /^act-photo$/], ['Nature', 'act-affut', 'Affût à la tombée du jour', 'Le matin tôt ou le soir, après 3 plantations', /^act-affut$/],
+    ['Nature', 'act-trapset', 'Poser le piège photo', 'Il faut un piège photo (boutique)', /^act-trapset$/], ['Nature', 'act-trap', 'Relever le piège photo', 'Le lendemain de la pose', /^act-trap$/],
+    ['Nature', 'act-feeder', 'Remplir la mangeoire', 'Il faut une mangeoire au jardin', /^act-feeder$/], ['Nature', 'act-ronde', 'Ronde du soir avec la lampe', 'Le soir, après 3 plantations', /^act-ronde$/],
+    ['Bien-être', 'act-bouquet', 'Cueillir un bouquet', 'Il faut une prairie fleurie', /^act-bouquet$/], ['Bien-être', 'act-detente', 'Prendre un moment au jardin', 'Toujours possible, une fois par jour', /^act-detente$/],
+    ['Savoir', 'mg', 'Mini-jeu du jour', 'Deux mini-jeux différents chaque jour', /^mg-/], ['Savoir', 'learn', 'Savoir du jour', 'Une plante, une association, chaque jour', /^learn$/], ['Savoir', 'booster', 'Ouvrir le booster de la semaine', 'Une fois par semaine', /^booster$/]
+  ];
+  function missionCatalog(s) {
+    const all = buildTasks(s).all, A = actState(s);
+    const list = MISSIONS.map(([cat, key, label, cond, re]) => { const ts = all.filter(t => re.test(t.id)); const done = /^act-/.test(key) && A.done[key.slice(4)]; return { cat, key, label, cond, ok: ts.length > 0, done: !!done && !ts.length, ids: ts.map(t => t.id), sub: ts.length ? ts[0].sub : '' }; });
+    return { list, n: list.filter(x => x.ok).length, total: list.length };
+  }
   function buildTasks(s) {
     const T = [], m = dateOf(s.day).m, free = s.grid.some((c, i) => !c && isActive(s, i));
     if (boosterReady(s)) T.push({ id: 'booster', prio: 1, icon: 'pack', label: 'Ouvrir le booster de la semaine', sub: 'Sept cartes : graines, noyaux et plants', act: { type: 'booster' } });
@@ -734,6 +761,7 @@ function make(P) {
       if (!A.done.tisane && ((s.fleurs || 0) > .015 || s.stock.some(it => it.kg > .02 && P[it.pid] && P[it.pid].strate === 'Couvre-sol'))) T.push({ id: 'act-tisane', prio: 3, icon: 'pot', label: 'Préparer une tisane', sub: 'Fleurs et herbes du jardin', act: { type: 'act', id: 'tisane' } });
       { const mst = mgState(s); mgToday(s).forEach(id => { if (mst.done[id] == null) T.push({ id: 'mg-' + id, prio: 2, icon: 'leaf', label: MGN[id], sub: 'Mini-jeu du jour · jusqu’à 8 ginkgos', act: { type: 'mg', id } }); }); }
       { const wet3 = [0, 1, 2, 3].reduce((a, d) => a + (weather(s.day - d).rain || 0), 0); if (m >= 8 && m <= 10 && wet3 >= 3 && !A.done.champignons) T.push({ id: 'act-champignons', prio: 2, icon: 'basket', label: 'Cueillir des champignons en forêt', sub: 'Automne humide : cèpes, girolles… ne cueille que ceux que tu connais', act: { type: 'act', id: 'champignons' } }); }
+      if (!A.done.sauvages && WILDF.some(w => w.m.includes(m))) T.push({ id: 'act-sauvages', prio: 2, icon: 'basket', label: 'Cueillir des plantes sauvages en forêt', sub: 'De saison : ' + WILDF.filter(w => w.m.includes(m)).slice(0, 4).map(w => w.n).join(', ') + '… Ne cueille que ce que tu connais.', act: { type: 'act', id: 'sauvages' } });
       if (m >= 9 || m <= 3) {
         if (!A.done.bois && s.grid.some(c => c && !c.treille && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-bois', prio: 2, icon: 'leaf', label: 'Ramasser le bois mort', sub: '+2 paillage, +3 bûches pour la cheminée', act: { type: 'act', id: 'bois' } });
         if (!A.done.glanage && s.grid.some(c => c && !c.treille && P[c.pid].kg > 0 && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-glanage', prio: 2, icon: 'basket', label: 'Glaner dans le verger', sub: 'Hiver : fruits tardifs, cynorrhodons, noix', act: { type: 'act', id: 'glanage' } });
@@ -752,8 +780,8 @@ function make(P) {
     if (mw.length) T.push({ id: 'mow', prio: 2, icon: 'leaf', label: 'Faucher la consoude', sub: '+2 paillage par pied', act: { type: 'mow', cells: mw } });
     if (s.learnedDay < s.day) T.push({ id: 'learn', prio: 2, icon: 'book', label: 'Savoir du jour', sub: 'Une plante, une association', act: { type: 'learn' } });
     T.sort((a, b) => a.prio - b.prio);
-    const hidden = Math.max(0, T.length - 12); T.length = Math.min(T.length, 12);
-    return { tasks: T, hidden, caughtUp: !T.some(t => t.prio <= 1) };
+    const all = T.slice(), hidden = Math.max(0, T.length - 12); T.length = Math.min(T.length, 12);
+    return { tasks: T, all, hidden, caughtUp: !T.some(t => t.prio <= 1) };
   }
   function runTask(s, t) {
     const a = t.act;
@@ -1360,7 +1388,7 @@ function make(P) {
       s.spots.push({ id: (s.sid = (s.sid || 0) + 1), t: 'guild', n: want, x: ((idx % 4) - 1.5) * 5.2, z: (((idx / 4) | 0) - 1) * 5.2, a: 0, cells: cs }); });
   }
   return { spotCands, TF, tfOptions, tfSlots, startJob, jobsReady, collectJobs, useCellar, OUTFIT, dailySeeds, scores, faunaShield, FAUNA, setRhythm(b) { RHYTHM = !!b; }, targetDays, discsOf, spotFx, cleanFurnSpots, adoptLegacy, addSpot, removeSpot, spotOf, cellPos, slotsOf, spotRadius, gkOf, gcells, GW, setGuild(s, k, x, z) { s.free = true; (s.gpos = s.gpos || {})[k] = [x, z]; }, guildEmpty(s, k) { return gcells(k).every(j => !s.grid[j]) && !(s.pq || []).some(q => gkOf(q.i) === k); }, XPM, gainXp, levelOf, xpNeed, xpInfo, skillState, skillUp, advList, advUp, advState, hasAdv, ADV, queuePlant, cancelPlant, finishPlant, flushPlantQueue, plantSpeed, forecastInfo, buildPoulailler, buildGrazer, henInfo, compostInfo, SKILLS, RECIPES, skillLevel, skillList, boutureCheck, bouturer, craft, greffeCheck, greffer, takeNotes, SHOP, RECYCLE, shopInfo, shopBuy, shoot, mgToday, mgFinish, mgInfo, quiz, quizInfo, quizResult, pochetteInfo, pochetteBuy, recycleCards, recycleDoubles, recycleValue, hamacOk, useOrtie, usePrele, placeNichoir, useOya, useMycor, useCuve, buildAtelier, installSechoir, useSavoir, preserve, guildPlan, hasGS, isExo, MAT_UNLOCK, guildOf, moveCheck, movePlant, guilds, guildAt, quests, claimQuest, guildeon, P, byName, COLS, ROWS, NCELL, MONTHS, newGame, demo, nextDay, skip, plant, placeTreille, mulch, compost, remove, waterCells, harvest, mow, openBooster, cook, learn, tips,
-    harmony, albumInfo, albumClaim, finishAct, actStatus, hasFurn, calmBonus, trapPick, trapTree, scareWild, WILD, flReady, flSeason, harvestFleurs, neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
+    harmony, albumInfo, albumClaim, finishAct, actStatus, hasFurn, calmBonus, trapPick, trapTree, scareWild, WILD, flReady, flSeason, missionCatalog, WILDF, harvestFleurs, neglect, dayOfDate, migrateGrid, climbSupport, plantCheck, buildTasks, runTask, isWoody, waterSave, synergy, gshare, boosterReady, boosterIn, recycleLeft, discover, placeFurn, pathEdgeOk, pathLinked, pathLinkedEdges, pathAccess, addPath, removePath, pathJoy, pk, pparse, honeyReady, honeyKg, harvestHoney, placeDuck, duckNear, resistance, heal, fixSave, lawnReady, mowLawn, treeReady, formTrogne, cutTrogne, LAWN_N, TREE_N, LAWN_DAYS, TREE_DAYS, prune, needsPrune, defaultFamily, famNeed, FURN, FURN_UNLOCK, MAT_QTY, dims, isActive, canExpand, expand, SIZES, SIZE_REQ, MILESTONES, phase, ready, yieldKg, stats, stockTotals, unlocked, sowable, inWindow, monthRange, dateOf, weather, neigh, waterCost, mowReady, UNLOCK, NEED_KCAL, SAVE_VERSION };
 }
 const api = { make, MONTHS, COLS, ROWS };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;

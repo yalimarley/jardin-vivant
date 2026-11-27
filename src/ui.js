@@ -1300,7 +1300,7 @@ const MGD = {
   oiseaux: ['🐦', 'Observe l’ordre dans lequel les oiseaux chantent, puis répète-le. La mélodie s’allonge à chaque tour.', 'Jusqu’à 6 chants : trois étoiles.'],
   tri: ['♻️', 'Épluchures, coquilles et feuilles vont au compost. Plastiques, piles et canettes vont à la poubelle. Vite !', 'Douze objets, le temps se raccourcit.']
 };
-const mgStarsHtml = n => '★★★'.slice(0, n) + '<span style="opacity:.25">' + '★★★'.slice(n) + '</span>';
+const mgStarsHtml = n => '<span style="color:#8a5200">' + '★★★'.slice(0, n) + '</span><span style="color:#5a4a2a">' + '☆☆☆'.slice(n) + '</span>';
 const mgStars = sc => sc >= .9 ? 3 : sc >= .7 ? 2 : sc >= .45 ? 1 : 0;
 const shuf = a => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 function planSlots(pid) {

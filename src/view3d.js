@@ -511,6 +511,27 @@ function furn(k, cell) {
 
 /* ---------- décor ---------- */
 const SH = [0xc8553a, 0x3f7fb5, 0xe0a23a, 0x8a5aa6], PA = [0x4a5a7a, 0x6b4a30, 0x5a7a5a, 0x3a4a6a], SK = [0xe8bf98, 0xd9a47a, 0xf0cfa8, 0xc58a62], HR = [0x3a2b20, 0x7a4a24, 0xd9b45a, 0x2a1f18];
+function serreJ() {
+  const g = new T.Group(), glass = new T.MeshLambertMaterial({ color: 0xcfeaf2, transparent: true, opacity: .28, side: T.DoubleSide, depthWrite: false }), fr = L(0xf3f1e8), W = 5.6, D = 3.6, H = 2.1, RH = 1.1;
+  g.add(mesh(geo.box(W + .2, .18, D + .2), L(0x8a8478), 0, .09, 0));
+  const pane = (w, h, x, y, z, ry) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), glass); m.position.set(x, y, z); m.rotation.y = ry || 0; g.add(m); };
+  pane(W, H, 0, .18 + H / 2, D / 2, 0); pane(W, H, 0, .18 + H / 2, -D / 2, 0); pane(D, H, W / 2, .18 + H / 2, 0, Math.PI / 2); pane(D, H, -W / 2, .18 + H / 2, 0, Math.PI / 2);
+  for (let i = 0; i <= 6; i++) { const x = -W / 2 + W * i / 6; g.add(mesh(geo.box(.07, H, .07), fr, x, .18 + H / 2, D / 2)); g.add(mesh(geo.box(.07, H, .07), fr, x, .18 + H / 2, -D / 2)); }
+  for (let i = 0; i <= 4; i++) { const z = -D / 2 + D * i / 4; g.add(mesh(geo.box(.07, H, .07), fr, W / 2, .18 + H / 2, z)); g.add(mesh(geo.box(.07, H, .07), fr, -W / 2, .18 + H / 2, z)); }
+  [.18, .18 + H].forEach(y => { g.add(mesh(geo.box(W + .08, .07, .07), fr, 0, y, D / 2)); g.add(mesh(geo.box(W + .08, .07, .07), fr, 0, y, -D / 2)); g.add(mesh(geo.box(.07, .07, D + .08), fr, W / 2, y, 0)); g.add(mesh(geo.box(.07, .07, D + .08), fr, -W / 2, y, 0)); });
+  /* toit à deux pans */
+  const ang = Math.atan2(RH, D / 2), sl = Math.hypot(RH, D / 2);
+  [-1, 1].forEach(s => { const m = new T.Mesh(new T.PlaneGeometry(W, sl), glass); m.position.set(0, .18 + H + RH / 2, s * D / 4); m.rotation.x = -s * (Math.PI / 2 - ang) + (s > 0 ? 0 : 0); m.rotation.order = 'XYZ'; m.rotation.x = s * (ang) - Math.PI / 2 * 0; m.rotation.set(-Math.PI / 2 + s * ang * -1, 0, 0); g.add(m); });
+  g.add(mesh(geo.box(W + .1, .08, .08), fr, 0, .18 + H + RH, 0));
+  for (let i = 0; i <= 6; i++) { const x = -W / 2 + W * i / 6; [-1, 1].forEach(s => { const r = mesh(geo.box(.06, .06, sl), fr, x, .18 + H + RH / 2, s * D / 4); r.rotation.x = s * ang; g.add(r); }); }
+  /* pignon vitré avant */ const tri = new T.Shape(); tri.moveTo(-D / 2, 0); tri.lineTo(D / 2, 0); tri.lineTo(0, RH); tri.closePath();
+  [-1, 1].forEach(s => { const m = new T.Mesh(new T.ShapeGeometry(tri), glass); m.position.set(s * W / 2, .18 + H, 0); m.rotation.y = Math.PI / 2; g.add(m); });
+  /* porte */ g.add(mesh(geo.box(.9, 1.8, .06), L(0xdfe8e4), 0, .18 + .9, D / 2 + .02)); g.add(mesh(geo.box(.05, .05, .05), L(0x333333), .3, 1.1, D / 2 + .07));
+  /* tablettes et pots visibles à travers le verre */
+  [-1, 1].forEach(s => { g.add(mesh(geo.box(W - .6, .06, .6), L(0x8b5a2b), 0, .75, s * (D / 2 - .45))); for (let i = 0; i < 6; i++) { const x = -W / 2 + .6 + i * (W - 1.2) / 5; g.add(mesh(new T.CylinderGeometry(.13, .1, .2, 8), L(0xc2683a), x, .88, s * (D / 2 - .45))); g.add(mesh(new T.SphereGeometry(.17, 8, 6), L([0x5fa04a, 0x7bb85a, 0x8bc34a][(i + (s > 0 ? 1 : 0)) % 3]), x, 1.1, s * (D / 2 - .45))); } });
+  return g;
+}
+
 function house() {
   const h = new T.Group();
   try { const m = dcMesh('maison', dcHouseMat); h.add(m); return h; } catch (e) { }
@@ -734,6 +755,32 @@ function interior(kind) {
   const cy = (rt, rb, h, c, x, y, z, e, sg) => { const m = new T.Mesh(new T.CylinderGeometry(rt, rb, h, sg || 14), M(c, e)); m.position.set(x, y, z); sc.add(m); return m; };
   const sp = (rd, c, x, y, z, sy, e) => { const m = new T.Mesh(new T.SphereGeometry(rd, 12, 9), M(c, e)); m.position.set(x, y, z); if (sy) m.scale.y = sy; sc.add(m); return m; };
   sc.add(new T.HemisphereLight(0xfff1d6, 0x8a6a4a, .85)); const dl = new T.DirectionalLight(0xfff0d0, .55); dl.position.set(3, 5, 4); sc.add(dl);
+  if (kind === 'serre') {
+    const glass = new T.MeshLambertMaterial({ color: 0xd8f0f8, transparent: true, opacity: .22, side: T.DoubleSide, depthWrite: false, emissive: 0x6fa0b0, emissiveIntensity: .25 });
+    bx(9, .12, 6, 0x8f897b, 0, -.06, 0); for (let i = 0; i < 9; i++) bx(.02, .005, 6, 0x777064, -4 + i, .004, 0); bx(.7, .005, 6, 0xb5ab95, 0, .006, 0);
+    bx(9, .5, .2, 0x8a8478, 0, .25, -2.9); bx(.2, .5, 6, 0x8a8478, -4.4, .25, 0);
+    const pn = (w, h, x, y, z, ry) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), glass); m.position.set(x, y, z); m.rotation.y = ry || 0; sc.add(m); };
+    pn(9, 2.9, 0, 1.95, -2.9); pn(6, 2.9, -4.4, 1.95, 0, Math.PI / 2);
+    for (let i = 0; i <= 6; i++) { bx(.07, 2.9, .07, 0xf3f1e8, -4.4 + i * 1.5, 1.95, -2.85); } for (let i = 0; i <= 4; i++) bx(.07, 2.9, .07, 0xf3f1e8, -4.35, 1.95, -2.9 + i * 1.5);
+    bx(9, .07, .07, 0xf3f1e8, 0, 1.2, -2.85); bx(9, .07, .07, 0xf3f1e8, 0, 3.4, -2.85); bx(.07, .07, 6, 0xf3f1e8, -4.35, 1.2, 0); bx(.07, .07, 6, 0xf3f1e8, -4.35, 3.4, 0);
+    for (let i = 0; i <= 6; i++) { const x = -4.4 + i * 1.5; const rf = bx(.07, .07, 3.5, 0xf3f1e8, x, 3.9, -1.2); rf.rotation.x = .38; const rf2 = bx(.07, .07, 3.5, 0xf3f1e8, x, 3.9, 1.2); rf2.rotation.x = -.38; }
+    bx(9, .09, .09, 0xf3f1e8, 0, 4.55, 0);
+    /* tablettes + pots des cartes */
+    const cards = Object.keys(S.cards || {}).map(Number).filter(i => A.P[i]), tones = { 'Arbre': 0x4f8a3a, 'Arbuste': 0x5fa04a, 'Grimpante': 0x6bb04f, 'Herbacée': 0x7fbf5a, 'Couvre-sol': 0x9acd4a, 'Racine': 0xb59a54 };
+    const shelf = (x, z, w) => { bx(w, .08, .7, 0x8b5a2b, x, .9, z); [-1, 1].forEach(s => bx(.07, .9, .6, 0x6a4423, x + s * (w / 2 - .1), .45, z)); }; shelf(-1.4, -2.3, 5.4); shelf(2.5, -2.3, 2.2); shelf(-3.6, .6, .7); 
+    const spots = []; for (let i = 0; i < 12; i++) spots.push([-3.7 + i * .45, -2.3]); for (let i = 0; i < 5; i++) spots.push([1.7 + i * .42, -2.3]); 
+    cards.slice(0, spots.length).forEach((pid, i) => { const [x, z] = spots[i], p = A.P[pid], c = tones[p.strate] || 0x5fa04a, hh = p.strate === 'Arbre' ? .65 : p.strate === 'Arbuste' ? .5 : .32; cy(.15, .11, .22, 0xc2683a, x, 1.04, z, 0, 10); cy(.155, .155, .03, 0xa9532a, x, 1.16, z, 0, 10); if (p.strate === 'Arbre') { cy(.02, .03, hh, 0x6b4a2a, x, 1.15 + hh / 2, z, 0, 5); sp(.2, c, x, 1.15 + hh, z, .9); } else if (p.strate === 'Arbuste') sp(.24, c, x, 1.32, z, .9); else for (let k = 0; k < 4; k++) { const l = new T.Mesh(new T.ConeGeometry(.06, hh, 5), M(c)); l.position.set(x + (k - 1.5) * .05, 1.2 + hh / 2, z + (k % 2 ? .04 : -.04)); l.rotation.z = (k - 1.5) * .22; sc.add(l); } });
+    for (let i = cards.length; i < spots.length; i++) { if (i % 3 === 2) continue; const [x, z] = spots[i], c = [0x6fae4a, 0x8bc34a, 0x5fa04a, 0x9acd4a][i % 4]; cy(.15, .11, .22, 0xc2683a, x, 1.04, z, 0, 10); cy(.155, .155, .03, 0xa9532a, x, 1.16, z, 0, 10); for (let k = 0; k < 4; k++) { const l = new T.Mesh(new T.ConeGeometry(.06, .3 + (i % 3) * .06, 5), M(c)); l.position.set(x + (k - 1.5) * .05, 1.34, z + (k % 2 ? .04 : -.04)); l.rotation.z = (k - 1.5) * .25; sc.add(l); } }
+    /* agrumes et figuier en bac */ cy(.45, .38, .5, 0xa9532a, 3.3, .25, -.9, 0, 12); cy(.05, .07, 1.1, 0x6b4a2a, 3.3, 1.0, -.9, 0, 6); sp(.7, 0x4f8a3a, 3.3, 1.9, -.9, .85); for (let i = 0; i < 6; i++) sp(.09, 0xf0a020, 3.3 + Math.cos(i * 1.05) * .55, 1.8 + (i % 2) * .3, -.9 + Math.sin(i * 1.05) * .55);
+    cy(.4, .34, .45, 0xa9532a, -3.5, .22, -1.6, 0, 12); for (let k = 0; k < 6; k++) { const l = new T.Mesh(new T.ConeGeometry(.16, 1.3, 5), M(0x5fa04a)); l.position.set(-3.5 + Math.cos(k * 1.05) * .22, 1.05, -1.6 + Math.sin(k * 1.05) * .22); l.rotation.set(Math.sin(k * 1.05) * .35, 0, -Math.cos(k * 1.05) * .35); sc.add(l); }
+    /* table de rempotage au centre */ bx(2.4, .1, 1.0, 0x9a6b3c, 0, .9, .4); [[-1, -.35], [1, -.35], [-1, .35], [1, .35]].forEach(([a, b]) => bx(.08, .9, .08, 0x6a4423, a * 1.1, .45, .4 + b)); for (let i = 0; i < 3; i++) { bx(.6, .06, .4, 0x3d3d3d, -.8 + i * .8, .98, .4); for (let k = 0; k < 6; k++) sp(.05, 0x7bb85a, -1 + i * .8 + k * .08, 1.04, .4 + (k % 2) * .1, .8); }
+    cy(.12, .1, .26, 0x7aa0b8, 1.5, 1.08, .55, 0, 10); bx(.5, .35, .3, 0x6b4a2a, -3.4, .17, 1.8); bx(.5, .08, .3, 0x8b6a3a, -3.4, .4, 1.8);
+    for (let i = 0; i < 5; i++) { cy(.01, .01, .7, 0x333333, -3 + i * 1.5, 3.55, -1.2, 0, 4); cy(.14, .1, .18, 0xc2683a, -3 + i * 1.5, 3.1, -1.2, 0, 8); sp(.2, 0x6fae4a, -3 + i * 1.5, 3.25, -1.2, .8); }
+    const cam3 = new T.PerspectiveCamera(33, 640 / 300, .1, 40); cam3.position.set(4.7, 3.0, 6.7); cam3.lookAt(0, 1.25, -.5);
+    dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); { const c = dl.shadow.camera; c.left = -8; c.right = 8; c.top = 8; c.bottom = -8; c.near = .5; c.far = 22; dl.shadow.bias = -.0006; dl.shadow.normalBias = .02; } sc.add(new T.AmbientLight(0xfff6e0, .35));
+    sc.traverse(o => { if (o.isMesh && o.material !== glass) { o.castShadow = true; o.receiveShadow = true; } });
+    return snap(sc, cam3, 1920, 900, 0xbfe0ee);
+  }
   const stone = kind !== 'maison', wallC = stone ? 0x9a968c : 0xe9dcc0, floorC = stone ? 0x7c776d : 0xa6713f;
   bx(9, .12, 6, floorC, 0, -.06, 0); for (let i = 0; i < 12; i++) bx(.03, .005, 6, stone ? 0x6d695f : 0x8a5a30, -4 + i * .75, .004, 0);
   bx(9, 3.4, .2, wallC, 0, 1.7, -2.9); bx(.2, 3.4, 6, wallC, -4.4, 1.7, 0); bx(9, .6, .22, stone ? 0x7a766c : 0x8b5a2b, 0, .3, -2.9); bx(.22, .6, 6, stone ? 0x7a766c : 0x8b5a2b, -4.4, .3, 0);
@@ -1190,6 +1237,7 @@ function tap(cx, cy) {
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
   else if (pk.t === 'lawn') fire(svg.querySelector('.lawn[data-k="' + pk.k + '"]'));
   else if (pk.t === 'deco' && pk.k === 'house') A.openHouse();
+  else if (pk.t === 'deco' && pk.k === 'serre') A.openSerre();
   else if (pk.t === 'deco' && pk.k === 'atelier') A.openAtelier();
   else if (pk.t === 'wild') A.scare(pk.i);
   else if (pk.t === 'deco') fire(svg.querySelector('[data-' + pk.k + ']'));
@@ -1494,6 +1542,7 @@ function syncDecor(S, sk) {
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
   const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5, { t: 'deco', k: 'house' }); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   if ((S.wood || 0) >= 3) { const bw = dcMesh('buches', dcSolidMat); bw.scale.setScalar(.8 + Math.min(.9, (S.wood || 0) / 30)); const bg = new T.Group(); bg.add(bw); add(bg, hp[0] + 3.4, hp[1] + 1.6, .2); }
+  { const c = Math.cos(.5), s = Math.sin(.5), dx = 5.9, dz = .1; const sj = serreJ(); sj.scale.setScalar(1.3); add(sj, hp[0] + dx * c + dz * s, hp[1] - dx * s + dz * c, .5, { t: 'deco', k: 'serre' }); }
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
   for (let k = 0; k < Math.max(0, S.cuves || 0) && k < 3; k++) add(barrel(lvl), bp[0] + 1.1 * (k + 1), bp[1] + .3 * (k % 2 ? -1 : 1));
   add(puits(), hp[0] + 3.2, hp[1] + 5.2, 0);

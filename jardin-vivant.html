@@ -606,6 +606,7 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 .app #today .card{min-height:0;padding:3px 3px 5px}.app #today .card .cfoot{display:none}.app #today .card h4{margin:-9px 5px 0;font-size:12.5px;padding:3px 4px}
 .flipper .card{height:264px}.flipper{height:264px}.card .tag{white-space:nowrap;font-size:9.5px;letter-spacing:.02em}
 @media (prefers-reduced-motion:reduce){.card::before,.pack .foil,.pack .foil .sheen,.flipper.up .card.rar-Rare{animation:none!important}}
+.pots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.pot{display:grid;gap:3px;padding:6px;border:2px solid #c9b98a;border-radius:12px;background:#fffbea;text-align:center;font:inherit;color:#1f1a0e;cursor:pointer}.pot b{font-size:12px;line-height:1.1}.pot{--tone:var(--leaf-2)}.pot.t-Racine{--tone:#e08a1e}.pot.t-Herbacée{--tone:#4f9a4a}.pot.t-Couvre-sol{--tone:#a3c23f}.pot.t-Arbuste{--tone:#7b5aa6}.pot.t-Grimpante{--tone:#2f8f8a}.pot.t-Arbre{--tone:#a0522d}.pot .pa{display:block;height:84px;border:2px solid color-mix(in srgb,var(--tone) 55%,#3a2a10);border-radius:8px;overflow:hidden}.pot .pa svg{width:100%;height:100%}.pot .ps{font-size:10.5px;color:#5a4a30}.pot.off{opacity:.55;cursor:default}
 </style>
 
 <div class="app">
@@ -1170,6 +1171,27 @@ function furn(k, cell) {
 
 /* ---------- décor ---------- */
 const SH = [0xc8553a, 0x3f7fb5, 0xe0a23a, 0x8a5aa6], PA = [0x4a5a7a, 0x6b4a30, 0x5a7a5a, 0x3a4a6a], SK = [0xe8bf98, 0xd9a47a, 0xf0cfa8, 0xc58a62], HR = [0x3a2b20, 0x7a4a24, 0xd9b45a, 0x2a1f18];
+function serreJ() {
+  const g = new T.Group(), glass = new T.MeshLambertMaterial({ color: 0xcfeaf2, transparent: true, opacity: .28, side: T.DoubleSide, depthWrite: false }), fr = L(0xf3f1e8), W = 5.6, D = 3.6, H = 2.1, RH = 1.1;
+  g.add(mesh(geo.box(W + .2, .18, D + .2), L(0x8a8478), 0, .09, 0));
+  const pane = (w, h, x, y, z, ry) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), glass); m.position.set(x, y, z); m.rotation.y = ry || 0; g.add(m); };
+  pane(W, H, 0, .18 + H / 2, D / 2, 0); pane(W, H, 0, .18 + H / 2, -D / 2, 0); pane(D, H, W / 2, .18 + H / 2, 0, Math.PI / 2); pane(D, H, -W / 2, .18 + H / 2, 0, Math.PI / 2);
+  for (let i = 0; i <= 6; i++) { const x = -W / 2 + W * i / 6; g.add(mesh(geo.box(.07, H, .07), fr, x, .18 + H / 2, D / 2)); g.add(mesh(geo.box(.07, H, .07), fr, x, .18 + H / 2, -D / 2)); }
+  for (let i = 0; i <= 4; i++) { const z = -D / 2 + D * i / 4; g.add(mesh(geo.box(.07, H, .07), fr, W / 2, .18 + H / 2, z)); g.add(mesh(geo.box(.07, H, .07), fr, -W / 2, .18 + H / 2, z)); }
+  [.18, .18 + H].forEach(y => { g.add(mesh(geo.box(W + .08, .07, .07), fr, 0, y, D / 2)); g.add(mesh(geo.box(W + .08, .07, .07), fr, 0, y, -D / 2)); g.add(mesh(geo.box(.07, .07, D + .08), fr, W / 2, y, 0)); g.add(mesh(geo.box(.07, .07, D + .08), fr, -W / 2, y, 0)); });
+  /* toit à deux pans */
+  const ang = Math.atan2(RH, D / 2), sl = Math.hypot(RH, D / 2);
+  [-1, 1].forEach(s => { const m = new T.Mesh(new T.PlaneGeometry(W, sl), glass); m.position.set(0, .18 + H + RH / 2, s * D / 4); m.rotation.x = -s * (Math.PI / 2 - ang) + (s > 0 ? 0 : 0); m.rotation.order = 'XYZ'; m.rotation.x = s * (ang) - Math.PI / 2 * 0; m.rotation.set(-Math.PI / 2 + s * ang * -1, 0, 0); g.add(m); });
+  g.add(mesh(geo.box(W + .1, .08, .08), fr, 0, .18 + H + RH, 0));
+  for (let i = 0; i <= 6; i++) { const x = -W / 2 + W * i / 6; [-1, 1].forEach(s => { const r = mesh(geo.box(.06, .06, sl), fr, x, .18 + H + RH / 2, s * D / 4); r.rotation.x = s * ang; g.add(r); }); }
+  /* pignon vitré avant */ const tri = new T.Shape(); tri.moveTo(-D / 2, 0); tri.lineTo(D / 2, 0); tri.lineTo(0, RH); tri.closePath();
+  [-1, 1].forEach(s => { const m = new T.Mesh(new T.ShapeGeometry(tri), glass); m.position.set(s * W / 2, .18 + H, 0); m.rotation.y = Math.PI / 2; g.add(m); });
+  /* porte */ g.add(mesh(geo.box(.9, 1.8, .06), L(0xdfe8e4), 0, .18 + .9, D / 2 + .02)); g.add(mesh(geo.box(.05, .05, .05), L(0x333333), .3, 1.1, D / 2 + .07));
+  /* tablettes et pots visibles à travers le verre */
+  [-1, 1].forEach(s => { g.add(mesh(geo.box(W - .6, .06, .6), L(0x8b5a2b), 0, .75, s * (D / 2 - .45))); for (let i = 0; i < 6; i++) { const x = -W / 2 + .6 + i * (W - 1.2) / 5; g.add(mesh(new T.CylinderGeometry(.13, .1, .2, 8), L(0xc2683a), x, .88, s * (D / 2 - .45))); g.add(mesh(new T.SphereGeometry(.17, 8, 6), L([0x5fa04a, 0x7bb85a, 0x8bc34a][(i + (s > 0 ? 1 : 0)) % 3]), x, 1.1, s * (D / 2 - .45))); } });
+  return g;
+}
+
 function house() {
   const h = new T.Group();
   try { const m = dcMesh('maison', dcHouseMat); h.add(m); return h; } catch (e) { }
@@ -1393,6 +1415,32 @@ function interior(kind) {
   const cy = (rt, rb, h, c, x, y, z, e, sg) => { const m = new T.Mesh(new T.CylinderGeometry(rt, rb, h, sg || 14), M(c, e)); m.position.set(x, y, z); sc.add(m); return m; };
   const sp = (rd, c, x, y, z, sy, e) => { const m = new T.Mesh(new T.SphereGeometry(rd, 12, 9), M(c, e)); m.position.set(x, y, z); if (sy) m.scale.y = sy; sc.add(m); return m; };
   sc.add(new T.HemisphereLight(0xfff1d6, 0x8a6a4a, .85)); const dl = new T.DirectionalLight(0xfff0d0, .55); dl.position.set(3, 5, 4); sc.add(dl);
+  if (kind === 'serre') {
+    const glass = new T.MeshLambertMaterial({ color: 0xd8f0f8, transparent: true, opacity: .22, side: T.DoubleSide, depthWrite: false, emissive: 0x6fa0b0, emissiveIntensity: .25 });
+    bx(9, .12, 6, 0x8f897b, 0, -.06, 0); for (let i = 0; i < 9; i++) bx(.02, .005, 6, 0x777064, -4 + i, .004, 0); bx(.7, .005, 6, 0xb5ab95, 0, .006, 0);
+    bx(9, .5, .2, 0x8a8478, 0, .25, -2.9); bx(.2, .5, 6, 0x8a8478, -4.4, .25, 0);
+    const pn = (w, h, x, y, z, ry) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), glass); m.position.set(x, y, z); m.rotation.y = ry || 0; sc.add(m); };
+    pn(9, 2.9, 0, 1.95, -2.9); pn(6, 2.9, -4.4, 1.95, 0, Math.PI / 2);
+    for (let i = 0; i <= 6; i++) { bx(.07, 2.9, .07, 0xf3f1e8, -4.4 + i * 1.5, 1.95, -2.85); } for (let i = 0; i <= 4; i++) bx(.07, 2.9, .07, 0xf3f1e8, -4.35, 1.95, -2.9 + i * 1.5);
+    bx(9, .07, .07, 0xf3f1e8, 0, 1.2, -2.85); bx(9, .07, .07, 0xf3f1e8, 0, 3.4, -2.85); bx(.07, .07, 6, 0xf3f1e8, -4.35, 1.2, 0); bx(.07, .07, 6, 0xf3f1e8, -4.35, 3.4, 0);
+    for (let i = 0; i <= 6; i++) { const x = -4.4 + i * 1.5; const rf = bx(.07, .07, 3.5, 0xf3f1e8, x, 3.9, -1.2); rf.rotation.x = .38; const rf2 = bx(.07, .07, 3.5, 0xf3f1e8, x, 3.9, 1.2); rf2.rotation.x = -.38; }
+    bx(9, .09, .09, 0xf3f1e8, 0, 4.55, 0);
+    /* tablettes + pots des cartes */
+    const cards = Object.keys(S.cards || {}).map(Number).filter(i => A.P[i]), tones = { 'Arbre': 0x4f8a3a, 'Arbuste': 0x5fa04a, 'Grimpante': 0x6bb04f, 'Herbacée': 0x7fbf5a, 'Couvre-sol': 0x9acd4a, 'Racine': 0xb59a54 };
+    const shelf = (x, z, w) => { bx(w, .08, .7, 0x8b5a2b, x, .9, z); [-1, 1].forEach(s => bx(.07, .9, .6, 0x6a4423, x + s * (w / 2 - .1), .45, z)); }; shelf(-1.4, -2.3, 5.4); shelf(2.5, -2.3, 2.2); shelf(-3.6, .6, .7); 
+    const spots = []; for (let i = 0; i < 12; i++) spots.push([-3.7 + i * .45, -2.3]); for (let i = 0; i < 5; i++) spots.push([1.7 + i * .42, -2.3]); 
+    cards.slice(0, spots.length).forEach((pid, i) => { const [x, z] = spots[i], p = A.P[pid], c = tones[p.strate] || 0x5fa04a, hh = p.strate === 'Arbre' ? .65 : p.strate === 'Arbuste' ? .5 : .32; cy(.15, .11, .22, 0xc2683a, x, 1.04, z, 0, 10); cy(.155, .155, .03, 0xa9532a, x, 1.16, z, 0, 10); if (p.strate === 'Arbre') { cy(.02, .03, hh, 0x6b4a2a, x, 1.15 + hh / 2, z, 0, 5); sp(.2, c, x, 1.15 + hh, z, .9); } else if (p.strate === 'Arbuste') sp(.24, c, x, 1.32, z, .9); else for (let k = 0; k < 4; k++) { const l = new T.Mesh(new T.ConeGeometry(.06, hh, 5), M(c)); l.position.set(x + (k - 1.5) * .05, 1.2 + hh / 2, z + (k % 2 ? .04 : -.04)); l.rotation.z = (k - 1.5) * .22; sc.add(l); } });
+    for (let i = cards.length; i < spots.length; i++) { if (i % 3 === 2) continue; const [x, z] = spots[i], c = [0x6fae4a, 0x8bc34a, 0x5fa04a, 0x9acd4a][i % 4]; cy(.15, .11, .22, 0xc2683a, x, 1.04, z, 0, 10); cy(.155, .155, .03, 0xa9532a, x, 1.16, z, 0, 10); for (let k = 0; k < 4; k++) { const l = new T.Mesh(new T.ConeGeometry(.06, .3 + (i % 3) * .06, 5), M(c)); l.position.set(x + (k - 1.5) * .05, 1.34, z + (k % 2 ? .04 : -.04)); l.rotation.z = (k - 1.5) * .25; sc.add(l); } }
+    /* agrumes et figuier en bac */ cy(.45, .38, .5, 0xa9532a, 3.3, .25, -.9, 0, 12); cy(.05, .07, 1.1, 0x6b4a2a, 3.3, 1.0, -.9, 0, 6); sp(.7, 0x4f8a3a, 3.3, 1.9, -.9, .85); for (let i = 0; i < 6; i++) sp(.09, 0xf0a020, 3.3 + Math.cos(i * 1.05) * .55, 1.8 + (i % 2) * .3, -.9 + Math.sin(i * 1.05) * .55);
+    cy(.4, .34, .45, 0xa9532a, -3.5, .22, -1.6, 0, 12); for (let k = 0; k < 6; k++) { const l = new T.Mesh(new T.ConeGeometry(.16, 1.3, 5), M(0x5fa04a)); l.position.set(-3.5 + Math.cos(k * 1.05) * .22, 1.05, -1.6 + Math.sin(k * 1.05) * .22); l.rotation.set(Math.sin(k * 1.05) * .35, 0, -Math.cos(k * 1.05) * .35); sc.add(l); }
+    /* table de rempotage au centre */ bx(2.4, .1, 1.0, 0x9a6b3c, 0, .9, .4); [[-1, -.35], [1, -.35], [-1, .35], [1, .35]].forEach(([a, b]) => bx(.08, .9, .08, 0x6a4423, a * 1.1, .45, .4 + b)); for (let i = 0; i < 3; i++) { bx(.6, .06, .4, 0x3d3d3d, -.8 + i * .8, .98, .4); for (let k = 0; k < 6; k++) sp(.05, 0x7bb85a, -1 + i * .8 + k * .08, 1.04, .4 + (k % 2) * .1, .8); }
+    cy(.12, .1, .26, 0x7aa0b8, 1.5, 1.08, .55, 0, 10); bx(.5, .35, .3, 0x6b4a2a, -3.4, .17, 1.8); bx(.5, .08, .3, 0x8b6a3a, -3.4, .4, 1.8);
+    for (let i = 0; i < 5; i++) { cy(.01, .01, .7, 0x333333, -3 + i * 1.5, 3.55, -1.2, 0, 4); cy(.14, .1, .18, 0xc2683a, -3 + i * 1.5, 3.1, -1.2, 0, 8); sp(.2, 0x6fae4a, -3 + i * 1.5, 3.25, -1.2, .8); }
+    const cam3 = new T.PerspectiveCamera(33, 640 / 300, .1, 40); cam3.position.set(4.7, 3.0, 6.7); cam3.lookAt(0, 1.25, -.5);
+    dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); { const c = dl.shadow.camera; c.left = -8; c.right = 8; c.top = 8; c.bottom = -8; c.near = .5; c.far = 22; dl.shadow.bias = -.0006; dl.shadow.normalBias = .02; } sc.add(new T.AmbientLight(0xfff6e0, .35));
+    sc.traverse(o => { if (o.isMesh && o.material !== glass) { o.castShadow = true; o.receiveShadow = true; } });
+    return snap(sc, cam3, 1920, 900, 0xbfe0ee);
+  }
   const stone = kind !== 'maison', wallC = stone ? 0x9a968c : 0xe9dcc0, floorC = stone ? 0x7c776d : 0xa6713f;
   bx(9, .12, 6, floorC, 0, -.06, 0); for (let i = 0; i < 12; i++) bx(.03, .005, 6, stone ? 0x6d695f : 0x8a5a30, -4 + i * .75, .004, 0);
   bx(9, 3.4, .2, wallC, 0, 1.7, -2.9); bx(.2, 3.4, 6, wallC, -4.4, 1.7, 0); bx(9, .6, .22, stone ? 0x7a766c : 0x8b5a2b, 0, .3, -2.9); bx(.22, .6, 6, stone ? 0x7a766c : 0x8b5a2b, -4.4, .3, 0);
@@ -1849,6 +1897,7 @@ function tap(cx, cy) {
   else if (pk.t === 'tree') fire(svg.querySelector('[data-tree="' + pk.k + '"]'));
   else if (pk.t === 'lawn') fire(svg.querySelector('.lawn[data-k="' + pk.k + '"]'));
   else if (pk.t === 'deco' && pk.k === 'house') A.openHouse();
+  else if (pk.t === 'deco' && pk.k === 'serre') A.openSerre();
   else if (pk.t === 'deco' && pk.k === 'atelier') A.openAtelier();
   else if (pk.t === 'wild') A.scare(pk.i);
   else if (pk.t === 'deco') fire(svg.querySelector('[data-' + pk.k + ']'));
@@ -2153,6 +2202,7 @@ function syncDecor(S, sk) {
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
   const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5, { t: 'deco', k: 'house' }); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   if ((S.wood || 0) >= 3) { const bw = dcMesh('buches', dcSolidMat); bw.scale.setScalar(.8 + Math.min(.9, (S.wood || 0) / 30)); const bg = new T.Group(); bg.add(bw); add(bg, hp[0] + 3.4, hp[1] + 1.6, .2); }
+  { const c = Math.cos(.5), s = Math.sin(.5), dx = 5.9, dz = .1; const sj = serreJ(); sj.scale.setScalar(1.3); add(sj, hp[0] + dx * c + dz * s, hp[1] - dx * s + dz * c, .5, { t: 'deco', k: 'serre' }); }
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
   for (let k = 0; k < Math.max(0, S.cuves || 0) && k < 3; k++) add(barrel(lvl), bp[0] + 1.1 * (k + 1), bp[1] + .3 * (k % 2 ? -1 : 1));
   add(puits(), hp[0] + 3.2, hp[1] + 5.2, 0);
@@ -5590,7 +5640,7 @@ function gForm(first) {
     '<div class="wd-opts" style="margin:8px 0"><button type="button" class="btn sm' + (g.g !== 'f' ? ' primary' : '') + '" data-act="g-gender" data-g="m" data-ctx="' + (first ? 'c' : 'h') + '">Un jardinier</button><button type="button" class="btn sm' + (g.g === 'f' ? ' primary' : '') + '" data-act="g-gender" data-g="f" data-ctx="' + (first ? 'c' : 'h') + '">Une jardinière</button></div>' +
     '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="g-save">' + (first ? 'Commencer' : 'Enregistrer') + '</button></div></div>';
 }
-function gardenerCreate() { modal('Crée ton jardinier', '<p class="note-p">Qui va cultiver la forêt comestible ? Donne-lui un prénom et un nom. Tu pourras les changer plus tard dans la maison, onglet « Mon jardinier ».</p>' + gForm(true)); }
+function gardenerCreate() { modal('Crée ton jardinier', '<p class="note-p">Qui va cultiver la forêt comestible ? Donne-lui un prénom et un nom. Tu pourras les changer plus tard dans la serre, onglet « Mon équipe ».</p>' + gForm(true)); }
 function gardenerMaybeCreate() { if (!S.gardener && !S.demo && !(S.maxPlantings > 0) && S.tuto && !S.tuto.done) { if (!S.prog) S.prog = { seen: {} }; render(); gardenerCreate(); } }
 
 function harmonyHtml() {
@@ -5599,11 +5649,36 @@ function harmonyHtml() {
   return '<div class="harm"><b>Harmonie du jardin : ' + H.score + ' %</b><div class="bar"><i style="width:' + H.score + '%"></i></div><p class="note-p">' + (H.happy ? esc(nm) + ' sont pleinement contents : le jardin est équilibré et joli.' : esc(nm) + ' aimeraient encore :') + '</p>' + (H.tips.length ? '<ul class="harm-l">' + H.tips.slice(0, 4).map(t => '<li>' + t.text + ' <span class="k">+' + t.gain + ' points</span></li>').join('') + '</ul>' : '') + '</div>';
 }
 function openHouse(tab) {
-  ui.houseTab = tab || ui.houseTab || 'jardinier'; const t = ui.houseTab, X = G.xpInfo(S);
+  ui.houseTab = tab === 'cellier' ? 'cellier' : 'famille'; const t = ui.houseTab, X = G.xpInfo(S);
   const title = gTitle(X.lvl);
-  let h = '<div class="sk-tabs" role="tablist">' + [['jardinier', 'Mon équipe'], ['famille', 'La famille'], ['cellier', 'Le cellier']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="house-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  let h = '<div class="sk-tabs" role="tablist">' + [['famille', 'La famille'], ['cellier', 'Le cellier']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="house-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
   h += roomImg(t === 'cellier' ? 'cellier' : 'maison');
-  if (t === 'jardinier') {
+  if (t === 'famille') {
+    h += harmonyHtml();
+    h += '<p class="note-p">Plus ils mangent de ton jardin, des repas variés, plus ils sont heureux.</p><div class="fam">' + S.family.map((m, k) => { const img = k === 0 ? portraitImg('camille', 64) : k === 1 ? portraitImg('lea', 64) : ''; const tk = m.hist.filter(x => S.day - x.day < 1).reduce((a, b) => a + b.kcal, 0); return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + (img || face(k, m.joy, 56)) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + tk + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
+  } else {
+    const it = cellarItems(), groups = {}; it.forEach(x => (groups[x.t] = groups[x.t] || []).push(x));
+    h += '<p class="note-p">Le cellier garde tes paniers, conserves et transformations de l’atelier.</p><div class="hearth"><b>🔥 Cheminée</b> · ' + fmt(S.wood || 0, 1) + ' bûches · ' + (S.fire ? 'allumée' : (G.dateOf(S.day).m >= 10 || G.dateOf(S.day).m <= 2 ? 'éteinte : coupe une trogne !' : 'éteinte (pas besoin en cette saison)')) + '<br><span class="k">En hiver, elle brûle une demi-bûche par jour. Chaque trogne coupée donne du bois, le bois mort aussi.</span></div><p class="note-p" hidden></p>';
+    if (!it.length) h += '<p class="empty-f">Le cellier est vide. Récolte, puis transforme à l’atelier.</p>';
+    else h += Object.keys(CELLAR_N).filter(k => groups[k]).map(k => '<h3 style="margin:10px 0 4px">' + CELLAR_E[k] + ' ' + CELLAR_N[k] + (k === 'panier' ? ' (à cuisiner vite)' : '') + '</h3><div class="cel">' + groups[k].map(x => '<span class="cel-i"><b>' + x.name + '</b> · ' + (x.kg != null ? fmt(x.kg, 2) + ' kg' : '×' + x.n + ' <button type="button" class="btn sm" data-act="cellar-use" data-i="' + x.i + '">Servir</button>') + '</span>').join('') + '</div>').join('');
+    h += '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm" data-act="kitchen">Garde-manger et cuisine</button>' + (S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Atelier</button>' : '') + '</div>';
+  }
+  modal('La maison', h, true);
+}
+function openSerre(tab) {
+  ui.serreTab = tab || ui.serreTab || 'pots'; const t = ui.serreTab, X = G.xpInfo(S), title = gTitle(X.lvl);
+  let h = '<div class="sk-tabs" role="tablist">' + [['pots', 'Plantes en pot'], ['jardinier', 'Mon équipe']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="serre-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  h += roomImg('serre');
+  if (t === 'pots') {
+    const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).filter(pid => P[pid]), unl = G.unlocked(S);
+    if (!ids.length) h += '<p class="empty-f">Aucune plante en pot pour l’instant. Ouvre un booster (missions de Guildéon) pour en récolter.</p>';
+    else {
+      h += '<p class="note-p">Ton bureau de jardinier : les plantes que tu as en pot, prêtes à partir dans la forêt comestible. Touche-en une, puis choisis son emplacement.</p>';
+      const rows = ids.map(pid => { const p = P[pid], ok = G.sowable(p, m) && unl.has(p.strate), ps = ok ? planSlots(pid) : { n: 0, why: '' }; return { pid, p, ok, ps }; }).sort((a, b) => (b.ok && b.ps.n ? 1 : 0) - (a.ok && a.ps.n ? 1 : 0) || a.p.name.localeCompare(b.p.name, 'fr'));
+      h += '<div class="pots">' + rows.map(({ pid, p, ok, ps }) => '<button type="button" class="pot t-' + p.strate + (ok && ps.n ? '' : ' off') + '" data-act="gj-plant" data-pid="' + pid + '"' + (ok && ps.n ? '' : ' disabled') + '><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b><span class="ps">× ' + (S.cards[pid] || 1) + ' · ' + (ok ? (ps.n ? ps.n + ' place' + (ps.n > 1 ? 's' : '') : 'plus de place') : 'pas la saison') + '</span></button>').join('') + '</div>';
+    }
+    h += '<div class="acts" style="justify-content:flex-start;margin-top:10px"><button type="button" class="btn sm" data-act="gj-open">Actions du jardinier</button></div>';
+  } else {
     const o = S.outfit || {}, main = wAct(), sel = ui.teamSel || main, T = S.team || {};
     const nm = k => wName(k), role = k => k === 'guil' ? (k === main ? 'Compagnon au jardin' : 'Compagnon du jardin') : (k === 'f' ? 'Jardinière' : 'Jardinier') + (k === main ? ' · au jardin' : '');
     h += '<div class="team">' + ['m', 'f', 'guil'].map(k => '<button type="button" class="tm' + (sel === k ? ' on' : '') + '" data-act="team-sel" data-k="' + k + '"><b>' + esc(nm(k)) + '</b><span>' + role(k) + '</span></button>').join('') + '</div>';
@@ -5617,17 +5692,8 @@ function openHouse(tab) {
       Object.keys(G.OUTFIT).forEach(sl => { const d = G.OUTFIT[sl]; h += '<div class="wd-row"><span class="wd-n">' + d.n + '</span><span class="wd-opts">' + d.o.map(([id, nm2]) => '<button type="button" class="btn sm' + ((o[sl] || d.o[0][0]) === id ? ' primary' : '') + '" data-act="outfit" data-slot="' + sl + '" data-id="' + id + '">' + nm2 + '</button>').join('') + '</span></div>'; });
     } else if (sel === 'f') h += '<p class="note-p">Les tenues de la jardinière arrivent bientôt.</p>';
     setTimeout(() => { try { const cv = $('tv'); if (cv && window.V3D && V3D.viewer) { if (ui.viewer) ui.viewer.dispose(); ui.viewer = V3D.viewer(cv, sel, (S.outfit || {}).tenue || 'auto'); } } catch (e) {} }, 30);
-  } else if (t === 'famille') {
-    h += harmonyHtml();
-    h += '<p class="note-p">Plus ils mangent de ton jardin, des repas variés, plus ils sont heureux.</p><div class="fam">' + S.family.map((m, k) => { const img = k === 0 ? portraitImg('camille', 64) : k === 1 ? portraitImg('lea', 64) : ''; const tk = m.hist.filter(x => S.day - x.day < 1).reduce((a, b) => a + b.kcal, 0); return '<div class="fm' + (m.joy < 25 ? ' sad' : '') + '">' + (img || face(k, m.joy, 56)) + '<div><b>' + m.n + '</b> <span class="k">' + m.role + '</span><div class="bar"><i style="width:' + Math.round(m.joy) + '%"></i></div><span class="k">' + mood(m.joy) + ' · ' + tk + ' / ' + m.need + ' kcal aujourd’hui</span></div></div>'; }).join('') + '</div><div class="acts"><button type="button" class="btn sm primary" data-act="kitchen">' + ico('pot') + 'Cuisiner pour la famille</button></div>';
-  } else {
-    const it = cellarItems(), groups = {}; it.forEach(x => (groups[x.t] = groups[x.t] || []).push(x));
-    h += '<p class="note-p">Le cellier garde tes paniers, conserves et transformations de l’atelier.</p><div class="hearth"><b>🔥 Cheminée</b> · ' + fmt(S.wood || 0, 1) + ' bûches · ' + (S.fire ? 'allumée' : (G.dateOf(S.day).m >= 10 || G.dateOf(S.day).m <= 2 ? 'éteinte : coupe une trogne !' : 'éteinte (pas besoin en cette saison)')) + '<br><span class="k">En hiver, elle brûle une demi-bûche par jour. Chaque trogne coupée donne du bois, le bois mort aussi.</span></div><p class="note-p" hidden></p>';
-    if (!it.length) h += '<p class="empty-f">Le cellier est vide. Récolte, puis transforme à l’atelier.</p>';
-    else h += Object.keys(CELLAR_N).filter(k => groups[k]).map(k => '<h3 style="margin:10px 0 4px">' + CELLAR_E[k] + ' ' + CELLAR_N[k] + (k === 'panier' ? ' (à cuisiner vite)' : '') + '</h3><div class="cel">' + groups[k].map(x => '<span class="cel-i"><b>' + x.name + '</b> · ' + (x.kg != null ? fmt(x.kg, 2) + ' kg' : '×' + x.n + ' <button type="button" class="btn sm" data-act="cellar-use" data-i="' + x.i + '">Servir</button>') + '</span>').join('') + '</div>').join('');
-    h += '<div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm" data-act="kitchen">Garde-manger et cuisine</button>' + (S.atelier ? '<button type="button" class="btn sm" data-act="atelier">Atelier</button>' : '') + '</div>';
   }
-  modal('La maison', h, true);
+  modal('La serre du jardinier', h, true);
 }
 function season4() { const m = G.dateOf(S.day).m; return m >= 2 && m <= 4 ? 'spring' : m >= 5 && m <= 7 ? 'summer' : m >= 8 && m <= 10 ? 'autumn' : 'winter'; }
 
@@ -6120,22 +6186,24 @@ document.addEventListener('click', e => {
     case 'collect': collectAtelier(); break;
     case 'cellar-use': { const r = G.useCellar(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('La famille se régale (+' + r.v + ' de bonheur).'); save(); render(); openHouse('cellier'); break; }
     case 'house-tab': openHouse(a.dataset.t); break;
+    case 'serre-tab': openSerre(a.dataset.t); break;
+    case 'gj-open': openGardener(); break;
     case 'gj-amen': closeModal(); openAmenager(); break;
     case 'gj-spade': closeModal(); ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); break;
     case 'gj-plant': { closeModal(); const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
     case 'gj-task': closeModal(); doTask(a.dataset.id); break;
-    case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); if (ui.viewer && (ui.teamSel || 'm') !== 'f' && ui.teamSel !== 'guil') { ui.viewer.outfit(a.dataset.id); a.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('primary', b === a)); } else openHouse('jardinier'); break;
-    case 'team-sel': ui.teamSel = a.dataset.k; ui.teamEdit = null; openHouse('jardinier'); break;
-    case 'team-edit': ui.teamEdit = a.dataset.k; openHouse('jardinier'); break;
-    case 'team-cancel': ui.teamEdit = null; openHouse('jardinier'); break;
-    case 'team-save': { const k = a.dataset.k, f = $('t-first'), l = $('t-last'), fv = f ? f.value.trim() : ''; S.team = S.team || {}; if (k === 'guil') S.team.guil = { name: fv || 'Guildéon' }; else { S.team[k] = { first: fv, last: l ? l.value.trim() : '' }; if (k === (S.gardener && S.gardener.g === 'f' ? 'f' : 'm') && S.gardener) S.gardener = Object.assign({}, S.gardener, { first: fv, last: l ? l.value.trim() : '' }); } ui.teamEdit = null; save(); render(); openHouse('jardinier'); break; }
-    case 'team-pick': { S.team = Object.assign({}, S.team, { act: a.dataset.k }); save(); if (window.V3D && V3D.setWorker) V3D.setWorker(a.dataset.k); render(); toast(wName(a.dataset.k) + ' est au jardin.'); openHouse('jardinier'); break; }
+    case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); if (ui.viewer && (ui.teamSel || 'm') !== 'f' && ui.teamSel !== 'guil') { ui.viewer.outfit(a.dataset.id); a.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('primary', b === a)); } else openSerre('jardinier'); break;
+    case 'team-sel': ui.teamSel = a.dataset.k; ui.teamEdit = null; openSerre('jardinier'); break;
+    case 'team-edit': ui.teamEdit = a.dataset.k; openSerre('jardinier'); break;
+    case 'team-cancel': ui.teamEdit = null; openSerre('jardinier'); break;
+    case 'team-save': { const k = a.dataset.k, f = $('t-first'), l = $('t-last'), fv = f ? f.value.trim() : ''; S.team = S.team || {}; if (k === 'guil') S.team.guil = { name: fv || 'Guildéon' }; else { S.team[k] = { first: fv, last: l ? l.value.trim() : '' }; if (k === (S.gardener && S.gardener.g === 'f' ? 'f' : 'm') && S.gardener) S.gardener = Object.assign({}, S.gardener, { first: fv, last: l ? l.value.trim() : '' }); } ui.teamEdit = null; save(); render(); openSerre('jardinier'); break; }
+    case 'team-pick': { S.team = Object.assign({}, S.team, { act: a.dataset.k }); save(); if (window.V3D && V3D.setWorker) V3D.setWorker(a.dataset.k); render(); toast(wName(a.dataset.k) + ' est au jardin.'); openSerre('jardinier'); break; }
     case 'skills': openSkills(); break;
     case 'skill-tab': ui.skTab = a.dataset.t; openSkills(); break;
     case 'skill-up': { const r = G.skillUp(S, a.dataset.k); if (r.ok) toast('Compétence « ' + r.name + ' » : niveau ' + r.lv + '.'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'adv-up': { const r = G.advUp(S, a.dataset.k); if (r.ok) toast('Spécialisation « ' + r.name + ' » acquise !'); else toast(r.msg); save(); render(); openSkills(); break; }
     case 'tuto-skip': S.tuto = { done: true }; save(); renderTuto(); render(); break;
-    case 'g-gender': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({}, S.gardener, { g: a.dataset.g, first: f ? f.value.trim() : (S.gardener || {}).first, last: l ? l.value.trim() : (S.gardener || {}).last }); save(); if (a.dataset.ctx === 'c') gardenerCreate(); else openHouse('jardinier'); break; }
+    case 'g-gender': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({}, S.gardener, { g: a.dataset.g, first: f ? f.value.trim() : (S.gardener || {}).first, last: l ? l.value.trim() : (S.gardener || {}).last }); save(); if (a.dataset.ctx === 'c') gardenerCreate(); else openSerre('jardinier'); break; }
     case 'g-save': { const f = $('g-first'), l = $('g-last'); S.gardener = Object.assign({ g: 'm' }, S.gardener, { first: f ? f.value.trim() : '', last: l ? l.value.trim() : '' }); save(); closeModal(); toast(gName() + ' est prêt' + (gF() ? 'e' : '') + ' à planter.'); break; }
     case 'tuto-next': { const t = S.tuto; if (t && t.step != null) { t.step++; if (t.step >= TUTO.length) S.tuto = { done: true }; } save(); renderTuto(); render(); break; }
     case 'tuto-restart': S.tuto = { step: 0 }; $('layer').innerHTML = ''; render(); break;
@@ -6214,8 +6282,8 @@ const trace = (function initTrace() {
   wrap.addEventListener('click', e => { if (performance.now() < swallow) { e.stopPropagation(); e.preventDefault(); } }, true);
   return { gridAt, vertexClient, startVertex };
 })();
-window.__jv = { cardHtml: (id, o) => cardHtml(P[id], o || {}), openGardener: () => openGardener(), openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
-if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openGardener: () => openGardener(), openGardener: () => openGardener(), openAtelier: () => openAtelier(), collect: () => collectAtelier(), spadeCands: () => (ui.tool === 'spade' && ui.spade) ? G.spotCands(S, ui.spade.t, ui.spade.n, V3D.dims()) : [], scare: i => { const w = (S.wilds || [])[i]; if (!w) return; if (w.scared || w.done) { toast('Il est déjà parti.'); return; } if (G.WILD[w.k] && G.WILD[w.k].good) { toast('Ce visiteur est le bienvenu : le hérisson mange les limaces.'); return; } const r = G.scareWild(S, i); if (r.ok) { toast('Tu as fait fuir le ' + G.WILD[r.k].n + '.'); save(); render(); } } });
+window.__jv = { openSerre: t => openSerre(t), openHouse: t => openHouse(t), cardHtml: (id, o) => cardHtml(P[id], o || {}), openGardener: () => openGardener(), openMg: id => openMg(id), openMgList: () => openMgList(), openLearn: () => openLearn(), openQuiz: id => openQuiz(id), openAct: id => openAct(id), openAlbum: () => openAlbum(), cookAnim: (r, p) => cookAnim(r, p), ag: () => { const g = agents.g; return { p: g.path.length, act: g.act, aT: +(g.actT||0).toFixed(1), pause: +(g.pause||0).toFixed(1), tq: TQ.length, node: g.node, arr: g.arr }; }, enterVisit: r => enterVisit(r), endVisit: () => endVisit(), tq: () => ({ n: TQ.length, live: charsLive, anim: animOn, g: agents.g && { act: agents.g.act, task: !!agents.g.task, path: agents.g.path.length, pause: agents.g.pause, actT: agents.g.actT, el: !!agents.g.el, conn: !!(agents.g.el && agents.g.el.isConnected), ring: walk.ring && walk.ring.length } }), G, ui, cam, trace, CAM, view: () => view, state: () => S, flush() { G.flushPlantQueue(S); PQ.job = null; save(); render(); } };
+if (!(window.V3D && V3D.mount)) document.querySelectorAll('[data-act="view3d"],[data-act="tool-spade"]').forEach(b => b.remove()); else V3D.mount({ pendI: i => pendI(i), waterSpot: id => waterSpot(id), furnTap: (x, z, b) => furnTap(x, z, b), rotSpot: (id, da, fin) => rotSpot(id, da, fin), openSpot: id => openSpot(id), spadeTap: (x, z, a, b) => spadeTap(x, z, a, b), toast: m => toast(m), S: () => S, P, G, STR, ui: () => ui, agents, walk: () => walk, svg: () => $('garden'), leafColor, dims: () => G.dims(S), rerender: () => render(), openHouse: () => openHouse(), openSerre: () => openSerre(), openGardener: () => openGardener(), openGardener: () => openGardener(), openAtelier: () => openAtelier(), collect: () => collectAtelier(), spadeCands: () => (ui.tool === 'spade' && ui.spade) ? G.spotCands(S, ui.spade.t, ui.spade.n, V3D.dims()) : [], scare: i => { const w = (S.wilds || [])[i]; if (!w) return; if (w.scared || w.done) { toast('Il est déjà parti.'); return; } if (G.WILD[w.k] && G.WILD[w.k].good) { toast('Ce visiteur est le bienvenu : le hérisson mange les limaces.'); return; } const r = G.scareWild(S, i); if (r.ok) { toast('Tu as fait fuir le ' + G.WILD[r.k].n + '.'); save(); render(); } } });
 catchUp(); claimDaily(); render(); startChars(); calNote(); gardenerMaybeCreate();
 if (LIVE) { const tickDay = () => { if (!VIS && S.day < realDay() && catchUp()) { claimDaily(); $('layer').innerHTML = ''; render(); } }; setInterval(tickDay, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) tickDay(); }); }
 cloudHandleReturn();

@@ -681,16 +681,52 @@ function portrait(who) {
 }
 V.portrait = portrait;
 
+
+/* ---------- visionneuse 3D : le personnage tourne, on change de tenue ---------- */
+const GUIL3D = /*__GUIL3D__*/null;
+function guilModel() {
+  const g = new T.Group();
+  if (GUIL3D) { const geo2 = new T.BufferGeometry(), n = GUIL3D.p.length / 3; geo2.setAttribute('position', new T.BufferAttribute(new Float32Array(GUIL3D.p), 3)); geo2.setAttribute('color', new T.BufferAttribute(new Float32Array(GUIL3D.c.map(x => Math.pow(x / 255, 2.2))), 3)); geo2.setIndex(GUIL3D.i); geo2.computeVertexNormals(); const m = new T.Mesh(geo2, new T.MeshLambertMaterial({ vertexColors: true })); m.scale.setScalar(GUIL3D.h || 1); g.add(m); }
+  else { const b = new T.Mesh(new T.SphereGeometry(.45, 24, 18), new T.MeshLambertMaterial({ color: 0xf08a1c })); b.position.y = .5; g.add(b); [-.16, .16].forEach(x => { const e = new T.Mesh(new T.SphereGeometry(.09, 12, 10), new T.MeshLambertMaterial({ color: 0x2a6fb8 })); e.position.set(x, .55, .38); g.add(e); }); }
+  g.userData.guil = true; return g;
+}
+V.viewer = function (canvas, who, tenue) {
+  let rr; try { rr = new T.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch (e) { return null; }
+  rr.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); rr.outputEncoding = R ? R.outputEncoding : T.sRGBEncoding; rr.setClearColor(0x000000, 0);
+  const sc = new T.Scene(); sc.add(new T.HemisphereLight(0xffffff, 0xb8c4a8, .95)); const dl = new T.DirectionalLight(0xfff4e0, .8); dl.position.set(2, 3.2, 3); sc.add(dl); const dl2 = new T.DirectionalLight(0xcfe6ff, .35); dl2.position.set(-3, 1.5, -2); sc.add(dl2);
+  const disc = new T.Mesh(new T.CylinderGeometry(.62, .66, .06, 40), new T.MeshLambertMaterial({ color: 0xd9e2cb })); disc.position.y = -.03; sc.add(disc);
+  const cam = new T.PerspectiveCamera(28, 1, .1, 30); let model = null, h = 1.8, ry = .5, last = performance.now(), idle = 0, dead = false, drag = null, tt = 0;
+  const build = (w, t) => {
+    if (model) { sc.remove(model); model = null; }
+    if (w === 'guil') model = guilModel(); else if (w === 'f') model = humanR('camille', 'ete'); else model = humanR(outfitName({ tenue: t || 'auto' }), 'ete');
+    sc.add(model); if (model.userData.rig) rigTick(model, 0, 0, 0);
+    const bx = new T.Box3().setFromObject(model); h = Math.max(.5, bx.max.y - Math.min(0, bx.min.y)); if (w === 'guil') h = Math.max(h, 1); disc.scale.setScalar(w === 'guil' ? .8 : 1);
+  };
+  build(who, tenue);
+  const dn = e => { drag = { x: e.clientX, id: e.pointerId }; idle = 0; try { canvas.setPointerCapture(e.pointerId); } catch (x) {} }, mv = e => { if (drag) { ry += (e.clientX - drag.x) * .012; drag.x = e.clientX; idle = 0; } }, up = () => { drag = null; };
+  canvas.addEventListener('pointerdown', dn); canvas.addEventListener('pointermove', mv); canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up); canvas.style.touchAction = 'pan-y'; canvas.style.cursor = 'grab';
+  const api = { set(w, t) { build(w, t); }, outfit(t) { if (model && model.userData.setModel) model.userData.setModel(outfitName({ tenue: t || 'auto' })); }, dispose() { if (dead) return; dead = true; try { rr.dispose(); rr.forceContextLoss(); } catch (e) {} } };
+  (function loop() {
+    if (dead) return; if (!canvas.isConnected) { api.dispose(); return; }
+    const now = performance.now(), dt = Math.min(.05, (now - last) / 1000); last = now; tt += dt; idle += dt;
+    const w = canvas.clientWidth || 300, hh = canvas.clientHeight || 320; if (canvas.width !== Math.round(w * rr.getPixelRatio()) || canvas.height !== Math.round(hh * rr.getPixelRatio())) { rr.setSize(w, hh, false); cam.aspect = w / hh; cam.updateProjectionMatrix(); }
+    if (!drag && idle > 1.2) ry += dt * .6;
+    model.rotation.y = ry; if (model.userData.rig) rigTick(model, dt, 0, 0); if (model.userData.guil) { model.position.y = Math.sin(tt * 2.2) * .04; }
+    const dist = h * 2.7 + .4; cam.position.set(0, h * .62, dist); cam.lookAt(0, h * .48, 0);
+    rr.render(sc, cam); requestAnimationFrame(loop);
+  })();
+  return api;
+};
 /* ---------- intérieurs : maison et cellier-cuisine (scènes rendues en image) ---------- */
 function snap(sc, cam2, W, H, bg) {
-  const rt = new T.WebGLRenderTarget(W, H); rt.texture.encoding = R.outputEncoding;
-  const pr = R.getRenderTarget(), pc = R.getClearColor(new T.Color()), pa = R.getClearAlpha(), ps = R.shadowMap.enabled;
-  R.shadowMap.enabled = false; R.setRenderTarget(rt); R.setClearColor(bg, 1); R.clear(); R.render(sc, cam2);
+  let rt; try { rt = new T.WebGLMultisampleRenderTarget(W, H, { samples: 4 }); } catch (e) { rt = new T.WebGLRenderTarget(W, H); } rt.texture.encoding = R.outputEncoding;
+  const pr = R.getRenderTarget(), pc = R.getClearColor(new T.Color()), pa = R.getClearAlpha(), ps = R.shadowMap.enabled, pn = R.shadowMap.needsUpdate;
+  R.shadowMap.enabled = true; R.shadowMap.needsUpdate = true; R.setRenderTarget(rt); R.setClearColor(bg, 1); R.clear(); R.render(sc, cam2);
   const buf = new Uint8Array(W * H * 4); R.readRenderTargetPixels(rt, 0, 0, W, H, buf);
-  R.setRenderTarget(pr); R.setClearColor(pc, pa); R.shadowMap.enabled = ps; rt.dispose();
+  R.setRenderTarget(pr); R.setClearColor(pc, pa); R.shadowMap.enabled = ps; R.shadowMap.needsUpdate = pn; rt.dispose();
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d'), id = cx.createImageData(W, H);
   for (let y = 0; y < H; y++) id.data.set(buf.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);
-  cx.putImageData(id, 0, 0); return cv.toDataURL('image/jpeg', .88);
+  cx.putImageData(id, 0, 0); return cv.toDataURL('image/jpeg', .9);
 }
 function interior(kind) {
   if (!R) return ''; const S = A.S(), sc = new T.Scene(), M = (c, e) => new T.MeshLambertMaterial({ color: c, emissive: e || 0x000000 }), r = rngMaker(kind === 'maison' ? 5 : 9);
@@ -724,8 +760,11 @@ function interior(kind) {
     cy(.4, .36, .8, 0x8b5a2b, 3.5, .4, -1.4); cy(.42, .42, .05, 0x5a3a20, 3.5, .82, -1.4); for (let i = 0; i < 5; i++) sp(.12, [0xd9442b, 0xe89a3a, 0x8bc34a][i % 3], 3.1 + (i % 3) * .24, .12, .6 + Math.floor(i / 3) * .3); bx(.9, .22, .6, 0x8a5a30, 3.2, .11, .8);
     const lam = cy(.14, .1, .26, 0xffe6a0, 0, 2.7, .2, 0xffd27a, 8); cy(.01, .01, .5, 0x333333, 0, 3.0, .2, 0, 4);
   }
-  const cam2 = new T.PerspectiveCamera(42, 640 / 300, .1, 40); cam2.position.set(4.6, 3.1, 6.6); cam2.lookAt(0, 1.2, -.4);
-  return snap(sc, cam2, 1280, 600, kind === 'maison' ? 0x3a2a1c : 0x2f2b27);
+  const cam2 = new T.PerspectiveCamera(33, 640 / 300, .1, 40); cam2.position.set(4.7, 3.0, 6.7); cam2.lookAt(0, 1.05, -.5);
+  dl.castShadow = true; dl.shadow.mapSize.set(2048, 2048); { const c = dl.shadow.camera; c.left = -8; c.right = 8; c.top = 8; c.bottom = -8; c.near = .5; c.far = 22; dl.shadow.bias = -.0006; dl.shadow.normalBias = .02; }
+  const wl = new T.DirectionalLight(0xcfe3ff, .32); wl.position.set(-6, 3, 1.5); sc.add(wl); sc.add(new T.AmbientLight(0xffe9cc, .18));
+  sc.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.needsUpdate = true; } });
+  return snap(sc, cam2, 1920, 900, kind === 'maison' ? 0x3a2a1c : 0x2f2b27);
 }
 V.interior = interior;
 let abtn = null;

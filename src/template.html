@@ -568,6 +568,7 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 .btn:disabled,.btn[disabled],.btn.primary:disabled{opacity:1!important;background:#ddd6c1!important;color:#3a331f!important;border-color:#b9ae8c!important;cursor:not-allowed}
 .task .rew,.gj-rew{color:#245c2e!important;font-weight:600}.task .sub{color:var(--ink-2)}
 .gj-row .gj-rew,.task .sub.rew{color:#1b5428!important;font-weight:600}
+.gj-pend{border-color:#2d6a44!important;background:#e6f1e1!important}.gj-spade{background:#e9f2e2!important;border-color:#2d6a44!important}.gj-state{font-weight:600;color:#1f1a0e!important}
 </style>
 
 <div class="app">
@@ -600,7 +601,7 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
         <button type="button" class="tb on" data-act="view3d" aria-pressed="true" title="Passer en vue 2D" aria-label="Basculer entre vue 3D et vue 2D"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></button>
-      </div><button type="button" class="spadefab" id="spadefab" data-tool="spade" data-act="tool-spade" aria-label="Pelle : planter" title="Pelle : planter une guilde, une haie ou une plante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3l7 7-3 1-5-5zM13 7l4 4-6 6-3-1-1-3zM5 21l4-4"/></svg><b>Planter</b></button><button type="button" class="camfab" data-act="cam" title="Appareil photo" aria-label="Appareil photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg></button><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
+      </div><button type="button" class="spadefab" id="spadefab" data-tool="spade" data-act="tool-spade" aria-label="Pelle : aménager" title="Aménager : poser une guilde, une haie ou une plante et la planter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3l7 7-3 1-5-5zM13 7l4 4-6 6-3-1-1-3zM5 21l4-4"/></svg><b>Aménager</b></button><button type="button" class="camfab" data-act="cam" title="Appareil photo" aria-label="Appareil photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg></button><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
       <div class="foot" id="foot"></div>
     </section>
     <aside class="side">

@@ -569,6 +569,7 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 .task .rew,.gj-rew{color:#245c2e!important;font-weight:600}.task .sub{color:var(--ink-2)}
 .gj-row .gj-rew,.task .sub.rew{color:#1b5428!important;font-weight:600}
 .gj-pend{border-color:#2d6a44!important;background:#e6f1e1!important}.gj-spade{background:#e9f2e2!important;border-color:#2d6a44!important}.gj-state{font-weight:600;color:#1f1a0e!important}
+#today,.app #today{display:none!important}
 </style>
 
 <div class="app">
@@ -601,7 +602,7 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
         <button type="button" class="tb" data-act="rot-r" title="Tourner à droite" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.5-5.4M19 4v4h-4"/></svg></button>
         <button type="button" class="tb" data-act="view-reset" title="Recentrer la vue" aria-label="Recentrer la vue"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v9h12v-9"/></svg></button>
         <button type="button" class="tb on" data-act="view3d" aria-pressed="true" title="Passer en vue 2D" aria-label="Basculer entre vue 3D et vue 2D"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></button>
-      </div><button type="button" class="spadefab" id="spadefab" data-tool="spade" data-act="tool-spade" aria-label="Pelle : aménager" title="Aménager : poser une guilde, une haie ou une plante et la planter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3l7 7-3 1-5-5zM13 7l4 4-6 6-3-1-1-3zM5 21l4-4"/></svg><b>Aménager</b></button><button type="button" class="camfab" data-act="cam" title="Appareil photo" aria-label="Appareil photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg></button><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
+      </div><button type="button" class="camfab" data-act="cam" title="Appareil photo" aria-label="Appareil photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg></button><svg id="garden" viewBox="0 56 760 460" role="group" aria-label="Jardin vu en perspective"></svg></div>
       <div class="foot" id="foot"></div>
     </section>
     <aside class="side">
@@ -2893,6 +2894,7 @@ function make(P) {
   }
   function scareWild(s, idx) { const L = s.wilds || (s.wild ? [s.wild] : []); const v = idx != null ? L[idx] : L.find(x => !x.scared && !x.done && WILD[x.k] && !WILD[x.k].good); if (!v || v.scared || v.done) return { ok: false }; v.scared = true; gainXp(s, 6); log(s, 'good', 'Tu as effarouché le ' + (WILD[v.k] || {}).n + '.'); bump(s, 'scare'); return { ok: true, k: v.k }; }
   /* ---------- activités quotidiennes : observation, détente, esthétique ---------- */
+  const FOREST = ['sauvages', 'champignons', 'bois', 'glanage'];
   const WILDF = [
     { pid: 278, n: 'ail des ours', m: [3, 4, 5], kg: .15 }, { pid: 441, n: 'alliaire', m: [3, 4, 5, 6], kg: .1 }, { pid: 103, n: 'pissenlit', m: [3, 4, 5, 9, 10, 11], kg: .15 },
     { pid: 254, n: 'lierre terrestre', m: [4, 5], kg: .08 }, { pid: 321, n: 'ortie', m: [3, 4, 5, 6, 7, 8, 9, 10], kg: .2 }, { pid: 122, n: 'oseille sauvage', m: [4, 5, 6, 7, 8, 9, 10], kg: .12 },
@@ -2913,7 +2915,7 @@ function make(P) {
     while (out.length < nb && pool.length) out.push(pool.splice(Math.floor(rn() * pool.length), 1)[0]); return out;
   }
   function finishAct(s, id, q, data) {
-    const a = actState(s); if (a.done[id] && id !== 'trapset') return { ok: false }; q = clamp(q == null ? 1 : q, 0, 1); a.done[id] = true; const out = { ok: true, id, q }; let g = 0;
+    const a = actState(s); if (a.done[id] && id !== 'trapset') return { ok: false }; if (FOREST.includes(id)) { if (s.forestDay === s.day) return { ok: false }; s.forestDay = s.day; } q = clamp(q == null ? 1 : q, 0, 1); a.done[id] = true; const out = { ok: true, id, q }; let g = 0;
     gainXp(s, Math.round(ACT_XP[id] * (.6 + .8 * q)));
     if (id === 'photo') { const v = s.wild; if (v) { albumAdd(s, v.k, q, q > .85); out.k = v.k; } g = q > .8 ? 2 : 1; addCalm(s, 2); }
     else if (id === 'affut') { const night = ['chouette', 'chauve', 'herisson', 'belette', 'renard'], rn = mulberry(s.day * 55 + 3), k = night[Math.floor(rn() * night.length)]; albumAdd(s, k, q, true); out.k = k; if (skillLevel(s, 'observation') >= 3) { const k2 = night[(night.indexOf(k) + 1 + Math.floor(rn() * 3)) % night.length]; albumAdd(s, k2, q, true); out.k2 = k2; } g = q > .7 ? 3 : 1; addCalm(s, 3); }
@@ -2929,7 +2931,9 @@ function make(P) {
     else if (id === 'sauvages') { const mm = dateOf(s.day).m, pool = WILDF.filter(w => w.m.includes(mm)); const rr = mulberry(s.day * 61 + 9), n = Math.min(pool.length, Math.max(2, Math.round(2 + q * 2))), got = []; const bag = pool.slice(); while (got.length < n && bag.length) got.push(bag.splice(Math.floor(rr() * bag.length), 1)[0]); got.forEach(w => { if (P[w.pid]) s.stock.push({ pid: w.pid, kg: r2(w.kg * (.7 + .6 * q)), day: s.day }); }); out.names = got.map(w => w.n); out.n = got.length; (s.family || []).forEach(f => { f.joy = Math.min(100, f.joy + 3); }); g = got.length >= 3 ? 2 : 1; addCalm(s, 3); }
     else if (id === 'champignons') { const SP = ['cèpes', 'girolles', 'pieds-de-mouton', 'trompettes-de-la-mort', 'coulemelles', 'hygrophores']; const rr = mulberry(s.day * 53 + 7), nm = SP[Math.floor(rr() * SP.length)]; const k = Math.max(1, Math.round(1 + q * 2)); s.champi = (s.champi || 0) + k; out.name = nm; out.n = k; (s.family || []).forEach(f => { f.joy = Math.min(100, f.joy + 5); }); g = k >= 3 ? 2 : 1; addCalm(s, 3); }
     if (['photo', 'affut', 'trap'].includes(id)) gainSkill(s, 'observation', 1);
+    if (g && FOREST.includes(id)) { if (id === 'bois' || id === 'glanage' || (s.forageG != null && s.day - s.forageG < 3)) g = 0; else s.forageG = s.day; }
     if (g && hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
+    { const ag = s.actG && s.actG.day === s.day ? s.actG : (s.actG = { day: s.day, n: 0 }); g = Math.min(g, Math.max(0, 3 - ag.n)); ag.n += g; }
     if (g) { s.feves = (s.feves || 0) + g; out.g = g; }
     bump(s, 'act'); { const gq = gqInit(s); gq.cnt['act_' + id] = (gq.cnt['act_' + id] || 0) + 1; } return out;
   }
@@ -3181,8 +3185,8 @@ function make(P) {
     ['Jardin', 'trogne', 'Couper les trognes', 'Quand une trogne est formée et repoussée', /^trogne$/], ['Jardin', 'mow', 'Faucher la consoude', 'Quand la consoude est haute', /^mow$/], ['Jardin', 'lawn', 'Tondre les zones d’herbe', 'Quand l’herbe a repoussé', /^lawn$/],
     ['Jardin', 'fleurs', 'Cueillir les fleurs de la prairie', 'Quand la prairie fleurit', /^fleurs$/], ['Jardin', 'honey', 'Récolter le miel', 'Il faut une ruche prête', /^honey$/], ['Jardin', 'scare', 'Effaroucher un animal', 'Quand un animal vient abîmer le jardin', /^scare-/],
     ['Cuisine', 'cook', 'Cuisiner un repas du jardin', 'Il faut des récoltes au garde-manger, un repas par jour', /^cook$/], ['Cuisine', 'act-tisane', 'Préparer une tisane', 'Il faut des fleurs ou des herbes en réserve', /^act-tisane$/],
-    ['Forêt', 'act-sauvages', 'Cueillir des plantes sauvages comestibles', 'Selon la saison (ail des ours au printemps, baies et noisettes à l’automne…)', /^act-sauvages$/], ['Forêt', 'act-champignons', 'Cueillir des champignons', 'Automne humide : de août à octobre, après plusieurs jours de pluie', /^act-champignons$/],
-    ['Forêt', 'act-bois', 'Ramasser le bois mort', 'De septembre à mars, avec des ligneux plantés', /^act-bois$/], ['Forêt', 'act-glanage', 'Glaner dans le verger', 'De septembre à mars, avec des fruitiers plantés', /^act-glanage$/],
+    ['Forêt', 'act-sauvages', 'Cueillir des plantes sauvages comestibles', 'Une sortie en forêt par jour. Selon la saison (ail des ours au printemps, baies et noisettes à l’automne…)', /^act-sauvages$/], ['Forêt', 'act-champignons', 'Cueillir des champignons', 'Automne humide : de août à octobre, après plusieurs jours de pluie', /^act-champignons$/],
+    ['Forêt', 'act-bois', 'Ramasser le bois mort', 'Une sortie en forêt par jour, de septembre à mars, tant que ta réserve de bûches est basse', /^act-bois$/], ['Forêt', 'act-glanage', 'Glaner dans le verger', 'De septembre à mars, avec des fruitiers plantés', /^act-glanage$/],
     ['Nature', 'act-photo', 'Photographier l’animal du jour', 'Quand un animal passe dans le jardin', /^act-photo$/], ['Nature', 'act-affut', 'Affût à la tombée du jour', 'Le matin tôt ou le soir, après 3 plantations', /^act-affut$/],
     ['Nature', 'act-trapset', 'Poser le piège photo', 'Il faut un piège photo (boutique)', /^act-trapset$/], ['Nature', 'act-trap', 'Relever le piège photo', 'Le lendemain de la pose', /^act-trap$/],
     ['Nature', 'act-feeder', 'Remplir la mangeoire', 'Il faut une mangeoire au jardin', /^act-feeder$/], ['Nature', 'act-ronde', 'Ronde du soir avec la lampe', 'Le soir, après 3 plantations', /^act-ronde$/],
@@ -3229,11 +3233,11 @@ function make(P) {
       if (s.grid.some(c => c && c.furn === 'prairie' && (c.fl == null ? 1 : c.fl) >= .3) && !A.done.bouquet) T.push({ id: 'act-bouquet', prio: 3, icon: 'leaf', label: 'Cueillir un bouquet', sub: 'Pour la table de la maison', act: { type: 'act', id: 'bouquet' } });
       if (!A.done.tisane && ((s.fleurs || 0) > .015 || s.stock.some(it => it.kg > .02 && P[it.pid] && P[it.pid].strate === 'Couvre-sol'))) T.push({ id: 'act-tisane', prio: 3, icon: 'pot', label: 'Préparer une tisane', sub: 'Fleurs et herbes du jardin', act: { type: 'act', id: 'tisane' } });
       { const mst = mgState(s); mgToday(s).forEach(id => { if (mst.done[id] == null) T.push({ id: 'mg-' + id, prio: 2, icon: 'leaf', label: MGN[id], sub: 'Mini-jeu du jour · jusqu’à 8 ginkgos', act: { type: 'mg', id } }); }); }
-      { const wet3 = [0, 1, 2, 3].reduce((a, d) => a + (weather(s.day - d).rain || 0), 0); if (m >= 8 && m <= 10 && wet3 >= 3 && !A.done.champignons) T.push({ id: 'act-champignons', prio: 2, icon: 'basket', label: 'Cueillir des champignons en forêt', sub: 'Automne humide : cèpes, girolles… ne cueille que ceux que tu connais', act: { type: 'act', id: 'champignons' } }); }
-      if (!A.done.sauvages && WILDF.some(w => w.m.includes(m))) T.push({ id: 'act-sauvages', prio: 2, icon: 'basket', label: 'Cueillir des plantes sauvages en forêt', sub: 'De saison : ' + WILDF.filter(w => w.m.includes(m)).slice(0, 4).map(w => w.n).join(', ') + '… Ne cueille que ce que tu connais.', act: { type: 'act', id: 'sauvages' } });
+      { const wet3 = [0, 1, 2, 3].reduce((a, d) => a + (weather(s.day - d).rain || 0), 0); if (m >= 8 && m <= 10 && wet3 >= 3 && !A.done.champignons && s.forestDay !== s.day) T.push({ id: 'act-champignons', prio: 2, icon: 'basket', label: 'Cueillir des champignons en forêt', sub: 'Automne humide : cèpes, girolles… ne cueille que ceux que tu connais', act: { type: 'act', id: 'champignons' } }); }
+      if (s.forestDay !== s.day && !A.done.sauvages && WILDF.some(w => w.m.includes(m))) T.push({ id: 'act-sauvages', prio: 2, icon: 'basket', label: 'Cueillir des plantes sauvages en forêt', sub: 'De saison : ' + WILDF.filter(w => w.m.includes(m)).slice(0, 4).map(w => w.n).join(', ') + '… Ne cueille que ce que tu connais.', act: { type: 'act', id: 'sauvages' } });
       if (m >= 9 || m <= 3) {
-        if (!A.done.bois && s.grid.some(c => c && !c.treille && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-bois', prio: 2, icon: 'leaf', label: 'Ramasser le bois mort', sub: '+2 paillage, +3 bûches pour la cheminée', act: { type: 'act', id: 'bois' } });
-        if (!A.done.glanage && s.grid.some(c => c && !c.treille && P[c.pid].kg > 0 && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-glanage', prio: 2, icon: 'basket', label: 'Glaner dans le verger', sub: 'Hiver : fruits tardifs, cynorrhodons, noix', act: { type: 'act', id: 'glanage' } });
+        if (!A.done.bois && s.forestDay !== s.day && (s.wood || 0) < 30 && s.grid.some(c => c && !c.treille && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-bois', prio: 2, icon: 'leaf', label: 'Ramasser le bois mort', sub: '+2 paillage, +3 bûches pour la cheminée', act: { type: 'act', id: 'bois' } });
+        if (!A.done.glanage && s.forestDay !== s.day && s.grid.some(c => c && !c.treille && P[c.pid].kg > 0 && WOODY.includes(P[c.pid].strate))) T.push({ id: 'act-glanage', prio: 2, icon: 'basket', label: 'Glaner dans le verger', sub: 'Hiver : fruits tardifs, cynorrhodons, noix', act: { type: 'act', id: 'glanage' } });
       }
       if (!A.done.detente) T.push({ id: 'act-detente', prio: 3, icon: 'leaf', label: 'Prendre un moment au jardin', sub: 'Respirer, regarder, écouter', act: { type: 'act', id: 'detente' } });
     }
@@ -3474,7 +3478,7 @@ function make(P) {
     for (let k = 1; k <= 3; k++) { const g = weather(s.day + k); if (isGel(g)) { f = Object.assign({}, g, { ev: 'gel' }); dd = k; break; } if (g.ev && ['canicule', 'secheresse', 'tempete', 'orage'].includes(g.ev) && !(g.ev === 'orage' && !g.hail && k > 1)) { f = g; dd = k; break; } }
     const mo = dateOf(s.day).m;
     if (!f) { if (s.tank < s.tankMax * .25 && mo >= 5 && mo <= 9 && s.grid.some(c => c && !c.treille)) return { kind: 'secheresse', title: 'Réserve d’eau basse (' + Math.round(s.tank) + ' L)', tip: 'Pose du paillage : il garde l’humidité. Chaque cuve de récupération ajoute 150 L.', hail: false, days: 0 }; return null; }
-    const ex = { gel: ['Gel annoncé cette nuit', 'Une guilde établie (arbre jeune ou adulte) résiste à tout : gel, canicule, sécheresse, tempête et grêle. Sinon, un grand arbre voisin, une guilde (surtout autonome) ou une serre aident aussi. Un gel léger ne tue plus d’un coup une plante en bonne santé.'], canicule: ['Canicule annoncée', 'Arrose avant la chaleur, pose du paillage : les plantes à l’ombre des arbres souffrent moins.'], secheresse: ['Période sèche annoncée', 'Garde de l’eau en cuve, pose des oyas et du paillage.'], tempete: ['Tempête annoncée', 'Arbres, arbustes et grimpantes sont exposés. Un grand arbre voisin coupe le vent.'], orage: ['Orage annoncé', f.hail ? 'Risque de grêle : pose un voile sur les cultures tendres.' : 'La cuve va se remplir.'] };
+    const ex = { gel: ['Gel annoncé cette nuit', 'Les guildes établies résistent. Protège tes jeunes plantes : paillage, serre ou grand arbre voisin.'], canicule: ['Canicule annoncée', 'Arrose avant la chaleur, pose du paillage : les plantes à l’ombre des arbres souffrent moins.'], secheresse: ['Période sèche annoncée', 'Garde de l’eau en cuve, pose des oyas et du paillage.'], tempete: ['Tempête annoncée', 'Arbres, arbustes et grimpantes sont exposés. Un grand arbre voisin coupe le vent.'], orage: ['Orage annoncé', f.hail ? 'Risque de grêle : pose un voile sur les cultures tendres.' : 'La cuve va se remplir.'] };
     const base = f.ev === 'gel' && dd > 1 ? 'Gel annoncé' : ex[f.ev][0];
     return { kind: f.ev, title: base + (dd > 1 ? ' dans ' + dd + ' jours' : '') + (f.ev === 'gel' ? ' (' + String(f.tmin).replace('.', ',') + ' °C)' : f.ev === 'canicule' ? ' (' + String(Math.round(f.tmax)) + ' °C)' : ''), tip: ex[f.ev][1], hail: f.hail, days: dd, tmin: f.tmin };
   }
@@ -4189,7 +4193,7 @@ function openFamily() { modal('La famille', harmonyHtml() + familyHtml() + '<p c
 function EXTRA() { const m = S.mats, mode = ui.mode && ui.mode.type === 'mat' ? ui.mode.k : null; const mat = k => (m[k] > 0) ? '<button type="button" class="pill mat ' + (mode === k ? 'on' : '') + '" data-act="mode-mat" data-k="' + k + '">' + MATS[k].n + ' ' + (m[k] || 0) + '</button>' : ''; const h = ''  + mat('treille') + mat('pergola') + mat('serre') + mat('mare') + mat('ruche') + mat('hamac') + mat('prairie') + mat('hotel') + mat('banc') + mat('mangeoire') + mat('boismort') + mat('pierres') + mat('grandeserre') + mat('ortie') + mat('prele') + mat('nichoir') + mat('oya') + mat('cuve') + mat('mycor') + mat('plan') + mat('savoir') + mat('atelier') + mat('poulailler') + mat('sechoir') + mat('bocaux') + (S.atelier ? '<button type="button" class="pill mat" data-act="atelier">Atelier</button>' : '') + mat('trogne') + mat('canard') ; return { h, n: (h.match(/class="pill mat/g) || []).length }; }
 
 /* ---------- découverte progressive (nouvelles parties seulement) : les boutons apparaissent au fil de la progression ---------- */
-const PROG_LABEL = { kitchen: 'le garde-manger', shop: 'la boutique', skills: 'les compétences', amenager: 'l’aménagement du jardin' };
+const PROG_LABEL = { kitchen: 'le garde-manger', shop: 'la boutique', skills: 'les compétences' };
 function progReveal(k) {
   if (!S.prog || !PROG_LABEL[k]) return true;
   const st = S.tuto && !S.tuto.done && S.tuto.step != null ? S.tuto.step : 99, lvl = G.xpInfo(S).lvl;
@@ -4205,7 +4209,7 @@ function renderRes() {
   const rb = (act, icon, label, bdg, cl) => '<button type="button" class="rb' + (cl || '') + '" data-act="' + act + '" title="' + label + '" aria-label="' + label + '"><span class="rc">' + icon + (bdg ? '<em class="bdg">' + bdg + '</em>' : '') + '</span><small>' + label + '</small></button>';
   const SV = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
   const rv = progReveal, RB = (k, ...a) => rv(k) ? rb(k, ...a) : '';
-  $('rail').innerHTML = RB('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + RB('shop', GK(24), 'Boutique', S.feves || 0) + RB('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + RB('amenager', SV('M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6'), 'Aménager', G.canExpand(S).ok ? '!' : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
+  $('rail').innerHTML = RB('kitchen', ico('pot'), 'Garde-manger', kg >= .05 ? fmt(kg, kg < 10 ? 1 : 0) + ' kg' : '') + RB('shop', GK(24), 'Boutique', S.feves || 0) + RB('skills', ico('leaf'), 'Compétences', S.pts > 0 ? S.pts : '') + rb('menu', SV('M4 7h16M4 12h16M4 17h16'), 'Menu');
 }
 
 /* ---------- jardin isométrique ---------- */
@@ -4755,7 +4759,7 @@ function renderGarden() {
   else if (ui.tool === 'reloc' && !ui.mode) hint.innerHTML = '<span><b>Déplacer une plante :</b> ' + (ui.mvFrom >= 0 ? 'touche maintenant une parcelle libre (en surbrillance).' : 'touche la plante à déplacer.') + ' Un arbre ou arbuste déplacé a besoin de repos.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'move' && !ui.mode) hint.innerHTML = '<span><b>Déplacer :</b> glisse la carte pour te déplacer. Molette ou boutons + / − pour zoomer, flèches rondes pour tourner autour du jardin.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
   else if (ui.tool === 'delete' && !ui.mode) hint.innerHTML = '<span><b>Supprimer :</b> touche une plante ou un meuble, puis touche-le encore pour confirmer. Touche un tronçon de sentier pour le retirer.</span><button type="button" class="btn sm" data-act="tool-select">Terminer</button>';
-  else if (ui.mode && ui.mode.type === 'plant' && S.spots && !S.spots.some(sp => sp.cells.some(i => !S.grid[i]))) hint.innerHTML = '<span>Pas d’emplacement libre : prends la <b>pelle</b> (outil à gauche) pour poser une guilde, une haie ou une plante isolée.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>';
+  else if (ui.mode && ui.mode.type === 'plant' && S.spots && !S.spots.some(sp => sp.cells.some(i => !S.grid[i]))) hint.innerHTML = '<span>Pas d’emplacement libre : touche ton <b>jardinier</b>, puis « Prendre la pelle », pour poser une guilde, une haie ou une plante isolée.</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>';
   else if (ui.mode && ui.mode.type === 'plant') { const p = P[ui.mode.pid]; hint.innerHTML = '<span>Choisis une parcelle libre' + (p.strate === 'Grimpante' ? ' à côté d’un <b>arbre</b>, ou sur / contre une <b>treille ou pergola</b>' : '') + ' pour <b>' + p.name.toLowerCase() + '</b>. ' + (G.isWoody(p) ? (ui.mode.noyau ? 'Semis en pleine terre : très long, mais l’arbre devient autonome (ni eau, ni guilde, il résiste à tout).' : 'Jeune plant : plus rapide, il faudra l’arroser et le protéger.') : sw(p)) + ' ' + G.monthRange(p.semis) + '.</span>' + (G.isWoody(p) ? '<button type="button" class="btn sm' + (ui.mode.noyau ? '' : ' primary') + '" data-act="seedmode" data-v="0">Jeune plant</button><button type="button" class="btn sm' + (ui.mode.noyau ? ' primary' : '') + '" data-act="seedmode" data-v="1">Semer le noyau</button>' : '') + '<button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
   else if (ui.mode && ui.mode.type === 'skill') hint.innerHTML = '<span>' + (ui.mode.k === 'bouture' ? '<b>Bouture :</b> touche une plante vivace déjà grande (ni annuelle, ni arbre) pour prélever une bouture.' : '<b>Greffe :</b> touche un arbre ou un arbuste fruitier. Il faut 1 compost.') + '</span><button type="button" class="btn sm" data-act="cancel">Terminer</button>';
   else if (ui.mode) { const k = ui.mode.k; hint.innerHTML = '<span>' + (k === 'canard' ? 'Touche une <b>mare</b> pour y installer les canards.' : k === 'trogne' ? 'Touche un arbre au bord du jardin pour le tailler en <b>trogne</b>.' : TARGET[k] ? TARGET[k] : FURNK.includes(k) ? 'Touche une parcelle libre pour poser : <b>' + FURN_INFO[k].n.toLowerCase() + '</b>.' : 'Touche une plante pour lui donner du <b>' + k + '</b>.') + '</span><button type="button" class="btn sm" data-act="cancel">Annuler</button>'; }
@@ -5532,6 +5536,7 @@ function openGardener() {
   h += '<p class="note-p gj-state">' + (busy ? 'Il est à l’ouvrage. Donne-lui déjà la suite : ses ordres s’enchaînent.' : 'Il attend tes ordres : touche une action, il y va, la fait et revient.') + '</p>';
   h += '<h3 class="gj-h"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="vertical-align:-3px;margin-right:6px;fill:none;stroke:#1f1a0e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 3l7 7-3 1-5-5zM13 7l4 4-6 6-3-1-1-3zM5 21l4-4"/></svg>Aménager</h3>';
   h += '<button type="button" class="gj-row gj-spade" data-act="gj-spade"><b>Prendre la pelle</b><span>Poser une guilde, une haie ou une plante isolée, puis choisir ses plantes tout de suite.</span></button>';
+  h += '<button type="button" class="gj-row gj-spade" data-act="gj-amen"><b>Mobilier, mares et terrain</b><span>Banc, nichoir, mangeoire, hôtel à insectes…' + (G.canExpand(S).ok ? ' · <b>Tu peux agrandir le terrain.</b>' : '') + '</span></button>';
   if (sow.length) h += sow.map(pid => { const ps = planSlots(pid); return '<button type="button" class="gj-row" data-act="gj-plant" data-pid="' + pid + '"><b>Planter : ' + P[pid].name + '</b><span>' + (ps.n ? ps.n + ' emplacement' + (ps.n > 1 ? 's' : '') + ' possible' + (ps.n > 1 ? 's' : '') + ' · ×' + S.cards[pid] : ps.why) + '</span></button>'; }).join('');
   else h += '<p class="note-p">Aucune carte de saison à planter. Ouvre un booster (missions de Guildéon) pour trouver des graines et des plants.</p>';
   const GK = /^(water|harv|mulch|heal|prune|trogne|mow|lawn|fleurs|honey|scare|cook|act-(sauvages|champignons|bois|glanage|feeder|bouquet))$/, GL = MC.list.filter(x => GK.test(x.key)), okL = GL.filter(x => x.ok), koL = GL.filter(x => !x.ok);
@@ -5764,7 +5769,7 @@ const cam = (function initCamera() {
 window.addEventListener('resize', () => { applyView(); }); window.addEventListener('orientationchange', () => setTimeout(applyView, 120));
 const TUTO = [
   { t: 'Bienvenue au Jardin Vivant', x: 'Ici, tu cultives une vraie forêt comestible, un petit geste par jour. Touche Guildéon en bas à droite : il te propose ton booster, des cartes de plantes de saison.', target: '#gmasc', done: () => S.boosters >= 1 },
-  { t: 'Prends la pelle', x: 'Touche la grosse pelle verte « Aménager », à gauche de la carte. Choisis une guilde (petite, moyenne ou grande), une haie ou une plante isolée, puis touche le sol du jardin pour la poser.', target: '#spadefab', done: () => (S.spots || []).length > 0 },
+  { t: 'Prends la pelle', x: 'Touche ton jardinier (la bulle verte flotte au-dessus de lui), puis « Prendre la pelle ». Choisis une guilde (petite, moyenne ou grande), une haie ou une plante isolée, puis touche le sol du jardin pour la poser.', target: '#garden', done: () => (S.spots || []).length > 0 },
   { t: 'Choisis une plante', x: 'Touche ta guilde : tu vois ses emplacements libres et la strate de chacun (arbre, arbuste, herbacées…). Choisis une carte : elle rejoint la liste du jardinier.', target: '#garden', done: () => (S.pq && S.pq.length) || S.maxPlantings > 0 },
   { t: 'Le jardinier travaille', x: 'Il suit les sentiers et fait les tâches une par une : planter, puis arroser, pailler, récolter. Rien n’est instantané, il faut un peu de patience. Plante au moins trois cartes pour lancer ton jardin.', target: '#garden', done: () => S.maxPlantings >= 3 },
   { t: 'Arrose et soigne', x: 'Chaque guilde a une goutte bleue : touche-la pour demander l’arrosage de toutes ses plantes. Les pastilles sur les plantes (goutte, panier, paillage…) sont d’autres tâches à confier au jardinier.', target: '#garden', next: true },
@@ -6003,6 +6008,7 @@ document.addEventListener('click', e => {
     case 'collect': collectAtelier(); break;
     case 'cellar-use': { const r = G.useCellar(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('La famille se régale (+' + r.v + ' de bonheur).'); save(); render(); openHouse('cellier'); break; }
     case 'house-tab': openHouse(a.dataset.t); break;
+    case 'gj-amen': closeModal(); openAmenager(); break;
     case 'gj-spade': closeModal(); ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); break;
     case 'gj-plant': { closeModal(); const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
     case 'gj-task': closeModal(); doTask(a.dataset.id); break;

@@ -566,6 +566,8 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 :root:not([data-theme="dark"]){color-scheme:light}
 .gj-cat{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5a4a1e}.gj-off{opacity:1;background:#efe9d8!important;border-style:dashed!important;color:#2b2415}.gj-off span{color:#4a4128}.gj-row b{color:#1f1a0e}.gj-row span{color:#3d3520}
 .btn:disabled,.btn[disabled],.btn.primary:disabled{opacity:1!important;background:#ddd6c1!important;color:#3a331f!important;border-color:#b9ae8c!important;cursor:not-allowed}
+.task .rew,.gj-rew{color:#245c2e!important;font-weight:600}.task .sub{color:var(--ink-2)}
+.gj-row .gj-rew,.task .sub.rew{color:#1b5428!important;font-weight:600}
 </style>
 
 <div class="app">
@@ -4756,9 +4758,11 @@ function renderTray() {
 function renderToday() {
   $('today').innerHTML = '<div class="dh"><h2>À planter aujourd’hui<small id="trayInfo"></small></h2><button type="button" class="trayx" data-act="tray-toggle" aria-label="Replier ou déplier le bandeau"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="strip" id="strip"></div>';
 }
+const REW = { water: 'Plantes en forme et croissance régulière, plus de l’XP', harv: 'Récolte rangée au garde-manger, plus de l’XP', cook: 'Famille contente, XP et progrès en cuisine', sow: 'Une nouvelle plante dans ta forêt et de l’XP', mulch: 'Sol protégé : moins d’arrosage', heal: 'Plantes sauvées et XP', honey: 'Du miel au garde-manger', scare: 'Plantes et œufs protégés', fleurs: 'Fleurs comestibles pour tes plats et tisanes', lawn: 'Du paillage gratuit', trogne: 'Paillage, bûches et croissance accélérée', prune: '+10 % de fruits à la saison', mow: '+2 paillage par pied', booster: 'De nouvelles cartes de plantes et 40 XP', learn: 'Une plante à découvrir (fiche sur le JF Lab), un petit quiz, de l’XP et des ginkgos', 'act-photo': 'Un animal de plus dans ton album et de l’XP', 'act-affut': 'Des animaux de nuit dans ton album et des ginkgos', 'act-trap': 'Les visiteurs de la nuit dans ton album', 'act-trapset': 'Des visiteurs de nuit à découvrir demain', 'act-feeder': 'Les oiseaux reviennent et le jardin s’apaise', 'act-ronde': 'Moins de limaces et des ginkgos', 'act-bouquet': 'Un bouquet pour la maison, calme du jardin', 'act-tisane': 'Calme et bien-être', 'act-champignons': 'Champignons au garde-manger, ginkgos et famille contente', 'act-sauvages': 'Plantes sauvages au garde-manger, ginkgos et famille contente', 'act-bois': '+2 paillage et +3 bûches', 'act-glanage': 'Fruits d’hiver au garde-manger', 'act-detente': 'Le jardin s’apaise et un peu d’XP', mg: 'Jusqu’à 8 ginkgos' };
+const taskRew = id => REW[id] || REW[id.replace(/^(harv|water|scare|mg)-.*$/, '$1')] || 'De l’XP';
 function tasksHtml() {
-  const T = G.buildTasks(S);
-  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, h: T.tasks.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>' + t.label + '</b><span class="sub">' + t.sub + '</span></span></button>').join('') + (T.caughtUp ? '<button type="button" class="task p2 done-box" data-act="next"><span class="disc">' + ico('leaf') + '</span><span><b>Ton jardin est à jour</b><span class="sub">' + (LIVE ? 'Reviens demain : la nuit fait pousser' : 'Passer au lendemain') + '</span></span></button>' : '') };
+  const T = G.buildTasks(S), L = T.all.slice().sort((a, b) => ((b.id === 'learn') - (a.id === 'learn')) || ((b.id === 'booster') - (a.id === 'booster')) || a.prio - b.prio).slice(0, 5);
+  return { n: T.tasks.filter(t => t.id === 'booster' || t.id === 'learn').length, T, L, h: L.map(t => '<button type="button" class="task p' + t.prio + '" data-act="task" data-id="' + t.id + '"><span class="disc">' + ico(t.icon) + '</span><span><b>Mission : ' + t.label + '</b><span class="sub">' + t.sub + '</span><span class="sub rew">Récompense : ' + taskRew(t.id) + '</span></span></button>').join('') + (T.caughtUp && !L.length ? '<div class="task p2 done-box"><span class="disc">' + ico('leaf') + '</span><span><b>Toutes les missions sont faites</b><span class="sub">Reviens demain : de nouvelles missions t’attendent</span></span></div>' : '') + '<p class="note-p" style="margin:6px 0 0">Toutes les missions : touche le jardinier.</p>' };
 }
 
 /* ---------- fiche ---------- */
@@ -5512,7 +5516,7 @@ function openGardener() {
   { const MC = G.missionCatalog(S), jr = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][new Date().getDay()], allT = G.buildTasks(S).all;
     h += '<h3 class="gj-h">Missions du ' + jr + ' : ' + MC.n + ' possible' + (MC.n > 1 ? 's' : '') + ' sur ' + MC.total + '</h3><p class="note-p">Touche une mission pour la confier au jardinier.</p>';
     const okL = MC.list.filter(x => x.ok);
-    h += okL.length ? okL.map(x => allT.filter(t => x.ids.includes(t.id)).map(t => '<button type="button" class="gj-row" data-act="gj-task" data-id="' + t.id + '"><i class="gj-cat">' + x.cat + '</i><b>' + t.label + '</b><span>' + t.sub + '</span></button>').join('')).join('') : '<p class="note-p">Tout est en ordre : le jardinier se repose.</p>';
+    h += okL.length ? okL.map(x => allT.filter(t => x.ids.includes(t.id)).map(t => '<button type="button" class="gj-row" data-act="gj-task" data-id="' + t.id + '"><i class="gj-cat">' + x.cat + '</i><b>' + t.label + '</b><span>' + t.sub + '</span><span class="gj-rew">Récompense : ' + taskRew(t.id) + '</span></button>').join('')).join('') : '<p class="note-p">Tout est en ordre : le jardinier se repose.</p>';
     const koL = MC.list.filter(x => !x.ok);
     if (koL.length) h += '<h3 class="gj-h">Pas aujourd’hui</h3>' + koL.map(x => '<div class="gj-row gj-off"><i class="gj-cat">' + x.cat + '</i><b>' + x.label + (x.done ? ' · fait aujourd’hui' : '') + '</b><span>' + x.cond + '</span></div>').join(''); }
   h += '<h3 class="gj-h">Trognes et cheminée</h3><p class="note-p">' + formed + ' trogne' + (formed > 1 ? 's' : '') + ' formée' + (formed > 1 ? 's' : '') + ' sur ' + G.TREE_N + ' arbres' + (tr.length ? ', dont ' + tr.length + ' prête' + (tr.length > 1 ? 's' : '') + ' à couper' : '') + '. Réserve de bois : ' + String(Math.round(wood * 10) / 10).replace('.', ',') + ' bûches' + (wood >= .5 ? ' (environ ' + days + ' jour' + (days > 1 ? 's' : '') + ' de chauffage)' : '') + '.</p></div>';
@@ -5653,7 +5657,7 @@ const camMin = () => PHONE() ? CAM.zoomMinPhone : CAM.zoomMinDesk;
 function zoomBy(f) { view.z *= f; applyView(); }
 function renderGuil() {
   const m = $('gmasc'); if (!m) return; const g = G.guildeon(S), say = $('gsay'), card = $('gcard'), bd = $('gbadge'), now = Date.now(), tk = tasksHtml(), notif = g.ready + tk.n;
-  if (!g.ready && tk.n) { const bo = tk.T.tasks.some(t => t.id === 'booster'); g.text = bo ? 'Ton booster de la semaine t’attend : cinq nouvelles cartes de plantes !' : 'Un savoir du jour t’attend.'; }
+  if (!g.ready && tk.L.length) { const t0 = tk.L[0]; g.text = 'Mission : ' + t0.label.charAt(0).toLowerCase() + t0.label.slice(1) + '. En récompense : ' + taskRew(t0.id).charAt(0).toLowerCase() + taskRew(t0.id).slice(1) + '.'; }
   if (notif > (ui.gReady || 0) || (ui.gText == null && S.maxPlantings === 0)) { ui.gUntil = now + 8000; clearTimeout(ui.gT); ui.gT = setTimeout(() => { const s2 = $('gsay'); if (s2) s2.hidden = true; }, 8200); }
   ui.gText = g.text;
   ui.gReady = notif;

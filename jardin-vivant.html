@@ -606,7 +606,7 @@ body:not(.v3d-on) [data-act="view3d"]{opacity:.7}
 .app #today .card{min-height:0;padding:3px 3px 5px}.app #today .card .cfoot{display:none}.app #today .card h4{margin:-9px 5px 0;font-size:12.5px;padding:3px 4px}
 .flipper .card{height:264px}.flipper{height:264px}.card .tag{white-space:nowrap;font-size:9.5px;letter-spacing:.02em}
 @media (prefers-reduced-motion:reduce){.card::before,.pack .foil,.pack .foil .sheen,.flipper.up .card.rar-Rare{animation:none!important}}
-.pots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.pot{display:grid;gap:3px;padding:6px;border:2px solid #c9b98a;border-radius:12px;background:#fffbea;text-align:center;font:inherit;color:#1f1a0e;cursor:pointer}.pot b{font-size:12px;line-height:1.1}.pot{--tone:var(--leaf-2)}.pot.t-Racine{--tone:#e08a1e}.pot.t-Herbacée{--tone:#4f9a4a}.pot.t-Couvre-sol{--tone:#a3c23f}.pot.t-Arbuste{--tone:#7b5aa6}.pot.t-Grimpante{--tone:#2f8f8a}.pot.t-Arbre{--tone:#a0522d}.pot .pa{display:block;height:84px;border:2px solid color-mix(in srgb,var(--tone) 55%,#3a2a10);border-radius:8px;overflow:hidden}.pot .pa svg{width:100%;height:100%}.pot .ps{font-size:10.5px;color:#5a4a30}.pot.off{opacity:.55;cursor:default}
+.pots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.pot{display:grid;gap:3px;padding:6px;border:2px solid #c9b98a;border-radius:12px;background:#fffbea;text-align:center;font:inherit;color:#1f1a0e;cursor:pointer}.pot b{font-size:12px;line-height:1.1}.pot{--tone:var(--leaf-2)}.pot.t-Racine{--tone:#e08a1e}.pot.t-Herbacée{--tone:#4f9a4a}.pot.t-Couvre-sol{--tone:#a3c23f}.pot.t-Arbuste{--tone:#7b5aa6}.pot.t-Grimpante{--tone:#2f8f8a}.pot.t-Arbre{--tone:#a0522d}.pot .pa{display:block;height:84px;border:2px solid color-mix(in srgb,var(--tone) 55%,#3a2a10);border-radius:8px;overflow:hidden}.pot .pa svg{width:100%;height:100%}.pot .ps{font-size:10.5px;color:#5a4a30}.pot.wait .ps{color:#8a6a2a}.pot .ps em{font-style:normal;color:#2f7a3a;font-weight:700}.cuts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}.cut{display:grid;gap:4px;padding:6px;border:2px solid #c9b98a;border-radius:12px;background:#fffbea;text-align:center;--tone:var(--leaf-2)}.cut.t-Racine{--tone:#e08a1e}.cut.t-Herbacée{--tone:#4f9a4a}.cut.t-Couvre-sol{--tone:#a3c23f}.cut.t-Arbuste{--tone:#7b5aa6}.cut.t-Grimpante{--tone:#2f8f8a}.cut b{font-size:12px}.cut .pa{display:block;height:70px;border:2px solid color-mix(in srgb,var(--tone) 55%,#3a2a10);border-radius:8px;overflow:hidden}.cut .pa svg{width:100%;height:100%}.cut small{font-size:10.5px;color:#7a5a20;line-height:1.2}
 </style>
 
 <div class="app">
@@ -1494,7 +1494,7 @@ function smokeTick(dt) {
 }
 const SMK = [0.5, -0.2, 4.4];
 V.fx = kind => burst(kind, V.atelierXZ());
-V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
+V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => { const w = workXZ(); return [w[0] + 3.2, w[1] + 1.6]; };
 const fmCache = {};
 function fmGeos(n) {
   if (fmCache[n]) return fmCache[n];
@@ -2193,6 +2193,7 @@ function syncTracks(S) {
   });
 }
 let sigDec = '';
+function workXZ() { const h = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; return [h[0] + 10.4, h[1] + 10.6]; }
 function ypos(k, dx, dz) { const N = A.walk().N, n = N['y' + k]; if (!n) return null; const q = cr2xz(n.c, n.r); return [q[0] + (dx || 0), q[1] + (dz || 0)]; }
 function syncDecor(S, sk) {
   const tr = S.trees.map((t, k) => t.formed ? (A.G.treeReady(S, k) ? 2 : 1) : 0).join('')+season, lw = [0, 1, 2, 3, 4, 5, 6, 7].map(k => A.G.lawnReady(S, k) ? 1 : 0).join('');
@@ -2202,13 +2203,15 @@ function syncDecor(S, sk) {
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
   const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5, { t: 'deco', k: 'house' }); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   if ((S.wood || 0) >= 3) { const bw = dcMesh('buches', dcSolidMat); bw.scale.setScalar(.8 + Math.min(.9, (S.wood || 0) / 30)); const bg = new T.Group(); bg.add(bw); add(bg, hp[0] + 3.4, hp[1] + 1.6, .2); }
-  { const c = Math.cos(.5), s = Math.sin(.5), dx = 5.9, dz = .1; const sj = serreJ(); sj.scale.setScalar(1.3); add(sj, hp[0] + dx * c + dz * s, hp[1] - dx * s + dz * c, .5, { t: 'deco', k: 'serre' }); }
+  /* espace de travail des jardiniers : serre et atelier collés, à l’écart de la maison */
+  { const wp = workXZ(), pad = mesh(new T.CylinderGeometry(5.2, 5.5, .08, 28), L(0xb9ad8f), 0, .04, 0); pad.scale.set(1.25, 1, .9); const pg = new T.Group(); pg.add(pad); add(pg, wp[0] + .6, wp[1] - .2, 0);
+    const sj = serreJ(); sj.scale.setScalar(1.22); add(sj, wp[0] - 1.2, wp[1] - 1.5, .6, { t: 'deco', k: 'serre' }); }
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
   for (let k = 0; k < Math.max(0, S.cuves || 0) && k < 3; k++) add(barrel(lvl), bp[0] + 1.1 * (k + 1), bp[1] + .3 * (k % 2 ? -1 : 1));
   add(puits(), hp[0] + 3.2, hp[1] + 5.2, 0);
   const cp = ypos(3, -1.6, -1.6) || [-HW - 5, -HH + 5]; add(composter(Math.min(1, (S.waste || 0) / 6)), cp[0], cp[1], .5, { t: 'deco', k: 'compost' });
   if (S.poulailler) add(poulailler(), HW + 3.4, -HH * .2, -Math.PI / 2 + .2, { t: 'deco', k: 'poulailler' });
-  if (S.atelier) add(atelier(), -HW - 4, HH * .5, .6, { t: 'deco', k: 'atelier' });
+  if (S.atelier) { const w = workXZ(); add(atelier(), w[0] + 3.2, w[1] + 1.6, .6, { t: 'deco', k: 'atelier' }); }
   S.trees.forEach((t, k) => { const x = -HW + 1 + (HW * 2 + 10) * (k / 7), z = -HH - 3.4 - (k % 2) * 3.2; add(borderTree(t, A.G.treeReady(S, k)), x, z, k * 1.7, { t: 'tree', k }); });
   for (let k = 0; k < 8; k++) { const ready = A.G.lawnReady(S, k), bw = (2 * HW + 6) / 4, bd = 3.6, x = -HW - 3 + bw * (k % 4 + .5), z = -HH - 1.6 - bd * (Math.floor(k / 4) + .5); const lp = lawnPatch(ready, k, bw + .05, bd + .05); add(lp, x, z, 0, { t: 'lawn', k }); deco['L' + k] = [x, z]; deco['T' + k] = [-HW + 2 + (HW * 2 + 8) * (k / 4), -HH - 4 - (k % 2) * 1.5]; }
   const SEA = { winter: 0xb9a58c, autumn: 0xffb870, spring: 0xdcffc4 }, tmat = new T.MeshLambertMaterial({ vertexColors: true, color: SEA[season] || 0xffffff });
@@ -3093,7 +3096,7 @@ function make(P) {
   function mgFinish(s, id, stars) {
     const st = mgState(s); stars = clamp(Math.round(stars), 0, 3); s.mgBest[id] = Math.max(s.mgBest[id] || 0, stars);
     const today = mgToday(s).includes(id); if (!today || st.done[id] != null) return { ok: true, reward: false, g: 0, stars };
-    st.done[id] = stars; let g = [1, 3, 5, 8][stars]; if (hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
+    st.done[id] = stars; let g = [0, 1, 2, 4][stars]; if (hasAdv(s, 'naturaliste')) g = Math.round(g * 1.5);
     s.feves = (s.feves || 0) + g; gainXp(s, 6 + stars * 6); bump(s, 'mg'); { const gq = gqInit(s); if (stars >= 2) gq.cnt.mg2 = (gq.cnt.mg2 || 0) + 1; if (stars >= 3) gq.cnt.mg3 = (gq.cnt.mg3 || 0) + 1; }
     const plants = []; if (stars >= 2) { const m = dateOf(s.day).m, rg = mulberry(s.day * 313 + (MGS.indexOf(id) + 1) * 7), fp = fastPool(s, m), u = unlocked(s); if (fp.length) plants.push(fp[Math.floor(rg() * fp.length)].id);
       if (stars >= 3) { const sp = P.filter(p => u.has(p.strate) && sowable(p, m) && p.rarete !== 'Rare' && !isExo(p) && !plants.includes(p.id) && p.kind !== 'continue'); if (sp.length) plants.push(sp[Math.floor(rg() * sp.length)].id); }
@@ -5350,7 +5353,7 @@ function openMgList() {
 }
 function openMg(id) {
   const inf = G.mgInfo(S), today = inf.today.includes(id), done = inf.done[id] != null, d = MGD[id];
-  modal(inf.names[id], '<div class="mg"><div class="mg-hero" style="--h1:' + MGC[id][0] + ';--h2:' + MGC[id][1] + '">' + mgIcon(id, d[0]) + '<h3>' + inf.names[id] + '</h3><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><div class="mg-rec">' + mgStarsHtml(inf.best[id] || 0) + '</div><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : des ginkgos (1, 3, 5 ou 8) et, dès 2 étoiles, des cartes de plantes.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div></div>');
+  modal(inf.names[id], '<div class="mg"><div class="mg-hero" style="--h1:' + MGC[id][0] + ';--h2:' + MGC[id][1] + '">' + mgIcon(id, d[0]) + '<h3>' + inf.names[id] + '</h3><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><div class="mg-rec">' + mgStarsHtml(inf.best[id] || 0) + '</div><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : quelques ginkgos (jusqu’à 4) et, dès 2 étoiles, des cartes de plantes.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div></div>');
   $('mgp').onclick = () => mgPlay(id);
 }
 function mgPlay(id) {
@@ -5667,17 +5670,27 @@ function openHouse(tab) {
 }
 function openSerre(tab) {
   ui.serreTab = tab || ui.serreTab || 'pots'; const t = ui.serreTab, X = G.xpInfo(S), title = gTitle(X.lvl);
-  let h = '<div class="sk-tabs" role="tablist">' + [['pots', 'Plantes en pot'], ['jardinier', 'Mon équipe']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="serre-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  let h = '<div class="sk-tabs" role="tablist">' + [['pots', 'Plantes en pot'], ['bouture', 'Bouturage'], ['jardinier', 'Mon équipe']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="serre-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
   h += roomImg('serre');
   if (t === 'pots') {
     const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).filter(pid => P[pid]), unl = G.unlocked(S);
     if (!ids.length) h += '<p class="empty-f">Aucune plante en pot pour l’instant. Ouvre un booster (missions de Guildéon) pour en récolter.</p>';
     else {
       h += '<p class="note-p">Ton bureau de jardinier : les plantes que tu as en pot, prêtes à partir dans la forêt comestible. Touche-en une, puis choisis son emplacement.</p>';
-      const rows = ids.map(pid => { const p = P[pid], ok = G.sowable(p, m) && unl.has(p.strate), ps = ok ? planSlots(pid) : { n: 0, why: '' }; return { pid, p, ok, ps }; }).sort((a, b) => (b.ok && b.ps.n ? 1 : 0) - (a.ok && a.ps.n ? 1 : 0) || a.p.name.localeCompare(b.p.name, 'fr'));
-      h += '<div class="pots">' + rows.map(({ pid, p, ok, ps }) => '<button type="button" class="pot t-' + p.strate + (ok && ps.n ? '' : ' off') + '" data-act="gj-plant" data-pid="' + pid + '"' + (ok && ps.n ? '' : ' disabled') + '><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b><span class="ps">× ' + (S.cards[pid] || 1) + ' · ' + (ok ? (ps.n ? ps.n + ' place' + (ps.n > 1 ? 's' : '') : 'plus de place') : 'pas la saison') + '</span></button>').join('') + '</div>';
+      const rows = ids.map(pid => { const p = P[pid], ps = planSlots(pid), ok = ps.n > 0; return { pid, p, ok, ps }; }).sort((a, b) => (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || a.p.name.localeCompare(b.p.name, 'fr'));
+      h += '<div class="pots">' + rows.map(({ pid, p, ok, ps }) => '<button type="button" class="pot t-' + p.strate + (ok ? '' : ' wait') + '" data-act="gj-plant" data-pid="' + pid + '"><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b><span class="ps">× ' + (S.cards[pid] || 1) + ' · ' + (ok ? '<em>' + ps.n + ' place' + (ps.n > 1 ? 's' : '') + '</em>' : 'à planter plus tard') + '</span></button>').join('') + '</div>';
     }
     h += '<div class="acts" style="justify-content:flex-start;margin-top:10px"><button type="button" class="btn sm" data-act="gj-open">Actions du jardinier</button></div>';
+  } else if (t === 'bouture') {
+    const lv = G.skillLevel(S, 'bouture');
+    h += '<p class="note-p">Au poste de bouturage, le jardinier prélève un brin sur une vivace adulte de la forêt et le met en pot : tu gagnes une nouvelle carte de la même plante (deux au niveau 3 de la compétence).</p>';
+    if (lv < 1) h += '<p class="empty-f">Compétence Bouture non acquise : débloque-la avec tes points de compétence.</p><div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="skills">Ouvrir les compétences</button></div>';
+    else {
+      const rows = []; S.grid.forEach((c, i) => { if (!c || c.treille || !P[c.pid]) return; const p = P[c.pid]; if (!['vivace', 'continue'].includes(p.kind) || p.strate === 'Arbre') return; const ck = G.boutureCheck(S, i); rows.push({ i, p, ck }); });
+      h += '<p class="note-p" style="color:var(--ink)">Niveau de bouture : <b>' + lv + '</b> / 3.</p>';
+      if (!rows.length) h += '<p class="empty-f">Aucune vivace dans ta forêt pour l’instant : plante-en une, puis reviens quand elle aura grandi.</p>';
+      else { rows.sort((a, b) => (b.ck.ok ? 1 : 0) - (a.ck.ok ? 1 : 0)); h += '<div class="cuts">' + rows.map(({ i, p, ck }) => '<div class="cut t-' + p.strate + (ck.ok ? '' : ' wait') + '"><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b>' + (ck.ok ? '<button type="button" class="btn sm primary" data-act="serre-cut" data-i="' + i + '">Bouturer</button>' : '<small>' + esc(ck.msg) + '</small>') + '</div>').join('') + '</div>'; }
+    }
   } else {
     const o = S.outfit || {}, main = wAct(), sel = ui.teamSel || main, T = S.team || {};
     const nm = k => wName(k), role = k => k === 'guil' ? (k === main ? 'Compagnon au jardin' : 'Compagnon du jardin') : (k === 'f' ? 'Jardinière' : 'Jardinier') + (k === main ? ' · au jardin' : '');
@@ -6187,10 +6200,11 @@ document.addEventListener('click', e => {
     case 'cellar-use': { const r = G.useCellar(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('La famille se régale (+' + r.v + ' de bonheur).'); save(); render(); openHouse('cellier'); break; }
     case 'house-tab': openHouse(a.dataset.t); break;
     case 'serre-tab': openSerre(a.dataset.t); break;
+    case 'serre-cut': { const r = G.bouturer(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('Bouture de ' + r.name.toLowerCase() + ' : ' + r.n + ' nouvelle' + (r.n > 1 ? 's' : '') + ' carte' + (r.n > 1 ? 's' : '') + ' en pot.'); save(); render(); openSerre('bouture'); break; }
     case 'gj-open': openGardener(); break;
     case 'gj-amen': closeModal(); openAmenager(); break;
     case 'gj-spade': closeModal(); ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); break;
-    case 'gj-plant': { closeModal(); const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
+    case 'gj-plant': { const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } closeModal(); ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
     case 'gj-task': closeModal(); doTask(a.dataset.id); break;
     case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); if (ui.viewer && (ui.teamSel || 'm') !== 'f' && ui.teamSel !== 'guil') { ui.viewer.outfit(a.dataset.id); a.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('primary', b === a)); } else openSerre('jardinier'); break;
     case 'team-sel': ui.teamSel = a.dataset.k; ui.teamEdit = null; openSerre('jardinier'); break;

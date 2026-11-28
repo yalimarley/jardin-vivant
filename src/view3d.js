@@ -834,7 +834,7 @@ function smokeTick(dt) {
 }
 const SMK = [0.5, -0.2, 4.4];
 V.fx = kind => burst(kind, V.atelierXZ());
-V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => [-HW - 4, HH * .5];
+V.houseXZ = () => deco.chim ? [deco.chim.x - 1.1, deco.chim.z + .9] : null; V.atelierXZ = () => { const w = workXZ(); return [w[0] + 3.2, w[1] + 1.6]; };
 const fmCache = {};
 function fmGeos(n) {
   if (fmCache[n]) return fmCache[n];
@@ -1533,6 +1533,7 @@ function syncTracks(S) {
   });
 }
 let sigDec = '';
+function workXZ() { const h = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; return [h[0] + 10.4, h[1] + 10.6]; }
 function ypos(k, dx, dz) { const N = A.walk().N, n = N['y' + k]; if (!n) return null; const q = cr2xz(n.c, n.r); return [q[0] + (dx || 0), q[1] + (dz || 0)]; }
 function syncDecor(S, sk) {
   const tr = S.trees.map((t, k) => t.formed ? (A.G.treeReady(S, k) ? 2 : 1) : 0).join('')+season, lw = [0, 1, 2, 3, 4, 5, 6, 7].map(k => A.G.lawnReady(S, k) ? 1 : 0).join('');
@@ -1542,13 +1543,15 @@ function syncDecor(S, sk) {
   const add = (o, x, z, ry, pick) => { o.position.set(x, hAt(x, z), z); if (ry) o.rotation.y = ry; if (pick) o.userData.pick = pick; gDecor.add(o); return o; };
   const hp = ypos(0, -2.8, -2.4) || [-HW - 6, -HH + 1]; add(house(), hp[0], hp[1], .5, { t: 'deco', k: 'house' }); deco.chim = new T.Vector3(hp[0] + 1.1, hAt(hp[0], hp[1]) + 4.2, hp[1] - .9);
   if ((S.wood || 0) >= 3) { const bw = dcMesh('buches', dcSolidMat); bw.scale.setScalar(.8 + Math.min(.9, (S.wood || 0) / 30)); const bg = new T.Group(); bg.add(bw); add(bg, hp[0] + 3.4, hp[1] + 1.6, .2); }
-  { const c = Math.cos(.5), s = Math.sin(.5), dx = 5.9, dz = .1; const sj = serreJ(); sj.scale.setScalar(1.3); add(sj, hp[0] + dx * c + dz * s, hp[1] - dx * s + dz * c, .5, { t: 'deco', k: 'serre' }); }
+  /* espace de travail des jardiniers : serre et atelier collés, à l’écart de la maison */
+  { const wp = workXZ(), pad = mesh(new T.CylinderGeometry(5.2, 5.5, .08, 28), L(0xb9ad8f), 0, .04, 0); pad.scale.set(1.25, 1, .9); const pg = new T.Group(); pg.add(pad); add(pg, wp[0] + .6, wp[1] - .2, 0);
+    const sj = serreJ(); sj.scale.setScalar(1.22); add(sj, wp[0] - 1.2, wp[1] - 1.5, .6, { t: 'deco', k: 'serre' }); }
   const bp = ypos(4, 0, 1.4) || [-HW - 3, -HH + 3], lvl = S.tank / S.tankMax; add(barrel(lvl), bp[0], bp[1]);
   for (let k = 0; k < Math.max(0, S.cuves || 0) && k < 3; k++) add(barrel(lvl), bp[0] + 1.1 * (k + 1), bp[1] + .3 * (k % 2 ? -1 : 1));
   add(puits(), hp[0] + 3.2, hp[1] + 5.2, 0);
   const cp = ypos(3, -1.6, -1.6) || [-HW - 5, -HH + 5]; add(composter(Math.min(1, (S.waste || 0) / 6)), cp[0], cp[1], .5, { t: 'deco', k: 'compost' });
   if (S.poulailler) add(poulailler(), HW + 3.4, -HH * .2, -Math.PI / 2 + .2, { t: 'deco', k: 'poulailler' });
-  if (S.atelier) add(atelier(), -HW - 4, HH * .5, .6, { t: 'deco', k: 'atelier' });
+  if (S.atelier) { const w = workXZ(); add(atelier(), w[0] + 3.2, w[1] + 1.6, .6, { t: 'deco', k: 'atelier' }); }
   S.trees.forEach((t, k) => { const x = -HW + 1 + (HW * 2 + 10) * (k / 7), z = -HH - 3.4 - (k % 2) * 3.2; add(borderTree(t, A.G.treeReady(S, k)), x, z, k * 1.7, { t: 'tree', k }); });
   for (let k = 0; k < 8; k++) { const ready = A.G.lawnReady(S, k), bw = (2 * HW + 6) / 4, bd = 3.6, x = -HW - 3 + bw * (k % 4 + .5), z = -HH - 1.6 - bd * (Math.floor(k / 4) + .5); const lp = lawnPatch(ready, k, bw + .05, bd + .05); add(lp, x, z, 0, { t: 'lawn', k }); deco['L' + k] = [x, z]; deco['T' + k] = [-HW + 2 + (HW * 2 + 8) * (k / 4), -HH - 4 - (k % 2) * 1.5]; }
   const SEA = { winter: 0xb9a58c, autumn: 0xffb870, spring: 0xdcffc4 }, tmat = new T.MeshLambertMaterial({ vertexColors: true, color: SEA[season] || 0xffffff });

@@ -1344,7 +1344,7 @@ function openMgList() {
 }
 function openMg(id) {
   const inf = G.mgInfo(S), today = inf.today.includes(id), done = inf.done[id] != null, d = MGD[id];
-  modal(inf.names[id], '<div class="mg"><div class="mg-hero" style="--h1:' + MGC[id][0] + ';--h2:' + MGC[id][1] + '">' + mgIcon(id, d[0]) + '<h3>' + inf.names[id] + '</h3><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><div class="mg-rec">' + mgStarsHtml(inf.best[id] || 0) + '</div><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : des ginkgos (1, 3, 5 ou 8) et, dès 2 étoiles, des cartes de plantes.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div></div>');
+  modal(inf.names[id], '<div class="mg"><div class="mg-hero" style="--h1:' + MGC[id][0] + ';--h2:' + MGC[id][1] + '">' + mgIcon(id, d[0]) + '<h3>' + inf.names[id] + '</h3><p class="note-p" style="color:var(--ink);font-size:15px">' + d[1] + '</p><p class="note-p">' + d[2] + '</p><div class="mg-rec">' + mgStarsHtml(inf.best[id] || 0) + '</div><p class="note-p">' + (today ? (done ? 'Récompense du jour déjà prise : rejoue pour battre ton record.' : 'Mini-jeu du jour : quelques ginkgos (jusqu’à 4) et, dès 2 étoiles, des cartes de plantes.') : 'Entraînement libre : pas de récompense, mais tu peux battre ton record.') + '</p><div class="acts" style="justify-content:center"><button type="button" class="btn primary" id="mgp">Jouer</button></div></div></div>');
   $('mgp').onclick = () => mgPlay(id);
 }
 function mgPlay(id) {
@@ -1661,17 +1661,27 @@ function openHouse(tab) {
 }
 function openSerre(tab) {
   ui.serreTab = tab || ui.serreTab || 'pots'; const t = ui.serreTab, X = G.xpInfo(S), title = gTitle(X.lvl);
-  let h = '<div class="sk-tabs" role="tablist">' + [['pots', 'Plantes en pot'], ['jardinier', 'Mon équipe']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="serre-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
+  let h = '<div class="sk-tabs" role="tablist">' + [['pots', 'Plantes en pot'], ['bouture', 'Bouturage'], ['jardinier', 'Mon équipe']].map(([k, n]) => '<button type="button" role="tab" aria-selected="' + (t === k) + '" class="sk-tab' + (t === k ? ' on' : '') + '" data-act="serre-tab" data-t="' + k + '">' + n + '</button>').join('') + '</div>';
   h += roomImg('serre');
   if (t === 'pots') {
     const m = G.dateOf(S.day).m, ids = Object.keys(S.cards).map(Number).filter(pid => P[pid]), unl = G.unlocked(S);
     if (!ids.length) h += '<p class="empty-f">Aucune plante en pot pour l’instant. Ouvre un booster (missions de Guildéon) pour en récolter.</p>';
     else {
       h += '<p class="note-p">Ton bureau de jardinier : les plantes que tu as en pot, prêtes à partir dans la forêt comestible. Touche-en une, puis choisis son emplacement.</p>';
-      const rows = ids.map(pid => { const p = P[pid], ok = G.sowable(p, m) && unl.has(p.strate), ps = ok ? planSlots(pid) : { n: 0, why: '' }; return { pid, p, ok, ps }; }).sort((a, b) => (b.ok && b.ps.n ? 1 : 0) - (a.ok && a.ps.n ? 1 : 0) || a.p.name.localeCompare(b.p.name, 'fr'));
-      h += '<div class="pots">' + rows.map(({ pid, p, ok, ps }) => '<button type="button" class="pot t-' + p.strate + (ok && ps.n ? '' : ' off') + '" data-act="gj-plant" data-pid="' + pid + '"' + (ok && ps.n ? '' : ' disabled') + '><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b><span class="ps">× ' + (S.cards[pid] || 1) + ' · ' + (ok ? (ps.n ? ps.n + ' place' + (ps.n > 1 ? 's' : '') : 'plus de place') : 'pas la saison') + '</span></button>').join('') + '</div>';
+      const rows = ids.map(pid => { const p = P[pid], ps = planSlots(pid), ok = ps.n > 0; return { pid, p, ok, ps }; }).sort((a, b) => (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || a.p.name.localeCompare(b.p.name, 'fr'));
+      h += '<div class="pots">' + rows.map(({ pid, p, ok, ps }) => '<button type="button" class="pot t-' + p.strate + (ok ? '' : ' wait') + '" data-act="gj-plant" data-pid="' + pid + '"><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b><span class="ps">× ' + (S.cards[pid] || 1) + ' · ' + (ok ? '<em>' + ps.n + ' place' + (ps.n > 1 ? 's' : '') + '</em>' : 'à planter plus tard') + '</span></button>').join('') + '</div>';
     }
     h += '<div class="acts" style="justify-content:flex-start;margin-top:10px"><button type="button" class="btn sm" data-act="gj-open">Actions du jardinier</button></div>';
+  } else if (t === 'bouture') {
+    const lv = G.skillLevel(S, 'bouture');
+    h += '<p class="note-p">Au poste de bouturage, le jardinier prélève un brin sur une vivace adulte de la forêt et le met en pot : tu gagnes une nouvelle carte de la même plante (deux au niveau 3 de la compétence).</p>';
+    if (lv < 1) h += '<p class="empty-f">Compétence Bouture non acquise : débloque-la avec tes points de compétence.</p><div class="acts" style="justify-content:flex-start"><button type="button" class="btn sm primary" data-act="skills">Ouvrir les compétences</button></div>';
+    else {
+      const rows = []; S.grid.forEach((c, i) => { if (!c || c.treille || !P[c.pid]) return; const p = P[c.pid]; if (!['vivace', 'continue'].includes(p.kind) || p.strate === 'Arbre') return; const ck = G.boutureCheck(S, i); rows.push({ i, p, ck }); });
+      h += '<p class="note-p" style="color:var(--ink)">Niveau de bouture : <b>' + lv + '</b> / 3.</p>';
+      if (!rows.length) h += '<p class="empty-f">Aucune vivace dans ta forêt pour l’instant : plante-en une, puis reviens quand elle aura grandi.</p>';
+      else { rows.sort((a, b) => (b.ck.ok ? 1 : 0) - (a.ck.ok ? 1 : 0)); h += '<div class="cuts">' + rows.map(({ i, p, ck }) => '<div class="cut t-' + p.strate + (ck.ok ? '' : ' wait') + '"><span class="pa">' + cardArt(p) + '</span><b>' + esc(p.name) + '</b>' + (ck.ok ? '<button type="button" class="btn sm primary" data-act="serre-cut" data-i="' + i + '">Bouturer</button>' : '<small>' + esc(ck.msg) + '</small>') + '</div>').join('') + '</div>'; }
+    }
   } else {
     const o = S.outfit || {}, main = wAct(), sel = ui.teamSel || main, T = S.team || {};
     const nm = k => wName(k), role = k => k === 'guil' ? (k === main ? 'Compagnon au jardin' : 'Compagnon du jardin') : (k === 'f' ? 'Jardinière' : 'Jardinier') + (k === main ? ' · au jardin' : '');
@@ -2181,10 +2191,11 @@ document.addEventListener('click', e => {
     case 'cellar-use': { const r = G.useCellar(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('La famille se régale (+' + r.v + ' de bonheur).'); save(); render(); openHouse('cellier'); break; }
     case 'house-tab': openHouse(a.dataset.t); break;
     case 'serre-tab': openSerre(a.dataset.t); break;
+    case 'serre-cut': { const r = G.bouturer(S, +a.dataset.i); if (!r.ok) { toast(r.msg); break; } toast('Bouture de ' + r.name.toLowerCase() + ' : ' + r.n + ' nouvelle' + (r.n > 1 ? 's' : '') + ' carte' + (r.n > 1 ? 's' : '') + ' en pot.'); save(); render(); openSerre('bouture'); break; }
     case 'gj-open': openGardener(); break;
     case 'gj-amen': closeModal(); openAmenager(); break;
     case 'gj-spade': closeModal(); ui.tool = 'spade'; ui.mode = null; ui.spade = null; ui.mvFrom = -1; ui.delPending = -1; render(); openSpade(); break;
-    case 'gj-plant': { closeModal(); const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
+    case 'gj-plant': { const pid = +a.dataset.pid, ps = planSlots(pid); if (!ps.n) { toast(ps.why); break; } closeModal(); ui.tool = 'select'; ui.mode = { type: 'plant', pid }; render(); toast('Choisis un emplacement : ' + ps.n + ' possible' + (ps.n > 1 ? 's' : '') + '.'); break; }
     case 'gj-task': closeModal(); doTask(a.dataset.id); break;
     case 'outfit': S.outfit = Object.assign({}, S.outfit, { [a.dataset.slot]: a.dataset.id }); save(); render(); if (ui.viewer && (ui.teamSel || 'm') !== 'f' && ui.teamSel !== 'guil') { ui.viewer.outfit(a.dataset.id); a.parentNode.querySelectorAll('button').forEach(b => b.classList.toggle('primary', b === a)); } else openSerre('jardinier'); break;
     case 'team-sel': ui.teamSel = a.dataset.k; ui.teamEdit = null; openSerre('jardinier'); break;
